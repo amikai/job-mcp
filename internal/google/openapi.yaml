@@ -1,0 +1,291 @@
+openapi: 3.2.0
+info:
+  title: Google Careers Jobs Search
+  version: 1.0.0
+  description: |
+    Client-side API specification for the Google Careers job search page at
+    https://www.google.com/about/careers/applications/jobs.
+
+    ## Architecture
+
+    Google Careers uses **server-side rendering (SSR)**. All filtering, sorting,
+    and pagination are expressed as URL query parameters on a single GET endpoint.
+    Each parameter change triggers a full-page navigation; there is no JSON search API.
+
+    ## Key Behaviors
+
+    - **Pagination**: 20 results per page. The `page` param is 1-based; omitting it
+      defaults to page 1.
+    - **Multi-value params**: `target_level`, `degree`, `employment_type`, `company`,
+      and `location` all accept multiple values by repeating the key:
+      `?employment_type=FULL_TIME&employment_type=INTERN`
+    - **Enum validation**: Server-side enum validation is not enforced for most params;
+      unrecognized values are silently ignored and return all results.
+    - **Location autocomplete**: The `location` field accepts plain-text strings
+      (city, region, or country). The UI limits selection to 4 locations simultaneously.
+    - **Sort default**: Omitting `sort_by` defaults to relevance ordering.
+
+servers:
+  - url: https://www.google.com/about/careers/applications
+    description: Google Careers
+
+paths:
+  /jobs/results:
+    get:
+      operationId: searchJobs
+      summary: Search and filter job listings
+      description: |
+        Returns an HTML page of job listings matching the given filters.
+        All filter state is encoded in URL query parameters; changing any parameter
+        causes a full-page navigation with the new results rendered server-side.
+      parameters:
+        - name: q
+          in: query
+          description: |
+            Free-text search query matched against job title and description.
+            Corresponds to the "What do you want to do?" input field.
+            Omit or leave empty to return all jobs.
+          required: false
+          schema:
+            type: string
+          example: "software engineer"
+
+        - name: location
+          in: query
+          description: |
+            Location filter. Accepts a city, region, or country name chosen from
+            the autocomplete dropdown (e.g. "Taiwan", "New York, NY, USA").
+            Repeat this parameter to filter by multiple locations (UI allows up to 4).
+          required: false
+          schema:
+            type: string
+          examples:
+            single:
+              value: "Taiwan"
+            multiple:
+              value: "Taiwan&location=Singapore"
+
+        - name: has_remote
+          in: query
+          description: |
+            When set to `true`, restricts results to jobs marked "Remote eligible".
+            Omitting this parameter (or any value other than `true`) returns all jobs
+            regardless of remote eligibility.
+          required: false
+          schema:
+            type: string
+            enum: ["true"]
+          example: "true"
+
+        - name: target_level
+          in: query
+          description: |
+            Experience level filter. Repeat this parameter to select multiple levels.
+            Corresponds to the "Experience" filter section in the UI.
+          required: false
+          schema:
+            type: string
+            enum:
+              - EARLY
+              - MID
+              - ADVANCED
+              - INTERN_AND_APPRENTICE
+              - DIRECTOR_PLUS
+          examples:
+            early:
+              summary: Early-career roles
+              value: "EARLY"
+            multiple:
+              summary: Mid and Advanced
+              value: "MID&target_level=ADVANCED"
+
+        - name: skills
+          in: query
+          description: |
+            Free-text skills and qualifications filter. Corresponds to the
+            "Skills & qualifications" input field (placeholder: "Computer programming,
+            finance degree, et…"). Submitted on Enter key press.
+          required: false
+          schema:
+            type: string
+          example: "Python"
+
+        - name: degree
+          in: query
+          description: |
+            Minimum education level filter. Repeat this parameter to select multiple
+            degree levels. Corresponds to the "Degree" filter section.
+          required: false
+          schema:
+            type: string
+            enum:
+              - PURSUING_DEGREE
+              - ASSOCIATE
+              - BACHELORS
+              - MASTERS
+              - PHD
+          examples:
+            bachelors:
+              value: "BACHELORS"
+            grad:
+              summary: Masters or PhD
+              value: "MASTERS&degree=PHD"
+
+        - name: employment_type
+          in: query
+          description: |
+            Job type filter. Repeat this parameter to select multiple types.
+            Corresponds to the "Job types" filter section.
+          required: false
+          schema:
+            type: string
+            enum:
+              - FULL_TIME
+              - PART_TIME
+              - TEMPORARY
+              - INTERN
+          examples:
+            fulltime:
+              value: "FULL_TIME"
+            multiple:
+              value: "FULL_TIME&employment_type=PART_TIME"
+
+        - name: company
+          in: query
+          description: |
+            Organization (sub-company) filter. Repeat this parameter to select multiple
+            organizations. Corresponds to the "Organizations" filter section.
+            All values are the display names exactly as shown in the UI.
+          required: false
+          schema:
+            type: string
+            enum:
+              - DeepMind
+              - GFiber
+              - Google
+              - Verily Life Sciences
+              - Waymo
+              - Wing
+              - YouTube
+          examples:
+            google:
+              value: "Google"
+            multiple:
+              value: "Google&company=DeepMind&company=YouTube"
+
+        - name: sort_by
+          in: query
+          description: |
+            Sort order for results. Defaults to `relevance` when omitted.
+            `date` sorts by posting date descending (newest first).
+          required: false
+          schema:
+            type: string
+            enum:
+              - relevance
+              - date
+          example: "date"
+
+        - name: page
+          in: query
+          description: |
+            1-based page number. Each page contains 20 results. Omitting this param
+            defaults to page 1. The page counter resets when any other filter changes.
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          example: 2
+
+      responses:
+        "200":
+          description: |
+            An HTML page containing the filtered job listings. The page includes:
+            - A header showing total matched count (e.g. "3,647 jobs matched")
+            - Up to 20 job listing cards, each containing:
+                - Job title (links to the detail page)
+                - Hiring company (e.g. "Google", "DeepMind")
+                - Location(s) — multiple locations shown as "City A; City B; +N more"
+                - Experience level badge (Early, Mid, Advanced, etc.)
+                - "Remote eligible" badge (when applicable)
+                - Minimum qualifications summary (first few bullet points)
+                - "Learn more" link to the full job description
+            - Pagination indicator: "1–20 of N" with previous/next arrows
+            - The active filter state reflected back in the sidebar checkboxes
+          content:
+            text/html:
+              schema:
+                type: string
+                description: Server-rendered HTML page.
+
+  /jobs/results/{job_id}:
+    get:
+      operationId: getJobDetail
+      summary: Get job detail page
+      description: |
+        Returns an SSR HTML page with the full details of a single job listing.
+
+        Clicking "Learn more" on a search result card performs a client-side SPA
+        navigation to this URL — no additional network request is made; the job detail
+        data is embedded in the initial page load. Navigating directly to this URL also
+        works and triggers a full SSR render.
+
+        **URL format**: The path segment is `{job_id}` alone, or `{job_id}-{slug}` where
+        the slug is the job title lowercased and hyphenated (e.g.
+        `129368132304151238-network-fabric-test-engineer`). The slug is cosmetic/SEO
+        only — the server resolves the job using only the leading numeric `{job_id}`.
+        You can omit the slug entirely and the page loads correctly.
+
+        The `job_id` is embedded in the `href` of each "Learn more" link in the list
+        page HTML, and is also surfaced in Google Analytics events as `ep.job_id`.
+      parameters:
+        - name: job_id
+          in: path
+          required: true
+          description: |
+            Numeric job identifier, optionally followed by `-{slug}` (the job title
+            lowercased and hyphenated). Only the numeric prefix is used for lookup;
+            everything after the first `-` is ignored by the server.
+          schema:
+            type: string
+            pattern: '^\d+(-[a-z0-9-]+)?$'
+          examples:
+            id_only:
+              summary: ID only (slug omitted)
+              value: "129368132304151238"
+            id_with_slug:
+              summary: ID with slug (as generated by the UI)
+              value: "129368132304151238-network-fabric-test-engineer"
+      responses:
+        "200":
+          description: |
+            An HTML page with the complete job description. Page sections include:
+
+            **Header**
+            - Job title
+            - Hiring company (e.g. "Google", "DeepMind")
+            - Location(s) — multiple locations separated by semicolons
+            - Experience level badge (Early, Mid, Advanced, etc.)
+            - "Remote eligible" badge (when applicable)
+            - "Apply" button (links to the application form)
+
+            **Body sections** (one or more, varies per job)
+            - **Minimum qualifications** — required education and experience (bullet list)
+            - **Preferred qualifications** — nice-to-have skills (bullet list; may be absent)
+            - **About the job** — free-form role description (prose paragraphs)
+            - **Responsibilities** — key duties (bullet list; may be absent)
+
+            **Sidebar** (SPA only — not present when navigating directly)
+            - List of other job cards from the previous search results page
+          content:
+            text/html:
+              schema:
+                type: string
+                description: Server-rendered HTML page.
+        "404":
+          description: Job ID not found or job listing has been removed.
+          content:
+            text/html:
+              schema:
+                type: string
