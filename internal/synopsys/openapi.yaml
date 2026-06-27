@@ -1,0 +1,681 @@
+openapi: 3.2.0
+info:
+  title: Synopsys Careers Job Search
+  version: 1.0.0
+  description: |
+    Client-side API specification for the Synopsys Careers site at
+    https://careers.synopsys.com, powered by the TalentBrew ATS platform
+    (company ID 44408).
+
+    ## Architecture
+
+    The site uses an **SSR + AJAX hybrid**:
+
+    - **Initial page load** (`GET /search-jobs`) is server-side rendered. It accepts
+      keyword (`k`) and location (`l`) as query parameters and returns a complete HTML
+      page including all filter options with their facet IDs.
+
+    - **Filter interactions** (`GET /search-jobs/results`) are handled via AJAX. When
+      the user ticks any filter checkbox, the browser fires this endpoint and replaces
+      the results region in-place. Filters are expressed as a numbered `FacetFilters`
+      array. Multiple filters may be active simultaneously by repeating the array
+      with incrementing indices (`FacetFilters[0]`, `FacetFilters[1]`, …).
+
+    - **Job detail pages** (`GET /job/{city}/{job-slug}/{company_id}/{job_id}`) are
+      fully SSR. Navigating to the detail URL triggers a complete page load; no
+      additional AJAX request is made for the job content.
+
+    ## Facet Types
+
+    Filter checkboxes carry `data-facet-type` and `data-id` attributes that map
+    directly to the `FacetFilters[N].FacetType` and `FacetFilters[N].ID` parameters:
+
+    | FacetType | Dimension        | Example IDs / values                           |
+    |-----------|------------------|------------------------------------------------|
+    | `1`       | Category         | `8675488` (Engineering), `8675456` (Finance)   |
+    | `2`       | Country          | `6251999` (Canada), `1814991` (China)          |
+    | `3`       | State / Region   | GeoNames region IDs                            |
+    | `4`       | City             | GeoNames city IDs                              |
+    | `5`       | Sub Category     | Sub-discipline IDs (e.g. AI, Analog Design)    |
+    | `5`       | Remote Eligible  | String IDs `"Yes"` / `"No"` (FieldName = `custom_fields.IsRemote`) |
+
+    Remote Eligible is a special case: it shares FacetType `5` with Sub Category but
+    has a non-empty `FieldName` of `custom_fields.IsRemote` and uses string IDs
+    (`"Yes"` / `"No"`) instead of numeric ones.
+
+    ## Sort Criteria
+
+    | SortCriteria | Meaning      |
+    |--------------|--------------|
+    | `0`          | Most Relevant |
+    | `13`         | Most Recent  |
+
+servers:
+  - url: https://careers.synopsys.com
+    description: Synopsys Careers (TalentBrew, company ID 44408)
+
+paths:
+  /search-jobs:
+    get:
+      operationId: searchJobsPage
+      summary: Search jobs (SSR page)
+      description: |
+        Returns the full SSR HTML search page. Use this for the initial page load.
+        Keyword and location filters are accepted as query parameters; more granular
+        facet filters are applied client-side via `/search-jobs/results`.
+
+        The HTML response includes the filter panel with all available facet
+        checkboxes (each carrying `data-facet-type`, `data-id`, `data-display`,
+        and `data-count` attributes) needed to build subsequent AJAX requests.
+      parameters:
+        - name: k
+          in: query
+          required: false
+          description: |
+            Keyword search query matched against job title, description, and skills.
+            Corresponds to the "Find Jobs For" (job title, category or skills) field.
+          schema:
+            type: string
+          example: "software engineer"
+
+        - name: l
+          in: query
+          required: false
+          description: |
+            Location filter. Accepts a city, region, or country name for geographic
+            filtering. Corresponds to the "Where?" field.
+          schema:
+            type: string
+          example: "San Jose, CA"
+
+        - name: orgIds
+          in: query
+          required: false
+          description: |
+            TalentBrew organisation ID. Always `44408` for Synopsys. This value is
+            embedded as a hidden form field and is sent automatically by the search
+            form; clients constructing URLs directly may omit it.
+          schema:
+            type: integer
+            default: 44408
+          example: 44408
+
+      responses:
+        "200":
+          description: |
+            Full HTML search results page. Contains:
+            - Search form (keyword + location inputs)
+            - Job result cards (up to `RecordsPerPage`, default 15 per page), each with:
+                - Job title (links to detail page at `/job/{city}/{slug}/{orgId}/{jobId}`)
+                - Location (city, country)
+                - Category
+                - Job ID (shown as "Job ID: NNNNN")
+                - Posted date
+            - Pagination controls
+            - Filter panel (Category, Sub Category, Remote Eligible, Country, State, City)
+              with facet checkboxes carrying `data-facet-type` and `data-id` attributes
+            - Sort dropdown (Most Relevant / Most Recent)
+          content:
+            text/html:
+              schema:
+                type: string
+                description: Server-rendered HTML page.
+
+  /search-jobs/results:
+    get:
+      operationId: getSearchResults
+      summary: Filter / paginate job results (AJAX)
+      description: |
+        AJAX endpoint called when the user applies or removes a filter checkbox or
+        navigates to another page. Returns a partial HTML fragment that replaces the
+        search results region.
+
+        **How filters work**: Every active filter is sent as one element of the
+        `FacetFilters` array. The index starts at `0` and increments for each
+        additional active filter. To remove a filter, omit its array element entirely
+        (or send it with `IsApplied=false`).
+
+        **Pagination**: Set `IsPagination=true` and increment `CurrentPage` without
+        changing any `FacetFilters` entries.
+
+        **Facet IDs**: The canonical source of facet IDs is the live search page DOM.
+        Category and geographic IDs are GeoNames-style numeric strings; Sub Category
+        IDs are platform-internal numeric strings. Remote Eligible uses the literal
+        strings `"Yes"` or `"No"` as IDs.
+      parameters:
+        - name: Keywords
+          in: query
+          required: false
+          description: Keyword search query (mirrors `k` on the SSR page).
+          schema:
+            type: string
+          example: "verification engineer"
+
+        - name: Location
+          in: query
+          required: false
+          description: Location text (mirrors `l` on the SSR page).
+          schema:
+            type: string
+          example: "Canada"
+
+        - name: CurrentPage
+          in: query
+          required: false
+          description: 1-based page number.
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          example: 1
+
+        - name: RecordsPerPage
+          in: query
+          required: false
+          description: Number of results to return per page.
+          schema:
+            type: integer
+            default: 15
+          example: 15
+
+        - name: SortCriteria
+          in: query
+          required: false
+          description: |
+            Sort order. `0` = Most Relevant (default); `13` = Most Recent.
+          schema:
+            type: integer
+            enum: [0, 13]
+            default: 0
+          example: 0
+
+        - name: SortDirection
+          in: query
+          required: false
+          description: Sort direction. `0` is the only observed value (ascending / default).
+          schema:
+            type: integer
+            default: 0
+          example: 0
+
+        - name: Distance
+          in: query
+          required: false
+          description: Radius distance for location-based filtering.
+          schema:
+            type: integer
+            default: 50
+          example: 50
+
+        - name: RadiusUnitType
+          in: query
+          required: false
+          description: Unit for `Distance`. `0` = miles.
+          schema:
+            type: integer
+            enum: [0]
+            default: 0
+          example: 0
+
+        - name: PostalCode
+          in: query
+          required: false
+          description: Postal / ZIP code for radius-based location search.
+          schema:
+            type: string
+          example: "95051"
+
+        - name: ShowRadius
+          in: query
+          required: false
+          description: Whether to show a radius selector in the UI response. Always `False`.
+          schema:
+            type: string
+            enum: ["False", "True"]
+            default: "False"
+          example: "False"
+
+        - name: IsPagination
+          in: query
+          required: false
+          description: |
+            Set to `True` when the request is triggered by a page-navigation action
+            (incrementing `CurrentPage`). Set to `False` when triggered by a filter
+            change.
+          schema:
+            type: string
+            enum: ["True", "False"]
+            default: "False"
+          example: "False"
+
+        - name: SearchType
+          in: query
+          required: false
+          description: |
+            Internal search mode. Always `5` for keyword/facet search on the standard
+            search page. Treat as a fixed constant.
+          schema:
+            type: integer
+            default: 5
+          example: 5
+
+        - name: ResultsType
+          in: query
+          required: false
+          description: Internal results mode. Always `0`. Treat as a fixed constant.
+          schema:
+            type: integer
+            default: 0
+          example: 0
+
+        - name: ActiveFacetID
+          in: query
+          required: false
+          description: |
+            The `data-id` value of the facet checkbox that was most recently toggled.
+            Used by the server to update facet counts. When paginating, this should
+            be omitted or set to the last facet that was toggled.
+          schema:
+            type: string
+          example: "8675488"
+
+        - name: SearchResultsModuleName
+          in: query
+          required: false
+          description: Fixed module name for the results partial. Always `"Search Results"`.
+          schema:
+            type: string
+            default: "Search Results"
+          example: "Search Results"
+
+        - name: SearchFiltersModuleName
+          in: query
+          required: false
+          description: Fixed module name for the filters partial. Always `"Search Filters"`.
+          schema:
+            type: string
+            default: "Search Filters"
+          example: "Search Filters"
+
+        - name: "FacetFilters[0].ID"
+          in: query
+          required: false
+          description: |
+            ID of the first active facet filter. For Category, Country, State, City,
+            and Sub Category this is a numeric string from the DOM `data-id` attribute.
+            For Remote Eligible this is the string `"Yes"` or `"No"`.
+
+            Repeat the entire `FacetFilters[N].*` group with `N` = 1, 2, 3 … for each
+            additional active filter.
+          schema:
+            type: string
+          example: "8675488"
+
+        - name: "FacetFilters[0].FacetType"
+          in: query
+          required: false
+          description: |
+            Facet type integer for the first filter:
+            - `1` = Category
+            - `2` = Country
+            - `3` = State / Region
+            - `4` = City
+            - `5` = Sub Category **or** Remote Eligible (distinguished by `FieldName`)
+          schema:
+            type: integer
+            enum: [1, 2, 3, 4, 5]
+          example: 1
+
+        - name: "FacetFilters[0].Display"
+          in: query
+          required: false
+          description: Human-readable label for the facet (from DOM `data-display`).
+          schema:
+            type: string
+          example: "Engineering"
+
+        - name: "FacetFilters[0].Count"
+          in: query
+          required: false
+          description: |
+            Job count shown next to the facet checkbox (from DOM `data-count`).
+            Must match the current count returned by the server.
+          schema:
+            type: integer
+          example: 533
+
+        - name: "FacetFilters[0].IsApplied"
+          in: query
+          required: false
+          description: |
+            `true` to apply this filter (include results that match this facet);
+            `false` to remove it.
+          schema:
+            type: boolean
+          example: true
+
+        - name: "FacetFilters[0].FieldName"
+          in: query
+          required: false
+          description: |
+            Field name for custom-field facets. Empty string for all standard facet
+            types (Category, Country, State, City, Sub Category).
+            Set to `"custom_fields.IsRemote"` for the Remote Eligible filter.
+          schema:
+            type: string
+            default: ""
+          example: ""
+
+      responses:
+        "200":
+          description: |
+            JSON object containing four fields. Two are HTML fragments injected into
+            the page by the TalentBrew JS layer; two are boolean flags.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: string
+                    description: |
+                      HTML fragment for the search results region. Contains:
+                      - A results count banner (e.g. "We found 533 jobs related to…")
+                      - Job listing cards, each with: title, location, category, posted
+                        date, display Job ID, and a link to the detail page
+                        (`/job/{city}/{slug}/{company_id}/{job_id}`)
+                      - Pagination controls
+                  filters:
+                    type: string
+                    description: |
+                      HTML fragment for the filter panel. Contains the updated facet
+                      checkboxes with refreshed counts reflecting the current result set.
+                      Each checkbox carries `data-facet-type`, `data-id`, `data-display`,
+                      and `data-count` attributes for building subsequent requests.
+                  hasJobs:
+                    type: boolean
+                    description: |
+                      `true` if the current query returned at least one job result;
+                      `false` if there are zero results.
+                  hasContent:
+                    type: boolean
+                    description: |
+                      `true` if the response contains renderable content (filters or
+                      results). Used by the client to decide whether to show the results
+                      container or a "no results" state.
+              example:
+                hasJobs: true
+                hasContent: true
+                results: '<div class="search-results-count">We found 533 jobs…</div><ul class="search-results-list">…</ul>'
+                filters: '<section id="category-filters-section">…</section>'
+
+  /job/{city}/{job-slug}/{company_id}/{job_id}:
+    get:
+      operationId: getJobDetail
+      summary: Get job detail page (SSR)
+      description: |
+        Returns the full SSR HTML job detail page. Navigation to this URL triggers a
+        complete page reload; no additional AJAX request is made for the job content.
+
+        **URL construction**: The `city` and `job-slug` segments are cosmetic
+        (SEO-friendly slugs derived from the job's location and title). The server
+        uses only `company_id` (always `44408`) and `job_id` to resolve the listing.
+        Clients may substitute any non-empty slug string without affecting the result,
+        but should use the exact values from the listing's `href` to match canonical URLs.
+
+        Job links in the search results take the form:
+        ```
+        /job/{city}/{job-title-slug}/{company_id}/{job_id}
+        ```
+        Example: `/job/mississauga/staff-design-verification-engineer-17401/44408/95443505168`
+      parameters:
+        - name: city
+          in: path
+          required: true
+          description: |
+            URL-slugified city name from the job listing (e.g. `"mississauga"`,
+            `"united-states"` for remote/national roles). Cosmetic only.
+          schema:
+            type: string
+          example: "mississauga"
+
+        - name: job-slug
+          in: path
+          required: true
+          description: |
+            URL-slugified job title (e.g. `"staff-design-verification-engineer-17401"`).
+            Cosmetic only — the server resolves the job by `job_id` alone.
+          schema:
+            type: string
+          example: "staff-design-verification-engineer-17401"
+
+        - name: company_id
+          in: path
+          required: true
+          description: |
+            TalentBrew company (organisation) ID. Always `44408` for Synopsys.
+          schema:
+            type: integer
+          example: 44408
+
+        - name: job_id
+          in: path
+          required: true
+          description: |
+            Numeric TalentBrew job posting ID. This is the authoritative identifier
+            used by the server to look up the job. Surfaced in search result cards as
+            "Job ID" and embedded in the `href` of each job title link.
+          schema:
+            type: string
+            pattern: '^\d+$'
+          example: "95443505168"
+
+      responses:
+        "200":
+          description: |
+            Full HTML job detail page. Page sections include:
+
+            **Header**
+            - Job title
+            - Location (city, state/province, country)
+            - Category (e.g. "Engineering")
+            - Employment type (e.g. "Employee")
+            - Salary range (e.g. "$98000-$147000") — when disclosed
+
+            **Tab sections** (navigable without page reload)
+            - **Overview** — role summary and embedded media (videos, images)
+            - **Job Description** — full requirements and responsibilities
+            - **Benefits** — compensation and benefits information
+            - **How We Hire** — hiring process overview
+
+            **Actions**
+            - "Apply" button (links to the application form)
+            - Save job (heart icon)
+            - Share (social share icon)
+          content:
+            text/html:
+              schema:
+                type: string
+                description: Server-rendered HTML page.
+
+        "404":
+          description: Job posting not found or has been removed.
+          content:
+            text/html:
+              schema:
+                type: string
+
+components:
+  schemas:
+    FacetFilter:
+      type: object
+      description: |
+        Represents one active filter facet. In query strings, each facet is sent as
+        a group of dotted parameters prefixed with `FacetFilters[N].` where N is the
+        zero-based index.
+      properties:
+        ID:
+          type: string
+          description: |
+            Facet identifier. Numeric string for Category / Country / State / City /
+            Sub Category facets (from DOM `data-id`). The string `"Yes"` or `"No"`
+            for the Remote Eligible facet.
+          examples:
+            - "8675488"
+            - "Yes"
+        FacetType:
+          type: integer
+          enum: [1, 2, 3, 4, 5]
+          description: |
+            Dimension type:
+            - `1` = Category
+            - `2` = Country
+            - `3` = State / Region
+            - `4` = City
+            - `5` = Sub Category or Remote Eligible (see FieldName)
+        Display:
+          type: string
+          description: Human-readable label (from DOM `data-display`).
+          examples:
+            - "Engineering"
+            - "Canada"
+            - "Yes"
+        Count:
+          type: integer
+          description: Number of jobs matching this facet value.
+          example: 533
+        IsApplied:
+          type: boolean
+          description: "`true` to activate this filter."
+          example: true
+        FieldName:
+          type: string
+          description: |
+            Empty string for all standard facet types. Set to
+            `"custom_fields.IsRemote"` for the Remote Eligible filter.
+          default: ""
+          examples:
+            - ""
+            - "custom_fields.IsRemote"
+      required:
+        - ID
+        - FacetType
+        - IsApplied
+
+  examples:
+    SearchEngineering:
+      summary: Filter by Engineering category
+      description: AJAX request to filter jobs to Engineering category only.
+      value:
+        Keywords: ""
+        Location: ""
+        CurrentPage: 1
+        RecordsPerPage: 15
+        SortCriteria: 0
+        SortDirection: 0
+        Distance: 50
+        RadiusUnitType: 0
+        ShowRadius: "False"
+        IsPagination: "False"
+        SearchType: 5
+        ResultsType: 0
+        ActiveFacetID: "8675488"
+        SearchResultsModuleName: "Search Results"
+        SearchFiltersModuleName: "Search Filters"
+        "FacetFilters[0].ID": "8675488"
+        "FacetFilters[0].FacetType": 1
+        "FacetFilters[0].Display": "Engineering"
+        "FacetFilters[0].Count": 533
+        "FacetFilters[0].IsApplied": true
+        "FacetFilters[0].FieldName": ""
+
+    SearchRemoteEligible:
+      summary: Filter to Remote Eligible jobs
+      description: AJAX request to filter jobs to Remote Eligible = Yes.
+      value:
+        Keywords: ""
+        Location: ""
+        CurrentPage: 1
+        RecordsPerPage: 15
+        SortCriteria: 0
+        SortDirection: 0
+        Distance: 50
+        RadiusUnitType: 0
+        ShowRadius: "False"
+        IsPagination: "False"
+        SearchType: 5
+        ResultsType: 0
+        ActiveFacetID: "Yes"
+        SearchResultsModuleName: "Search Results"
+        SearchFiltersModuleName: "Search Filters"
+        "FacetFilters[0].ID": "Yes"
+        "FacetFilters[0].FacetType": 5
+        "FacetFilters[0].Display": "Yes"
+        "FacetFilters[0].Count": 157
+        "FacetFilters[0].IsApplied": true
+        "FacetFilters[0].FieldName": "custom_fields.IsRemote"
+
+    SearchEngineeringRemoteCanada:
+      summary: Engineering + Remote Eligible + Canada (multi-filter)
+      description: |
+        AJAX request combining three filters: Category = Engineering,
+        Remote Eligible = Yes, Country = Canada.
+      value:
+        Keywords: ""
+        Location: ""
+        CurrentPage: 1
+        RecordsPerPage: 15
+        SortCriteria: 0
+        SortDirection: 0
+        Distance: 50
+        RadiusUnitType: 0
+        ShowRadius: "False"
+        IsPagination: "False"
+        SearchType: 5
+        ResultsType: 0
+        ActiveFacetID: "6251999"
+        SearchResultsModuleName: "Search Results"
+        SearchFiltersModuleName: "Search Filters"
+        "FacetFilters[0].ID": "8675488"
+        "FacetFilters[0].FacetType": 1
+        "FacetFilters[0].Display": "Engineering"
+        "FacetFilters[0].Count": 533
+        "FacetFilters[0].IsApplied": true
+        "FacetFilters[0].FieldName": ""
+        "FacetFilters[1].ID": "Yes"
+        "FacetFilters[1].FacetType": 5
+        "FacetFilters[1].Display": "Yes"
+        "FacetFilters[1].Count": 157
+        "FacetFilters[1].IsApplied": true
+        "FacetFilters[1].FieldName": "custom_fields.IsRemote"
+        "FacetFilters[2].ID": "6251999"
+        "FacetFilters[2].FacetType": 2
+        "FacetFilters[2].Display": "Canada"
+        "FacetFilters[2].Count": 89
+        "FacetFilters[2].IsApplied": true
+        "FacetFilters[2].FieldName": ""
+
+    PageTwo:
+      summary: Paginate to page 2 (Engineering filter kept)
+      value:
+        Keywords: ""
+        Location: ""
+        CurrentPage: 2
+        RecordsPerPage: 15
+        SortCriteria: 0
+        SortDirection: 0
+        Distance: 50
+        RadiusUnitType: 0
+        ShowRadius: "False"
+        IsPagination: "True"
+        SearchType: 5
+        ResultsType: 0
+        ActiveFacetID: "8675488"
+        SearchResultsModuleName: "Search Results"
+        SearchFiltersModuleName: "Search Filters"
+        "FacetFilters[0].ID": "8675488"
+        "FacetFilters[0].FacetType": 1
+        "FacetFilters[0].Display": "Engineering"
+        "FacetFilters[0].Count": 533
+        "FacetFilters[0].IsApplied": true
+        "FacetFilters[0].FieldName": ""
