@@ -1,0 +1,4243 @@
+{
+  "data": [
+    {
+      "appearDate": "20260515",
+      "applyCnt": 3,
+      "coIndustry": 1001001006,
+      "coIndustryDesc": "其它軟體及網路相關業",
+      "custName": "曜驊智能股份有限公司",
+      "custNo": "130000000042972",
+      "description": " development and implementation of the work involved\r\nRequired Experience \r\n\r\n•\t1-3 years production Golang experience\r\n•\t5+ years",
+      "descSnippet": " development and implementation of the work involved\r\nRequired Experience \r\n\r\n•\t1-3 years production [[[Golang]]] experience\r\n•\t5+ years",
+      "mrtDist": 0.37,
+      "jobAddress": "內湖路1段360巷8號8樓",
+      "jobAddrNo": 6001001010,
+      "jobAddrNoDesc": "台北市內湖區",
+      "jobName": "GoLang Developer",
+      "jobNameSnippet": "[[[GoLang]]] Developer",
+      "jobNo": "10177057",
+      "jobRo": 1,
+      "jobType": 0,
+      "lat": 25.0814545,
+      "lon": 121.570849,
+      "link": {
+        "job": "https://www.104.com.tw/job/624o1",
+        "cust": "https://www.104.com.tw/company/1a2x6biwgs",
+        "applyAnalyze": "https://www.104.com.tw/jobs/apply/analysis/624o1?channel=104rpt"
+      },
+      "major": [
+        "資訊工程相關"
+      ],
+      "mrt": "99001001016",
+      "mrtDesc": "捷運西湖站",
+      "optionEdu": [
+        4,
+        5,
+        6
+      ],
+      "period": 0,
+      "remoteWorkType": 0,
+      "s10": 10,
+      "salaryHigh": 0,
+      "salaryLow": 0,
+      "tags": {
+        "wf8": {
+          "desc": "",
+          "param": "wf8"
+        },
+        "wf1": {
+          "desc": "",
+          "param": "wf1"
+        },
+        "wf4": {
+          "desc": "",
+          "param": "wf4"
+        },
+        "wf3": {
+          "desc": "",
+          "param": "wf3"
+        },
+        "landmark": {
+          "desc": "距捷運西湖站約370公尺"
+        }
+      },
+      "s9": [
+        1
+      ],
+      "s5": 0,
+      "d3": "",
+      "hrBehaviorPR": 0.4774921833940549,
+      "jobCat": [
+        2007001004
+      ],
+      "labels": [
+        "c@wf8",
+        "c@wf1",
+        "c@wf4",
+        "joblist_search@jl_j0003_005.14",
+        "indexjob@ij003",
+        "indexjob@ij022",
+        "c@wf3",
+        "indexjob@ij005"
+      ],
+      "languageRequirements": [
+        {
+          "language": 1,
+          "ability": {
+            "listening": 8,
+            "speaking": 8,
+            "reading": 2,
+            "writing": 8
+          }
+        }
+      ],
+      "acceptRole": [],
+      "employeeCount": 22,
+      "pcSkills": [],
+      "pddScore": 3.0638397,
+      "custLogo": "https://static.104.com.tw/b_profile/cust_picture/2972/130000000042972/logo.gif?v=20200730174346",
+      "jobSwitch": "on",
+      "isSave": null,
+      "interactionRecord": {
+        "lastProcessedResumeAtTime": 1782222843,
+        "lastCustReplyTimestamp": null,
+        "nowTimestamp": 1782545122
+      },
+      "isApplied": null,
+      "applyDate": null,
+      "userApplyCount": null
+    },
+    {
+      "appearDate": "20260609",
+      "applyCnt": 8,
+      "coIndustry": 1001001002,
+      "coIndustryDesc": "電腦軟體服務業",
+      "custName": "富一代資訊有限公司",
+      "custNo": "130000000264142",
+      "description": " API 設計、後台系統開發與跨系統整合\n- 支援多幣別、多語系、多品牌平台需求\n- 掌握現有架構，持續維護並優化已上線系統效能與穩定性\n- 撰寫與維護技術文件，確保系統可長期維運\n\n基本條件：\n\n- 熟悉 Golang，能獨立設計並實作後端服務\n-",
+      "descSnippet": " API 設計、後台系統開發與跨系統整合\n- 支援多幣別、多語系、多品牌平台需求\n- 掌握現有架構，持續維護並優化已上線系統效能與穩定性\n- 撰寫與維護技術文件，確保系統可長期維運\n\n基本條件：\n\n- 熟悉 [[[Golang]]]，能獨立設計並實作後端服務\n-",
+      "mrtDist": 0,
+      "jobAddress": "",
+      "jobAddrNo": 6001001004,
+      "jobAddrNoDesc": "台北市松山區",
+      "jobName": "Golang 後端工程師",
+      "jobNameSnippet": "[[[Golang]]] 後端工程師",
+      "jobNo": "15015281",
+      "jobRo": 1,
+      "jobType": 0,
+      "lat": 25.0541591,
+      "lon": 121.5638621,
+      "link": {
+        "job": "https://www.104.com.tw/job/8xtv5",
+        "cust": "https://www.104.com.tw/company/1a2x6bnn4e",
+        "applyAnalyze": "https://www.104.com.tw/jobs/apply/analysis/8xtv5?channel=104rpt"
+      },
+      "major": [],
+      "mrt": "",
+      "mrtDesc": "",
+      "optionEdu": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "period": 0,
+      "remoteWorkType": 0,
+      "s10": 50,
+      "salaryHigh": 120000,
+      "salaryLow": 60000,
+      "tags": {
+        "wf26": {
+          "desc": "",
+          "param": "wf26"
+        },
+        "wf8": {
+          "desc": "",
+          "param": "wf8"
+        },
+        "wf3": {
+          "desc": "",
+          "param": "wf3"
+        },
+        "wf29": {
+          "desc": "",
+          "param": "wf29"
+        },
+        "wf1": {
+          "desc": "",
+          "param": "wf1"
+        },
+        "wf13": {
+          "desc": "",
+          "param": "wf13"
+        }
+      },
+      "s9": [
+        1
+      ],
+      "s5": 0,
+      "d3": "",
+      "hrBehaviorPR": 0.8254558573324663,
+      "jobCat": [
+        2007001016,
+        2007001004
+      ],
+      "labels": [
+        "indexjob@ij022",
+        "c@wf26",
+        "association@j00039",
+        "indexjob@ij039",
+        "indexjob@ij009",
+        "indexjob@ij025",
+        "c@wf8",
+        "association@j00029",
+        "foreigners@foreigners_tick",
+        "senior@senior_job_G",
+        "joblist_search@jl_j0003_004.5",
+        "c@graduates_welcome",
+        "foreigners@overseasStudents_tick",
+        "association@j00024",
+        "c@wf3",
+        "association@j00034",
+        "c@wf29",
+        "association@j00019",
+        "c@intern_welcome",
+        "indexjob@ij005",
+        "association@j00042",
+        "c@rdss_welcome",
+        "c@wf1",
+        "c@wf13"
+      ],
+      "languageRequirements": [],
+      "acceptRole": [
+        2,
+        4,
+        8,
+        16,
+        32,
+        64,
+        1024,
+        2048,
+        4096,
+        8192,
+        16384,
+        32768,
+        65536,
+        131072
+      ],
+      "employeeCount": 90,
+      "pcSkills": [],
+      "pddScore": 3.0448465,
+      "custLogo": "",
+      "jobSwitch": "on",
+      "isSave": null,
+      "interactionRecord": {
+        "lastProcessedResumeAtTime": 1781679628,
+        "lastCustReplyTimestamp": null,
+        "nowTimestamp": 1782545122
+      },
+      "isApplied": null,
+      "applyDate": null,
+      "userApplyCount": null
+    },
+    {
+      "appearDate": "20260526",
+      "applyCnt": 4,
+      "coIndustry": 1001001002,
+      "coIndustryDesc": "電腦軟體服務業",
+      "custName": "百阜科技股份有限公司",
+      "custNo": "130000000112061",
+      "description": "1. 技術方案的規劃與開發、迭代計畫實踐 (40%)\n2. 產品討論與跨部門協作 (20%)\n3. 優化與維護相關系統產品 (20%)\n4. 研發軟體新技術與新工具 (20%)\n",
+      "descSnippet": "1. 技術方案的規劃與開發、迭代計畫實踐 (40%)\n2. 產品討論與跨部門協作 (20%)\n3. 優化與維護相關系統產品 (20%)\n4. 研發軟體新技術與新工具 (20%)\n",
+      "mrtDist": 0,
+      "jobAddress": "瑞湖街17號7樓",
+      "jobAddrNo": 6001001010,
+      "jobAddrNoDesc": "台北市內湖區",
+      "jobName": "Golang 工程師",
+      "jobNameSnippet": "[[[Golang]]] 工程師",
+      "jobNo": "11282518",
+      "jobRo": 1,
+      "jobType": 2,
+      "lat": 25.0745549,
+      "lon": 121.5764771,
+      "link": {
+        "job": "https://www.104.com.tw/job/6ptna",
+        "cust": "https://www.104.com.tw/company/1a2x6bkdrx",
+        "applyAnalyze": "https://www.104.com.tw/jobs/apply/analysis/6ptna?channel=104rpt"
+      },
+      "major": [],
+      "mrt": "",
+      "mrtDesc": "",
+      "optionEdu": [
+        3,
+        4,
+        5,
+        6
+      ],
+      "period": 2,
+      "remoteWorkType": 0,
+      "s10": 10,
+      "salaryHigh": 0,
+      "salaryLow": 0,
+      "tags": {
+        "wf9": {
+          "desc": "",
+          "param": "wf9"
+        },
+        "wf13": {
+          "desc": "",
+          "param": "wf13"
+        },
+        "wf34": {
+          "desc": "",
+          "param": "wf34"
+        },
+        "wf26": {
+          "desc": "",
+          "param": "wf26"
+        },
+        "wf3": {
+          "desc": "",
+          "param": "wf3"
+        },
+        "wf10": {
+          "desc": "",
+          "param": "wf10"
+        },
+        "wf30": {
+          "desc": "",
+          "param": "wf30"
+        },
+        "wf14": {
+          "desc": "",
+          "param": "wf14"
+        },
+        "wf2": {
+          "desc": "",
+          "param": "wf2"
+        },
+        "wf28": {
+          "desc": "",
+          "param": "wf28"
+        },
+        "wf29": {
+          "desc": "",
+          "param": "wf29"
+        },
+        "wf7": {
+          "desc": "",
+          "param": "wf7"
+        }
+      },
+      "s9": [
+        1
+      ],
+      "s5": 0,
+      "d3": "",
+      "hrBehaviorPR": 0.26181844095456125,
+      "jobCat": [
+        2007001004,
+        2007001006,
+        2007001012
+      ],
+      "labels": [
+        "indexjob@ij008",
+        "c@wf9",
+        "c@wf13",
+        "c@wf34",
+        "c@wf26",
+        "c@wf3",
+        "c@wf10",
+        "c@wf30",
+        "c@wf14",
+        "indexjob@ij022",
+        "association@j00023",
+        "indexjob@ij009",
+        "c@wf2",
+        "c@wf28",
+        "c@wf29",
+        "c@wf7"
+      ],
+      "languageRequirements": [],
+      "acceptRole": [],
+      "employeeCount": 80,
+      "pcSkills": [
+        {
+          "code": "12001003080",
+          "description": "Go"
+        }
+      ],
+      "pddScore": 2.0234582,
+      "custLogo": "https://static.104.com.tw/b_profile/cust_picture/2061/130000000112061/logo.gif?v=20250522071234",
+      "jobSwitch": "on",
+      "isSave": null,
+      "interactionRecord": {
+        "lastProcessedResumeAtTime": 1782436347,
+        "lastCustReplyTimestamp": null,
+        "nowTimestamp": 1782545122
+      },
+      "isApplied": null,
+      "applyDate": null,
+      "userApplyCount": null
+    },
+    {
+      "appearDate": "20260623",
+      "applyCnt": 6,
+      "coIndustry": 1001001002,
+      "coIndustryDesc": "電腦軟體服務業",
+      "custName": "華玉科技股份有限公司",
+      "custNo": "130000000180812",
+      "description": "\n    自主學習知識並對團隊演講分享\n    5年以上Golang開發經驗\n    3年以上使用任一NoSQL開發經驗\n\n加分\n    實踐過DDD架構\n    實踐過容器部署\n    3年以上數據平台相關經驗\n\n「合作，平等，連結」是我們的核心精神，我",
+      "descSnippet": "\n    自主學習知識並對團隊演講分享\n    5年以上[[[Golang]]]開發經驗\n    3年以上使用任一NoSQL開發經驗\n\n加分\n    實踐過DDD架構\n    實踐過容器部署\n    3年以上數據平台相關經驗\n\n「合作，平等，連結」是我們的核心精神，我",
+      "mrtDist": 0.5,
+      "jobAddress": "辛亥路二段185號21樓",
+      "jobAddrNo": 6001001005,
+      "jobAddrNoDesc": "台北市大安區",
+      "jobName": "Senior Cloud Backend Engineer (Golang)",
+      "jobNameSnippet": "Senior Cloud Backend Engineer ([[[Golang]]])",
+      "jobNo": "12689685",
+      "jobRo": 1,
+      "jobType": 0,
+      "lat": 25.0217149,
+      "lon": 121.541507,
+      "link": {
+        "job": "https://www.104.com.tw/job/7jzf9",
+        "cust": "https://www.104.com.tw/company/1a2x6bluto",
+        "applyAnalyze": "https://www.104.com.tw/jobs/apply/analysis/7jzf9?channel=104rpt"
+      },
+      "major": [
+        "數學及電算機科學學科類",
+        "工程學科類",
+        "資訊管理相關"
+      ],
+      "mrt": "99001001008",
+      "mrtDesc": "捷運科技大樓站",
+      "optionEdu": [
+        4,
+        5
+      ],
+      "period": 6,
+      "remoteWorkType": 0,
+      "s10": 10,
+      "salaryHigh": 0,
+      "salaryLow": 0,
+      "tags": {
+        "wf7": {
+          "desc": "",
+          "param": "wf7"
+        },
+        "wf9": {
+          "desc": "",
+          "param": "wf9"
+        },
+        "wf10": {
+          "desc": "",
+          "param": "wf10"
+        },
+        "wf26": {
+          "desc": "",
+          "param": "wf26"
+        },
+        "wf4": {
+          "desc": "",
+          "param": "wf4"
+        },
+        "wf2": {
+          "desc": "",
+          "param": "wf2"
+        },
+        "wf1": {
+          "desc": "",
+          "param": "wf1"
+        },
+        "wf3": {
+          "desc": "",
+          "param": "wf3"
+        },
+        "landmark": {
+          "desc": "距捷運科技大樓站約500公尺"
+        }
+      },
+      "s9": [
+        1
+      ],
+      "s5": 0,
+      "d3": "09:00~18:00",
+      "hrBehaviorPR": 0.927024968599959,
+      "jobCat": [
+        2007001004
+      ],
+      "labels": [
+        "indexjob@ij022",
+        "indexjob@ij003",
+        "c@wf7",
+        "c@wf9",
+        "c@wf10",
+        "c@wf26",
+        "c@wf4",
+        "c@wf2",
+        "c@wf1",
+        "c@wf3"
+      ],
+      "languageRequirements": [
+        {
+          "language": 1,
+          "ability": {
+            "listening": 4,
+            "speaking": 4,
+            "reading": 8,
+            "writing": 8
+          }
+        }
+      ],
+      "acceptRole": [],
+      "employeeCount": 35,
+      "pcSkills": [],
+      "pddScore": 1.8486284,
+      "custLogo": "https://static.104.com.tw/b_profile/cust_picture/0812/130000000180812/logo.png?v=20260319150606",
+      "jobSwitch": "on",
+      "isSave": null,
+      "interactionRecord": {
+        "lastProcessedResumeAtTime": 1782453907,
+        "lastCustReplyTimestamp": null,
+        "nowTimestamp": 1782545122
+      },
+      "isApplied": null,
+      "applyDate": null,
+      "userApplyCount": null
+    },
+    {
+      "appearDate": "20260304",
+      "applyCnt": 6,
+      "coIndustry": 1001001002,
+      "coIndustryDesc": "電腦軟體服務業",
+      "custName": "線上探索科技股份有限公司",
+      "custNo": "130000000147477",
+      "description": "工作內容：\n1.設計、開發和維護高效能的系統和應用程序。\n2.使用Golang進行系統和後端開發。\n3.進行系統性能調整，解決技術問題。\n4.與跨部門團隊合作，確保系統的穩定性和可擴展性。\n5.撰寫技術文檔，提供技術支持和指導。\n\n需求條件：\n1",
+      "descSnippet": "工作內容：\n1.設計、開發和維護高效能的系統和應用程序。\n2.使用[[[Golang]]]進行系統和後端開發。\n3.進行系統性能調整，解決技術問題。\n4.與跨部門團隊合作，確保系統的穩定性和可擴展性。\n5.撰寫技術文檔，提供技術支持和指導。\n\n需求條件：\n1",
+      "mrtDist": 0,
+      "jobAddress": "",
+      "jobAddrNo": 6001001002,
+      "jobAddrNoDesc": "台北市大同區",
+      "jobName": "軟體工程師 Golang",
+      "jobNameSnippet": "軟體工程師 [[[Golang]]]",
+      "jobNo": "14271913",
+      "jobRo": 1,
+      "jobType": 0,
+      "lat": 25.0627243,
+      "lon": 121.5113064,
+      "link": {
+        "job": "https://www.104.com.tw/job/8hwa1",
+        "cust": "https://www.104.com.tw/company/1a2x6bl53p",
+        "applyAnalyze": "https://www.104.com.tw/jobs/apply/analysis/8hwa1?channel=104rpt"
+      },
+      "major": [
+        "資訊工程相關",
+        "資訊管理相關"
+      ],
+      "mrt": "",
+      "mrtDesc": "",
+      "optionEdu": [
+        3,
+        4,
+        5,
+        6
+      ],
+      "period": 2,
+      "remoteWorkType": 0,
+      "s10": 10,
+      "salaryHigh": 0,
+      "salaryLow": 0,
+      "tags": {
+        "wf14": {
+          "desc": "",
+          "param": "wf14"
+        },
+        "wf13": {
+          "desc": "",
+          "param": "wf13"
+        },
+        "wf12": {
+          "desc": "",
+          "param": "wf12"
+        },
+        "wf10": {
+          "desc": "",
+          "param": "wf10"
+        },
+        "wf26": {
+          "desc": "",
+          "param": "wf26"
+        },
+        "wf7": {
+          "desc": "",
+          "param": "wf7"
+        },
+        "wf2": {
+          "desc": "",
+          "param": "wf2"
+        }
+      },
+      "s9": [
+        1
+      ],
+      "s5": 0,
+      "d3": "",
+      "hrBehaviorPR": 0.715308522104738,
+      "jobCat": [
+        2007001004
+      ],
+      "labels": [
+        "c@wf14",
+        "c@wf13",
+        "association@j00002",
+        "joblist_search@jl_j0003_004.5",
+        "association@j00029",
+        "c@wf12",
+        "foreigners@foreigners_tick",
+        "foreigners@fc_emp5m_jbs",
+        "c@wf10",
+        "indexjob@ij022",
+        "association@j00034",
+        "indexjob@ij010",
+        "c@wf26",
+        "c@wf7",
+        "indexjob@ij008",
+        "indexjob@ij009",
+        "c@graduates_welcome",
+        "c@wf2"
+      ],
+      "languageRequirements": [],
+      "acceptRole": [
+        2,
+        4,
+        8,
+        32
+      ],
+      "employeeCount": 0,
+      "pcSkills": [
+        {
+          "code": "12001001007",
+          "description": "Linux"
+        },
+        {
+          "code": "12001003080",
+          "description": "Go"
+        }
+      ],
+      "pddScore": 1.7531315,
+      "custLogo": "https://static.104.com.tw/b_profile/cust_picture/7477/130000000147477/logo.png?v=20251104173114",
+      "jobSwitch": "on",
+      "isSave": null,
+      "interactionRecord": {
+        "lastProcessedResumeAtTime": 1782525472,
+        "lastCustReplyTimestamp": 1777262740,
+        "nowTimestamp": 1782545122
+      },
+      "isApplied": null,
+      "applyDate": null,
+      "userApplyCount": null
+    },
+    {
+      "appearDate": "20260618",
+      "applyCnt": 5,
+      "coIndustry": 1004001007,
+      "coIndustryDesc": "金融控股業",
+      "custName": "香港商六度科技有限公司",
+      "custNo": "130000000161268",
+      "description": " Golang-based microservices architecture\nArchitecture & Engineering Practices\n · Solid understanding of microservices and",
+      "descSnippet": " [[[Golang]]]-based microservices architecture\nArchitecture & Engineering Practices\n · Solid understanding of microservices and",
+      "mrtDist": 0,
+      "jobAddress": "",
+      "jobAddrNo": 6001001007,
+      "jobAddrNoDesc": "台北市信義區",
+      "jobName": "Software Engineer (Golang, Flutter), Virtual insurance",
+      "jobNameSnippet": "Software Engineer ([[[Golang]]], Flutter), Virtual insurance",
+      "jobNo": "15160106",
+      "jobRo": 1,
+      "jobType": 0,
+      "lat": 25.0409201,
+      "lon": 121.5720055,
+      "link": {
+        "job": "https://www.104.com.tw/job/90xm2",
+        "cust": "https://www.104.com.tw/company/1a2x6blfqs",
+        "applyAnalyze": "https://www.104.com.tw/jobs/apply/analysis/90xm2?channel=104rpt"
+      },
+      "major": [
+        "資訊工程相關"
+      ],
+      "mrt": "",
+      "mrtDesc": "",
+      "optionEdu": [
+        4,
+        5,
+        6
+      ],
+      "period": 0,
+      "remoteWorkType": 2,
+      "s10": 10,
+      "salaryHigh": 0,
+      "salaryLow": 0,
+      "tags": {
+        "remote": {
+          "desc": "遠端工作"
+        },
+        "wf10": {
+          "desc": "",
+          "param": "wf10"
+        },
+        "wf13": {
+          "desc": "",
+          "param": "wf13"
+        },
+        "wf1": {
+          "desc": "",
+          "param": "wf1"
+        },
+        "wf9": {
+          "desc": "",
+          "param": "wf9"
+        },
+        "wf31": {
+          "desc": "",
+          "param": "wf31"
+        },
+        "wf8": {
+          "desc": "",
+          "param": "wf8"
+        },
+        "wf29": {
+          "desc": "",
+          "param": "wf29"
+        },
+        "wf7": {
+          "desc": "",
+          "param": "wf7"
+        },
+        "wf30": {
+          "desc": "",
+          "param": "wf30"
+        },
+        "wf12": {
+          "desc": "",
+          "param": "wf12"
+        },
+        "wf33": {
+          "desc": "",
+          "param": "wf33"
+        },
+        "wf26": {
+          "desc": "",
+          "param": "wf26"
+        }
+      },
+      "s9": [
+        1
+      ],
+      "s5": 0,
+      "d3": "",
+      "hrBehaviorPR": 0.8311769002592173,
+      "jobCat": [
+        2007001017,
+        2007001016,
+        2007001015
+      ],
+      "labels": [
+        "c@wf10",
+        "c@wf13",
+        "c@wf1",
+        "indexjob@ij009",
+        "c@wf9",
+        "indexjob@ij005",
+        "c@wf31",
+        "c@wf8",
+        "indexjob@ij014",
+        "c@wf29",
+        "indexjob@ij010",
+        "c@wf7",
+        "c@wf30",
+        "c@wf12",
+        "indexjob@ij017",
+        "c@wf33",
+        "indexjob@ij022",
+        "c@wf26"
+      ],
+      "languageRequirements": [],
+      "acceptRole": [],
+      "employeeCount": 110,
+      "pcSkills": [
+        {
+          "code": "12001003080",
+          "description": "Go"
+        },
+        {
+          "code": "12001002018",
+          "description": "Git"
+        },
+        {
+          "code": "12001003084",
+          "description": "Flutter"
+        },
+        {
+          "code": "12001003094",
+          "description": "IoT"
+        }
+      ],
+      "pddScore": 1.7257414,
+      "custLogo": "https://static.104.com.tw/b_profile/cust_picture/1268/130000000161268/logo.png?v=20260224115242",
+      "jobSwitch": "on",
+      "isSave": null,
+      "interactionRecord": {
+        "lastProcessedResumeAtTime": 1781763702,
+        "lastCustReplyTimestamp": null,
+        "nowTimestamp": 1782545122
+      },
+      "isApplied": null,
+      "applyDate": null,
+      "userApplyCount": null
+    },
+    {
+      "appearDate": "20260618",
+      "applyCnt": 5,
+      "coIndustry": 1001001002,
+      "coIndustryDesc": "電腦軟體服務業",
+      "custName": "太禾科技有限公司",
+      "custNo": "130000000177509",
+      "description": "1、負責GRPC等服務端研發\n2、根據產品需求，進行系統設計和編碼\n3、持續對系統架構進行改造和優化\n4、負責公司後端架構的搭建和優化，持續優化服務的可用性、伸縮性、穩定性\n\n\n<<任職要求>>\n1、三年以上Golang開發經驗\n2、具備良好的基",
+      "descSnippet": "1、負責GRPC等服務端研發\n2、根據產品需求，進行系統設計和編碼\n3、持續對系統架構進行改造和優化\n4、負責公司後端架構的搭建和優化，持續優化服務的可用性、伸縮性、穩定性\n\n\n<<任職要求>>\n1、三年以上[[[Golang]]]開發經驗\n2、具備良好的基",
+      "mrtDist": 0.25,
+      "jobAddress": "民權東路二段26號8樓之8",
+      "jobAddrNo": 6001001003,
+      "jobAddrNoDesc": "台北市中山區",
+      "jobName": "Golang開發工程師",
+      "jobNameSnippet": "[[[Golang]]]開發工程師",
+      "jobNo": "13305625",
+      "jobRo": 1,
+      "jobType": 0,
+      "lat": 25.0623407,
+      "lon": 121.5288719,
+      "link": {
+        "job": "https://www.104.com.tw/job/7x6op",
+        "cust": "https://www.104.com.tw/company/1a2x6bls9x",
+        "applyAnalyze": "https://www.104.com.tw/jobs/apply/analysis/7x6op?channel=104rpt"
+      },
+      "major": [],
+      "mrt": "99001004010",
+      "mrtDesc": "捷運中山國小站",
+      "optionEdu": [
+        3,
+        4,
+        5,
+        6
+      ],
+      "period": 4,
+      "remoteWorkType": 0,
+      "s10": 10,
+      "salaryHigh": 0,
+      "salaryLow": 0,
+      "tags": {
+        "wf26": {
+          "desc": "",
+          "param": "wf26"
+        },
+        "wf17": {
+          "desc": "",
+          "param": "wf17"
+        },
+        "wf29": {
+          "desc": "",
+          "param": "wf29"
+        },
+        "wf3": {
+          "desc": "",
+          "param": "wf3"
+        },
+        "wf1": {
+          "desc": "",
+          "param": "wf1"
+        },
+        "wf2": {
+          "desc": "",
+          "param": "wf2"
+        },
+        "wf7": {
+          "desc": "",
+          "param": "wf7"
+        },
+        "landmark": {
+          "desc": "距捷運中山國小站約250公尺"
+        }
+      },
+      "s9": [
+        1
+      ],
+      "s5": 0,
+      "d3": "9:30-18:30",
+      "hrBehaviorPR": 0.24452837583844791,
+      "jobCat": [
+        2007001006,
+        2007001004,
+        2007001007
+      ],
+      "labels": [
+        "c@wf26",
+        "c@wf17",
+        "c@rdss_welcome",
+        "association@j00019",
+        "indexjob@ij025",
+        "c@wf29",
+        "c@wf3",
+        "c@wf1",
+        "senior@senior_job_H",
+        "association@j00032",
+        "c@wf2",
+        "c@wf7"
+      ],
+      "languageRequirements": [],
+      "acceptRole": [
+        16,
+        64,
+        32768
+      ],
+      "employeeCount": 0,
+      "pcSkills": [
+        {
+          "code": "12001003080",
+          "description": "Go"
+        }
+      ],
+      "pddScore": 1.7186211,
+      "custLogo": "https://static.104.com.tw/b_profile/cust_picture/7509/130000000177509/logo.png?v=20250307150342",
+      "jobSwitch": "on",
+      "isSave": null,
+      "interactionRecord": {
+        "lastProcessedResumeAtTime": 1782294351,
+        "lastCustReplyTimestamp": null,
+        "nowTimestamp": 1782545122
+      },
+      "isApplied": null,
+      "applyDate": null,
+      "userApplyCount": null
+    },
+    {
+      "appearDate": "20260511",
+      "applyCnt": 8,
+      "coIndustry": 1001001002,
+      "coIndustryDesc": "電腦軟體服務業",
+      "custName": "炫石有限公司",
+      "custNo": "130000000241271",
+      "description": "【工作內容】\n1. 設計、開發和維護平台服務與 API。            \n2. 使用 Golang 構建高效的平台系統，並進行優化以提高性能。            \n3. 分析並解決系統中的瓶頸和技術難題。            \n4.",
+      "descSnippet": "【工作內容】\n1. 設計、開發和維護平台服務與 API。            \n2. 使用 [[[Golang]]] 構建高效的平台系統，並進行優化以提高性能。            \n3. 分析並解決系統中的瓶頸和技術難題。            \n4.",
+      "mrtDist": 0,
+      "jobAddress": "",
+      "jobAddrNo": 6001001007,
+      "jobAddrNoDesc": "台北市信義區",
+      "jobName": "Golang 後端工程師 / Golang Backend Engineer",
+      "jobNameSnippet": "[[[Golang]]] 後端工程師 / [[[Golang]]] Backend Engineer",
+      "jobNo": "14954565",
+      "jobRo": 1,
+      "jobType": 2,
+      "lat": 25.0409201,
+      "lon": 121.5720055,
+      "link": {
+        "job": "https://www.104.com.tw/job/8wj0l",
+        "cust": "https://www.104.com.tw/company/1a2x6bn5h3",
+        "applyAnalyze": "https://www.104.com.tw/jobs/apply/analysis/8wj0l?channel=104rpt"
+      },
+      "major": [],
+      "mrt": "",
+      "mrtDesc": "",
+      "optionEdu": [
+        1,
+        2,
+        3
+      ],
+      "period": 4,
+      "remoteWorkType": 0,
+      "s10": 50,
+      "salaryHigh": 9999999,
+      "salaryLow": 60000,
+      "tags": {
+        "wf8": {
+          "desc": "",
+          "param": "wf8"
+        },
+        "wf1": {
+          "desc": "",
+          "param": "wf1"
+        }
+      },
+      "s9": [
+        1
+      ],
+      "s5": 0,
+      "d3": "",
+      "hrBehaviorPR": 0.42731001861732926,
+      "jobCat": [
+        2007001016
+      ],
+      "labels": [
+        "indexjob@ij005",
+        "c@wf8",
+        "indexjob@ij019",
+        "indexjob@ij039",
+        "indexjob@ij022",
+        "c@wf1"
+      ],
+      "languageRequirements": [],
+      "acceptRole": [],
+      "employeeCount": 0,
+      "pcSkills": [],
+      "pddScore": 1.609753,
+      "custLogo": "",
+      "jobSwitch": "on",
+      "isSave": null,
+      "interactionRecord": {
+        "lastProcessedResumeAtTime": 1782460267,
+        "lastCustReplyTimestamp": null,
+        "nowTimestamp": 1782545122
+      },
+      "isApplied": null,
+      "applyDate": null,
+      "userApplyCount": null
+    },
+    {
+      "appearDate": "20260622",
+      "applyCnt": 8,
+      "coIndustry": 1001001002,
+      "coIndustryDesc": "電腦軟體服務業",
+      "custName": "四天科技有限公司",
+      "custNo": "130000000231318",
+      "description": "付數據監控體系\n參與線上問題排查與解決，確保系統穩定運行\n制定支付系統的技術規範和最佳實踐\n任職要求技術技能\n程式語言\n3 年以上 Golang 開發經驗，熟練掌握 Go 語言特性和最佳實踐\n深入理解 Go 併發程式設計、GMP 調度模型、記憶體管",
+      "descSnippet": "付數據監控體系\n參與線上問題排查與解決，確保系統穩定運行\n制定支付系統的技術規範和最佳實踐\n任職要求技術技能\n程式語言\n3 年以上 [[[Golang]]] 開發經驗，熟練掌握 Go 語言特性和最佳實踐\n深入理解 Go 併發程式設計、GMP 調度模型、記憶體管",
+      "mrtDist": 0.29,
+      "jobAddress": "長春路378號10樓之2",
+      "jobAddrNo": 6001001003,
+      "jobAddrNoDesc": "台北市中山區",
+      "jobName": "Golang開發工程師",
+      "jobNameSnippet": "[[[Golang]]]開發工程師",
+      "jobNo": "14893390",
+      "jobRo": 1,
+      "jobType": 0,
+      "lat": 25.054398,
+      "lon": 121.543129,
+      "link": {
+        "job": "https://www.104.com.tw/job/8v7ta",
+        "cust": "https://www.104.com.tw/company/1a2x6bmxsm",
+        "applyAnalyze": "https://www.104.com.tw/jobs/apply/analysis/8v7ta?channel=104rpt"
+      },
+      "major": [],
+      "mrt": "99001001011",
+      "mrtDesc": "捷運南京復興站",
+      "optionEdu": [
+        4,
+        5,
+        6
+      ],
+      "period": 3,
+      "remoteWorkType": 0,
+      "s10": 50,
+      "salaryHigh": 150000,
+      "salaryLow": 80000,
+      "tags": {
+        "wf1": {
+          "desc": "",
+          "param": "wf1"
+        },
+        "wf9": {
+          "desc": "",
+          "param": "wf9"
+        },
+        "wf7": {
+          "desc": "",
+          "param": "wf7"
+        },
+        "wf29": {
+          "desc": "",
+          "param": "wf29"
+        },
+        "landmark": {
+          "desc": "距捷運南京復興站約290公尺"
+        }
+      },
+      "s9": [
+        1
+      ],
+      "s5": 0,
+      "d3": "",
+      "hrBehaviorPR": 0.5401341516644249,
+      "jobCat": [
+        2007001004,
+        2007001016
+      ],
+      "labels": [
+        "c@wf1",
+        "c@wf9",
+        "c@wf7",
+        "indexjob@ij022",
+        "indexjob@ij017",
+        "c@wf29",
+        "indexjob@ij025",
+        "indexjob@ij039"
+      ],
+      "languageRequirements": [],
+      "acceptRole": [],
+      "employeeCount": 0,
+      "pcSkills": [
+        {
+          "code": "12001004031",
+          "description": "MS SQL"
+        },
+        {
+          "code": "12001002016",
+          "description": "Github"
+        },
+        {
+          "code": "12001002018",
+          "description": "Git"
+        }
+      ],
+      "pddScore": 1.4694368,
+      "custLogo": "",
+      "jobSwitch": "on",
+      "isSave": null,
+      "interactionRecord": {
+        "lastProcessedResumeAtTime": 1782388192,
+        "lastCustReplyTimestamp": null,
+        "nowTimestamp": 1782545122
+      },
+      "isApplied": null,
+      "applyDate": null,
+      "userApplyCount": null
+    },
+    {
+      "appearDate": "20260622",
+      "applyCnt": 4,
+      "coIndustry": 1001001002,
+      "coIndustryDesc": "電腦軟體服務業",
+      "custName": "瑞典商英鉑科股份有限公司台灣分公司",
+      "custNo": "130000000217988",
+      "description": "【工作內容】\n1. 管理Golang後端團隊。\n2. 系統功能開發及維護。\n3. 與其他成員合作進行新系統或新功能規劃設計及開發。\n4. 撰寫技術文件。\n5. 持續學習新技術並主動與團隊成員分享。\n6. 協助架構優化、技術選型並將適合的技術導入。",
+      "descSnippet": "【工作內容】\n1. 管理[[[Golang]]]後端團隊。\n2. 系統功能開發及維護。\n3. 與其他成員合作進行新系統或新功能規劃設計及開發。\n4. 撰寫技術文件。\n5. 持續學習新技術並主動與團隊成員分享。\n6. 協助架構優化、技術選型並將適合的技術導入。",
+      "mrtDist": 0.33,
+      "jobAddress": "中山北路二段44號4樓",
+      "jobAddrNo": 6001001003,
+      "jobAddrNoDesc": "台北市中山區",
+      "jobName": "【擴編】資深Golang後端工程師 / Senior Golang Developer",
+      "jobNameSnippet": "【擴編】資深[[[Golang]]]後端工程師 / Senior [[[Golang]]] Developer",
+      "jobNo": "14953361",
+      "jobRo": 1,
+      "jobType": 0,
+      "lat": 25.0551969,
+      "lon": 121.5223734,
+      "link": {
+        "job": "https://www.104.com.tw/job/8wi35",
+        "cust": "https://www.104.com.tw/company/1a2x6bmnic",
+        "applyAnalyze": "https://www.104.com.tw/jobs/apply/analysis/8wi35?channel=104rpt"
+      },
+      "major": [
+        "資訊工程相關"
+      ],
+      "mrt": "99001002011",
+      "mrtDesc": "捷運雙連站",
+      "optionEdu": [
+        3,
+        4,
+        5,
+        6
+      ],
+      "period": 6,
+      "remoteWorkType": 0,
+      "s10": 10,
+      "salaryHigh": 0,
+      "salaryLow": 0,
+      "tags": {
+        "zoneForeign": {
+          "desc": "外商公司",
+          "param": 5
+        },
+        "wf31": {
+          "desc": "",
+          "param": "wf31"
+        },
+        "wf10": {
+          "desc": "",
+          "param": "wf10"
+        },
+        "wf9": {
+          "desc": "",
+          "param": "wf9"
+        },
+        "wf17": {
+          "desc": "",
+          "param": "wf17"
+        },
+        "wf2": {
+          "desc": "",
+          "param": "wf2"
+        },
+        "wf26": {
+          "desc": "",
+          "param": "wf26"
+        },
+        "wf29": {
+          "desc": "",
+          "param": "wf29"
+        },
+        "wf1": {
+          "desc": "",
+          "param": "wf1"
+        },
+        "wf7": {
+          "desc": "",
+          "param": "wf7"
+        },
+        "wf12": {
+          "desc": "",
+          "param": "wf12"
+        },
+        "landmark": {
+          "desc": "距捷運雙連站約330公尺"
+        }
+      },
+      "s9": [
+        1
+      ],
+      "s5": 0,
+      "d3": "",
+      "hrBehaviorPR": 0.4563561699967041,
+      "jobCat": [
+        2007001016,
+        2007001004
+      ],
+      "labels": [
+        "c@wf31",
+        "c@wf10",
+        "c@wf9",
+        "indexjob@ij022",
+        "c@wf17",
+        "c@wf2",
+        "c@wf26",
+        "indexjob@ij010",
+        "c@wf29",
+        "c@wf1",
+        "indexjob@ij048",
+        "c@wf7",
+        "c@wf12"
+      ],
+      "languageRequirements": [],
+      "acceptRole": [],
+      "employeeCount": 50,
+      "pcSkills": [
+        {
+          "code": "12001003080",
+          "description": "Go"
+        }
+      ],
+      "pddScore": 1.4080006,
+      "custLogo": "https://static.104.com.tw/b_profile/cust_picture/7988/130000000217988/logo.jpg?v=20251107114306",
+      "jobSwitch": "on",
+      "isSave": null,
+      "interactionRecord": {
+        "lastProcessedResumeAtTime": 1782464088,
+        "lastCustReplyTimestamp": null,
+        "nowTimestamp": 1782545122
+      },
+      "isApplied": null,
+      "applyDate": null,
+      "userApplyCount": null
+    },
+    {
+      "appearDate": "20260625",
+      "applyCnt": 4,
+      "coIndustry": 1001001004,
+      "coIndustryDesc": "多媒體傳播相關業",
+      "custName": "立視科技股份有限公司",
+      "custNo": "130000000266972",
+      "description": "職務內容\n1. 使用Golang開發與維護多個主系統。\n2. 營運內容發佈工具開發與維運。\n3. 串流影音與廣告相關 API 開發。\n4. docker使用、撰寫tests以及配合IT實現CICD。\n\n兩年以上Golang經驗、兩年以上後端經驗，",
+      "descSnippet": "職務內容\n1. 使用[[[Golang]]]開發與維護多個主系統。\n2. 營運內容發佈工具開發與維運。\n3. 串流影音與廣告相關 API 開發。\n4. docker使用、撰寫tests以及配合IT實現CICD。\n\n兩年以上[[[Golang]]]經驗、兩年以上後端經驗，",
+      "mrtDist": 0.07,
+      "jobAddress": "八德路四段760號6樓",
+      "jobAddrNo": 6001001004,
+      "jobAddrNoDesc": "台北市松山區",
+      "jobName": "軟體工程師 (Software Engineer - Golang)",
+      "jobNameSnippet": "軟體工程師 (Software Engineer - [[[Golang]]])",
+      "jobNo": "15115498",
+      "jobRo": 1,
+      "jobType": 0,
+      "lat": 25.0501451,
+      "lon": 121.5783689,
+      "link": {
+        "job": "https://www.104.com.tw/job/8zz6y",
+        "cust": "https://www.104.com.tw/company/1a2x6bnpb0",
+        "applyAnalyze": "https://www.104.com.tw/jobs/apply/analysis/8zz6y?channel=104rpt"
+      },
+      "major": [],
+      "mrt": "99001003020",
+      "mrtDesc": "捷運松山站",
+      "optionEdu": [
+        3,
+        4,
+        5
+      ],
+      "period": 4,
+      "remoteWorkType": 0,
+      "s10": 50,
+      "salaryHigh": 88000,
+      "salaryLow": 55000,
+      "tags": {
+        "wf10": {
+          "desc": "",
+          "param": "wf10"
+        },
+        "wf14": {
+          "desc": "",
+          "param": "wf14"
+        },
+        "wf29": {
+          "desc": "",
+          "param": "wf29"
+        },
+        "wf26": {
+          "desc": "",
+          "param": "wf26"
+        },
+        "wf1": {
+          "desc": "",
+          "param": "wf1"
+        },
+        "wf2": {
+          "desc": "",
+          "param": "wf2"
+        },
+        "wf25": {
+          "desc": "",
+          "param": "wf25"
+        },
+        "wf8": {
+          "desc": "",
+          "param": "wf8"
+        },
+        "wf4": {
+          "desc": "",
+          "param": "wf4"
+        },
+        "wf31": {
+          "desc": "",
+          "param": "wf31"
+        },
+        "wf7": {
+          "desc": "",
+          "param": "wf7"
+        },
+        "landmark": {
+          "desc": "距捷運松山站約70公尺"
+        }
+      },
+      "s9": [
+        1
+      ],
+      "s5": 0,
+      "d3": "",
+      "hrBehaviorPR": 0.3995176419237313,
+      "jobCat": [
+        2007001004,
+        2007001006
+      ],
+      "labels": [
+        "c@wf10",
+        "indexjob@ij005",
+        "indexjob@ij022",
+        "c@wf14",
+        "indexjob@ij003",
+        "c@wf29",
+        "c@wf26",
+        "c@wf1",
+        "indexjob@ij008",
+        "c@wf2",
+        "indexjob@ij039",
+        "c@wf25",
+        "c@wf8",
+        "c@wf4",
+        "c@wf31",
+        "c@wf7"
+      ],
+      "languageRequirements": [
+        {
+          "language": 1,
+          "ability": {
+            "listening": 4,
+            "speaking": 4,
+            "reading": 8,
+            "writing": 4
+          }
+        }
+      ],
+      "acceptRole": [],
+      "employeeCount": 140,
+      "pcSkills": [
+        {
+          "code": "12001001007",
+          "description": "Linux"
+        },
+        {
+          "code": "12001001020",
+          "description": "Shell"
+        },
+        {
+          "code": "12001002017",
+          "description": "Jenkins"
+        },
+        {
+          "code": "12001002018",
+          "description": "Git"
+        },
+        {
+          "code": "12001003080",
+          "description": "Go"
+        },
+        {
+          "code": "12001004032",
+          "description": "MySQL"
+        },
+        {
+          "code": "12001006006",
+          "description": "DHTML"
+        },
+        {
+          "code": "12001006013",
+          "description": "HTML"
+        },
+        {
+          "code": "12001006017",
+          "description": "JavaScript"
+        },
+        {
+          "code": "12001007026",
+          "description": "HTTP"
+        },
+        {
+          "code": "12001007071",
+          "description": "TCP/IP"
+        }
+      ],
+      "pddScore": 1.2202884,
+      "custLogo": "https://static.104.com.tw/b_profile/cust_picture/6972/130000000266972/logo.png?v=20260402102924",
+      "jobSwitch": "on",
+      "isSave": null,
+      "interactionRecord": {
+        "lastProcessedResumeAtTime": 1782114114,
+        "lastCustReplyTimestamp": 1779159818,
+        "nowTimestamp": 1782545122
+      },
+      "isApplied": null,
+      "applyDate": null,
+      "userApplyCount": null
+    },
+    {
+      "appearDate": "20260625",
+      "applyCnt": 7,
+      "coIndustry": 1001001002,
+      "coIndustryDesc": "電腦軟體服務業",
+      "custName": "益晨資訊科技有限公司",
+      "custNo": "130000000221207",
+      "description": "工作內容\n1. 開發、維護與參與系統架構設計，解決高併發、高可用性技術難題\n2. 技術方案的規劃與開發、迭代計畫實踐 \n3. 產品討論與跨部門協作 \n4. 優化與維護相關系統產品 \n5. 研發軟體新技術與新工具 ",
+      "descSnippet": "工作內容\n1. 開發、維護與參與系統架構設計，解決高併發、高可用性技術難題\n2. 技術方案的規劃與開發、迭代計畫實踐 \n3. 產品討論與跨部門協作 \n4. 優化與維護相關系統產品 \n5. 研發軟體新技術與新工具 ",
+      "mrtDist": 0.3,
+      "jobAddress": "忠孝東路一段55號7樓",
+      "jobAddrNo": 6001001001,
+      "jobAddrNoDesc": "台北市中正區",
+      "jobName": "GOLANG 開發工程師",
+      "jobNameSnippet": "[[[GOLANG]]] 開發工程師",
+      "jobNo": "14439753",
+      "jobRo": 1,
+      "jobType": 0,
+      "lat": 25.0442823,
+      "lon": 121.5262751,
+      "link": {
+        "job": "https://www.104.com.tw/job/8lhs9",
+        "cust": "https://www.104.com.tw/company/1a2x6bmpzr",
+        "applyAnalyze": "https://www.104.com.tw/jobs/apply/analysis/8lhs9?channel=104rpt"
+      },
+      "major": [
+        "企業管理相關",
+        "資訊管理相關",
+        "資訊工程相關"
+      ],
+      "mrt": "99001005013",
+      "mrtDesc": "捷運善導寺站",
+      "optionEdu": [
+        4,
+        5
+      ],
+      "period": 4,
+      "remoteWorkType": 0,
+      "s10": 50,
+      "salaryHigh": 90000,
+      "salaryLow": 72000,
+      "tags": {
+        "wf33": {
+          "desc": "",
+          "param": "wf33"
+        },
+        "wf32": {
+          "desc": "",
+          "param": "wf32"
+        },
+        "wf7": {
+          "desc": "",
+          "param": "wf7"
+        },
+        "wf9": {
+          "desc": "",
+          "param": "wf9"
+        },
+        "wf29": {
+          "desc": "",
+          "param": "wf29"
+        },
+        "wf13": {
+          "desc": "",
+          "param": "wf13"
+        },
+        "wf1": {
+          "desc": "",
+          "param": "wf1"
+        },
+        "wf10": {
+          "desc": "",
+          "param": "wf10"
+        },
+        "wf8": {
+          "desc": "",
+          "param": "wf8"
+        },
+        "wf26": {
+          "desc": "",
+          "param": "wf26"
+        },
+        "wf3": {
+          "desc": "",
+          "param": "wf3"
+        },
+        "wf2": {
+          "desc": "",
+          "param": "wf2"
+        },
+        "landmark": {
+          "desc": "距捷運善導寺站約300公尺"
+        }
+      },
+      "s9": [
+        1
+      ],
+      "s5": 0,
+      "d3": "",
+      "hrBehaviorPR": 0.25464542450183053,
+      "jobCat": [
+        2007001023,
+        2007001016,
+        2007001004
+      ],
+      "labels": [
+        "c@wf33",
+        "c@wf32",
+        "c@wf7",
+        "indexjob@ij005",
+        "indexjob@ij009",
+        "c@wf9",
+        "c@wf29",
+        "indexjob@ij014",
+        "c@wf13",
+        "indexjob@ij022",
+        "c@wf1",
+        "c@wf10",
+        "indexjob@ij039",
+        "c@wf8",
+        "c@wf26",
+        "c@wf3",
+        "c@wf2"
+      ],
+      "languageRequirements": [],
+      "acceptRole": [],
+      "employeeCount": 25,
+      "pcSkills": [
+        {
+          "code": "12001003010",
+          "description": "C++"
+        },
+        {
+          "code": "12001003025",
+          "description": "Java"
+        },
+        {
+          "code": "12001003080",
+          "description": "Go"
+        },
+        {
+          "code": "12001004032",
+          "description": "MySQL"
+        },
+        {
+          "code": "12001004039",
+          "description": "PostgreSQL"
+        }
+      ],
+      "pddScore": 1.1331003,
+      "custLogo": "https://static.104.com.tw/b_profile/cust_picture/1207/130000000221207/logo.png?v=20260428094317",
+      "jobSwitch": "on",
+      "isSave": null,
+      "interactionRecord": {
+        "lastProcessedResumeAtTime": 1782391997,
+        "lastCustReplyTimestamp": null,
+        "nowTimestamp": 1782545122
+      },
+      "isApplied": null,
+      "applyDate": null,
+      "userApplyCount": null
+    },
+    {
+      "appearDate": "20260622",
+      "applyCnt": 10,
+      "coIndustry": 1001001002,
+      "coIndustryDesc": "電腦軟體服務業",
+      "custName": "幣託科技股份有限公司",
+      "custNo": "130000000223436",
+      "description": "▶︎ 團隊介紹\nGolang 團隊主要負責交易撮合以及區塊鏈錢包等功能，除了業務邏輯的開發維護，我們也會跟 SRE 合作導入新技術以及優化架構，例如為了提升系統可觀測性，埋入更多 promethues metrics 以及導入",
+      "descSnippet": "▶︎ 團隊介紹\n[[[Golang]]] 團隊主要負責交易撮合以及區塊鏈錢包等功能，除了業務邏輯的開發維護，我們也會跟 SRE 合作導入新技術以及優化架構，例如為了提升系統可觀測性，埋入更多 promethues metrics 以及導入",
+      "mrtDist": 0.12,
+      "jobAddress": "南京東路四段16號8樓A室",
+      "jobAddrNo": 6001001004,
+      "jobAddrNoDesc": "台北市松山區",
+      "jobName": "Senior Backend Engineer ( Golang )（每月有遠端日）",
+      "jobNameSnippet": "Senior Backend Engineer ( [[[Golang]]] )（每月有遠端日）",
+      "jobNo": "13761398",
+      "jobRo": 1,
+      "jobType": 0,
+      "lat": 25.0512497,
+      "lon": 121.5530169,
+      "link": {
+        "job": "https://www.104.com.tw/job/86yd2",
+        "cust": "https://www.104.com.tw/company/1a2x6bmrpo",
+        "applyAnalyze": "https://www.104.com.tw/jobs/apply/analysis/86yd2?channel=104rpt"
+      },
+      "major": [
+        "資訊工程相關"
+      ],
+      "mrt": "99001003018",
+      "mrtDesc": "捷運台北小巨蛋站",
+      "optionEdu": [
+        4,
+        5,
+        6
+      ],
+      "period": 6,
+      "remoteWorkType": 2,
+      "s10": 50,
+      "salaryHigh": 150000,
+      "salaryLow": 85000,
+      "tags": {
+        "remote": {
+          "desc": "遠端工作"
+        },
+        "wf31": {
+          "desc": "",
+          "param": "wf31"
+        },
+        "wf8": {
+          "desc": "",
+          "param": "wf8"
+        },
+        "wf3": {
+          "desc": "",
+          "param": "wf3"
+        },
+        "wf9": {
+          "desc": "",
+          "param": "wf9"
+        },
+        "wf7": {
+          "desc": "",
+          "param": "wf7"
+        },
+        "wf1": {
+          "desc": "",
+          "param": "wf1"
+        },
+        "wf2": {
+          "desc": "",
+          "param": "wf2"
+        },
+        "wf10": {
+          "desc": "",
+          "param": "wf10"
+        },
+        "wf26": {
+          "desc": "",
+          "param": "wf26"
+        },
+        "wf29": {
+          "desc": "",
+          "param": "wf29"
+        },
+        "wf14": {
+          "desc": "",
+          "param": "wf14"
+        },
+        "landmark": {
+          "desc": "距捷運台北小巨蛋站約120公尺"
+        }
+      },
+      "s9": [
+        1
+      ],
+      "s5": 0,
+      "d3": "",
+      "hrBehaviorPR": 0.6487248465629203,
+      "jobCat": [
+        2007001004,
+        2007001016,
+        2007001023
+      ],
+      "labels": [
+        "c@wf31",
+        "c@wf8",
+        "association@j00033",
+        "indexjob@ij022",
+        "c@new_company_job",
+        "c@wf3",
+        "c@wf9",
+        "c@wf7",
+        "c@wf1",
+        "indexjob@ij008",
+        "c@wf2",
+        "indexjob@ij039",
+        "indexjob@ij001",
+        "indexjob@ij005",
+        "association@j00028",
+        "indexjob@ij019",
+        "c@wf10",
+        "c@wf26",
+        "c@wf29",
+        "c@wf14"
+      ],
+      "languageRequirements": [
+        {
+          "language": 1,
+          "ability": {
+            "listening": 8,
+            "speaking": 8,
+            "reading": 8,
+            "writing": 8
+          }
+        }
+      ],
+      "acceptRole": [],
+      "employeeCount": 100,
+      "pcSkills": [
+        {
+          "code": "12001003080",
+          "description": "Go"
+        }
+      ],
+      "pddScore": 1.1093304,
+      "custLogo": "https://static.104.com.tw/b_profile/cust_picture/3436/130000000223436/logo.png?v=20260428173900",
+      "jobSwitch": "on",
+      "isSave": null,
+      "interactionRecord": {
+        "lastProcessedResumeAtTime": 1782436165,
+        "lastCustReplyTimestamp": null,
+        "nowTimestamp": 1782545122
+      },
+      "isApplied": null,
+      "applyDate": null,
+      "userApplyCount": null
+    },
+    {
+      "appearDate": "20260620",
+      "applyCnt": 7,
+      "coIndustry": 1001001002,
+      "coIndustryDesc": "電腦軟體服務業",
+      "custName": "米奈娛樂有限公司",
+      "custNo": "130000000251337",
+      "description": "[主要工作內容]\n● 核心開發： 使用 Golang 開發後端核心 API 與業務邏輯模組。\n● 後台維護： 負責後台管理系統的開發與維護（基於 PHP 技術堆疊）。\n● 自動化開發： 依據業務需求，使用 Python 開發輔助工具與自動化任務腳",
+      "descSnippet": "[主要工作內容]\n● 核心開發： 使用 [[[Golang]]] 開發後端核心 API 與業務邏輯模組。\n● 後台維護： 負責後台管理系統的開發與維護（基於 PHP 技術堆疊）。\n● 自動化開發： 依據業務需求，使用 Python 開發輔助工具與自動化任務腳",
+      "mrtDist": 0.49,
+      "jobAddress": "敦化南路二段182號",
+      "jobAddrNo": 6001001005,
+      "jobAddrNoDesc": "台北市大安區",
+      "jobName": "後端工程師（Golang）",
+      "jobNameSnippet": "後端工程師（[[[Golang]]]）",
+      "jobNo": "15097562",
+      "jobRo": 1,
+      "jobType": 0,
+      "lat": 25.0235434,
+      "lon": 121.5482899,
+      "link": {
+        "job": "https://www.104.com.tw/job/8zlcq",
+        "cust": "https://www.104.com.tw/company/1a2x6bnd8p",
+        "applyAnalyze": "https://www.104.com.tw/jobs/apply/analysis/8zlcq?channel=104rpt"
+      },
+      "major": [],
+      "mrt": "99001001007",
+      "mrtDesc": "捷運六張犁站",
+      "optionEdu": [
+        3,
+        4
+      ],
+      "period": 3,
+      "remoteWorkType": 0,
+      "s10": 50,
+      "salaryHigh": 80000,
+      "salaryLow": 70000,
+      "tags": {
+        "wf7": {
+          "desc": "",
+          "param": "wf7"
+        },
+        "wf1": {
+          "desc": "",
+          "param": "wf1"
+        },
+        "wf3": {
+          "desc": "",
+          "param": "wf3"
+        },
+        "landmark": {
+          "desc": "距捷運六張犁站約490公尺"
+        }
+      },
+      "s9": [
+        1
+      ],
+      "s5": 0,
+      "d3": "",
+      "hrBehaviorPR": 0.6389062096364722,
+      "jobCat": [
+        2007001016,
+        2007001017
+      ],
+      "labels": [
+        "c@wf7",
+        "indexjob@ij039",
+        "indexjob@ij023",
+        "c@wf1",
+        "association@j00028",
+        "indexjob@ij022",
+        "c@wf3"
+      ],
+      "languageRequirements": [
+        {
+          "language": 1,
+          "ability": {
+            "listening": 8,
+            "speaking": 8,
+            "reading": 8,
+            "writing": 8
+          }
+        }
+      ],
+      "acceptRole": [],
+      "employeeCount": 0,
+      "pcSkills": [
+        {
+          "code": "12001003080",
+          "description": "Go"
+        },
+        {
+          "code": "12001004039",
+          "description": "PostgreSQL"
+        },
+        {
+          "code": "12001002018",
+          "description": "Git"
+        }
+      ],
+      "pddScore": 1.0544977,
+      "custLogo": "",
+      "jobSwitch": "on",
+      "isSave": null,
+      "interactionRecord": {
+        "lastProcessedResumeAtTime": 1782396804,
+        "lastCustReplyTimestamp": null,
+        "nowTimestamp": 1782545122
+      },
+      "isApplied": null,
+      "applyDate": null,
+      "userApplyCount": null
+    },
+    {
+      "appearDate": "20260622",
+      "applyCnt": 8,
+      "coIndustry": 1001001002,
+      "coIndustryDesc": "電腦軟體服務業",
+      "custName": "時刻無限股份有限公司",
+      "custNo": "130000000242671",
+      "description": "我們正在尋找一位 DevOps 工程師，除了負責 CI/CD、容器化與雲端架構外，也需要具備扎實的 Golang 開發能力，能夠參與後端服務的開發工作。這是一個結合 DevOps（70%）與後端開發（30%）的混合型職位，您將同時推動基礎設施自動",
+      "descSnippet": "我們正在尋找一位 DevOps 工程師，除了負責 CI/CD、容器化與雲端架構外，也需要具備扎實的 [[[Golang]]] 開發能力，能夠參與後端服務的開發工作。這是一個結合 DevOps（70%）與後端開發（30%）的混合型職位，您將同時推動基礎設施自動",
+      "mrtDist": 0.03,
+      "jobAddress": "復興南路二段218號4樓之7",
+      "jobAddrNo": 6001001005,
+      "jobAddrNoDesc": "台北市大安區",
+      "jobName": "Golang後端與DevOps工程師",
+      "jobNameSnippet": "[[[Golang]]]後端與DevOps工程師",
+      "jobNo": "14335204",
+      "jobRo": 1,
+      "jobType": 0,
+      "lat": 25.0263318,
+      "lon": 121.5433186,
+      "link": {
+        "job": "https://www.104.com.tw/job/8j944",
+        "cust": "https://www.104.com.tw/company/1a2x6bn6jz",
+        "applyAnalyze": "https://www.104.com.tw/jobs/apply/analysis/8j944?channel=104rpt"
+      },
+      "major": [],
+      "mrt": "99001001008",
+      "mrtDesc": "捷運科技大樓站",
+      "optionEdu": [
+        4,
+        5
+      ],
+      "period": 2,
+      "remoteWorkType": 0,
+      "s10": 10,
+      "salaryHigh": 0,
+      "salaryLow": 0,
+      "tags": {
+        "wf8": {
+          "desc": "",
+          "param": "wf8"
+        },
+        "landmark": {
+          "desc": "距捷運科技大樓站約30公尺"
+        }
+      },
+      "s9": [
+        1
+      ],
+      "s5": 0,
+      "d3": "",
+      "hrBehaviorPR": 0.6067534584584139,
+      "jobCat": [
+        2007001012,
+        2007001016,
+        2007001004
+      ],
+      "labels": [
+        "indexjob@ij017",
+        "c@wf8",
+        "indexjob@ij022",
+        "indexjob@ij005"
+      ],
+      "languageRequirements": [],
+      "acceptRole": [],
+      "employeeCount": 10,
+      "pcSkills": [
+        {
+          "code": "12001003045",
+          "description": "Python"
+        },
+        {
+          "code": "12001003080",
+          "description": "Go"
+        },
+        {
+          "code": "12001004039",
+          "description": "PostgreSQL"
+        },
+        {
+          "code": "12001005023",
+          "description": "AWS"
+        },
+        {
+          "code": "12001006013",
+          "description": "HTML"
+        },
+        {
+          "code": "12001006017",
+          "description": "JavaScript"
+        },
+        {
+          "code": "12001006032",
+          "description": "CSS"
+        },
+        {
+          "code": "12001006043",
+          "description": "Django"
+        },
+        {
+          "code": "12001002016",
+          "description": "Github"
+        },
+        {
+          "code": "12001008030",
+          "description": "ChatGPT"
+        },
+        {
+          "code": "12001002018",
+          "description": "Git"
+        }
+      ],
+      "pddScore": 0.8506426,
+      "custLogo": "https://static.104.com.tw/b_profile/cust_picture/2671/130000000242671/logo.png?v=20251110112609",
+      "jobSwitch": "on",
+      "isSave": null,
+      "interactionRecord": {
+        "lastProcessedResumeAtTime": 1782368821,
+        "lastCustReplyTimestamp": null,
+        "nowTimestamp": 1782545122
+      },
+      "isApplied": null,
+      "applyDate": null,
+      "userApplyCount": null
+    },
+    {
+      "appearDate": "20260623",
+      "applyCnt": 7,
+      "coIndustry": 1001001006,
+      "coIndustryDesc": "其它軟體及網路相關業",
+      "custName": "天晴資訊有限公司",
+      "custNo": "130000000167545",
+      "description": "我們正在尋找具備 Golang 開發經驗的遊戲工程師，能參與我們的遊戲類型專案開發，並協助建立穩定高效的後端架構。如果你曾經參與過遊戲開發，對遊戲邏輯、效能優化與系統設計有實戰經驗，歡迎加入我們的技術團隊！\n\n【工作內容】\n使用 Golang 開",
+      "descSnippet": "我們正在尋找具備 [[[Golang]]] 開發經驗的遊戲工程師，能參與我們的遊戲類型專案開發，並協助建立穩定高效的後端架構。如果你曾經參與過遊戲開發，對遊戲邏輯、效能優化與系統設計有實戰經驗，歡迎加入我們的技術團隊！\n\n【工作內容】\n使用 [[[Golang]]] 開",
+      "mrtDist": 0,
+      "jobAddress": "復興南路",
+      "jobAddrNo": 6001001005,
+      "jobAddrNoDesc": "台北市大安區",
+      "jobName": "Golang 遊戲開發工程師(大安)",
+      "jobNameSnippet": "[[[Golang]]] 遊戲開發工程師(大安)",
+      "jobNo": "14660408",
+      "jobRo": 1,
+      "jobType": 0,
+      "lat": 25.0398695,
+      "lon": 121.5437895,
+      "link": {
+        "job": "https://www.104.com.tw/job/8q81k",
+        "cust": "https://www.104.com.tw/company/1a2x6blkl5",
+        "applyAnalyze": "https://www.104.com.tw/jobs/apply/analysis/8q81k?channel=104rpt"
+      },
+      "major": [],
+      "mrt": "",
+      "mrtDesc": "",
+      "optionEdu": [
+        4,
+        5,
+        6
+      ],
+      "period": 0,
+      "remoteWorkType": 0,
+      "s10": 50,
+      "salaryHigh": 95000,
+      "salaryLow": 50000,
+      "tags": {
+        "wf26": {
+          "desc": "",
+          "param": "wf26"
+        },
+        "wf35": {
+          "desc": "",
+          "param": "wf35"
+        },
+        "wf29": {
+          "desc": "",
+          "param": "wf29"
+        },
+        "wf31": {
+          "desc": "",
+          "param": "wf31"
+        },
+        "wf2": {
+          "desc": "",
+          "param": "wf2"
+        },
+        "wf20": {
+          "desc": "",
+          "param": "wf20"
+        },
+        "wf1": {
+          "desc": "",
+          "param": "wf1"
+        },
+        "wf7": {
+          "desc": "",
+          "param": "wf7"
+        }
+      },
+      "s9": [
+        1
+      ],
+      "s5": 0,
+      "d3": "",
+      "hrBehaviorPR": 0.3158131497136138,
+      "jobCat": [
+        2007001016,
+        2007001008
+      ],
+      "labels": [
+        "association@j00024",
+        "indexjob@ij039",
+        "c@graduates_welcome",
+        "c@wf26",
+        "c@intern_welcome",
+        "association@j00042",
+        "association@j00028",
+        "foreigners@overseasStudents_tick",
+        "association@j00017",
+        "association@j00034",
+        "c@wf35",
+        "senior@senior_job_G",
+        "c@wf29",
+        "c@wf31",
+        "c@wf2",
+        "foreigners@foreigners_tick",
+        "joblist_search@jl_j0003_004.5",
+        "c@wf20",
+        "association@j00019",
+        "c@rdss_welcome",
+        "indexjob@ij006",
+        "association@j00013",
+        "association@j00018",
+        "association@j00029",
+        "association@j00039",
+        "indexjob@ij013",
+        "c@wf1",
+        "association@j00033",
+        "c@wf7",
+        "indexjob@ij022"
+      ],
+      "languageRequirements": [],
+      "acceptRole": [
+        2,
+        4,
+        8,
+        16,
+        32,
+        64,
+        1024,
+        2048,
+        4096,
+        8192,
+        16384,
+        32768,
+        65536,
+        131072
+      ],
+      "employeeCount": 30,
+      "pcSkills": [
+        {
+          "code": "12001004032",
+          "description": "MySQL"
+        },
+        {
+          "code": "12001003080",
+          "description": "Go"
+        },
+        {
+          "code": "12001002018",
+          "description": "Git"
+        },
+        {
+          "code": "12001002016",
+          "description": "Github"
+        }
+      ],
+      "pddScore": 0.80866116,
+      "custLogo": "https://static.104.com.tw/b_profile/cust_picture/7545/130000000167545/logo.png?v=20250819173725",
+      "jobSwitch": "on",
+      "isSave": null,
+      "interactionRecord": {
+        "lastProcessedResumeAtTime": 1782383339,
+        "lastCustReplyTimestamp": 1778208757,
+        "nowTimestamp": 1782545122
+      },
+      "isApplied": null,
+      "applyDate": null,
+      "userApplyCount": null
+    },
+    {
+      "appearDate": "20260623",
+      "applyCnt": 20,
+      "coIndustry": 1001001006,
+      "coIndustryDesc": "其它軟體及網路相關業",
+      "custName": "瞬聯科技股份有限公司",
+      "custNo": "130000000159109",
+      "description": "We are looking for a Backend Engineer with a strong foundation in Golang to join our engineering team.\n\nYou will work",
+      "descSnippet": "We are looking for a Backend Engineer with a strong foundation in [[[Golang]]] to join our engineering team.\n\nYou will work",
+      "mrtDist": 0.27,
+      "jobAddress": "和平東路二段339號11樓",
+      "jobAddrNo": 6001001005,
+      "jobAddrNoDesc": "台北市大安區",
+      "jobName": "Golang Engineer",
+      "jobNameSnippet": "[[[Golang]]] Engineer",
+      "jobNo": "15245367",
+      "jobRo": 1,
+      "jobType": 0,
+      "lat": 25.02495,
+      "lon": 121.5458064,
+      "link": {
+        "job": "https://www.104.com.tw/job/92ref",
+        "cust": "https://www.104.com.tw/company/1a2x6ble2t",
+        "applyAnalyze": "https://www.104.com.tw/jobs/apply/analysis/92ref?channel=104rpt"
+      },
+      "major": [
+        "資訊工程相關",
+        "其他數學及電算機科學相關"
+      ],
+      "mrt": "99001001008",
+      "mrtDesc": "捷運科技大樓站",
+      "optionEdu": [
+        4,
+        5
+      ],
+      "period": 2,
+      "remoteWorkType": 0,
+      "s10": 10,
+      "salaryHigh": 0,
+      "salaryLow": 0,
+      "tags": {
+        "zoneForeign": {
+          "desc": "外商公司",
+          "param": 5
+        },
+        "wf9": {
+          "desc": "",
+          "param": "wf9"
+        },
+        "wf29": {
+          "desc": "",
+          "param": "wf29"
+        },
+        "wf30": {
+          "desc": "",
+          "param": "wf30"
+        },
+        "wf26": {
+          "desc": "",
+          "param": "wf26"
+        },
+        "wf12": {
+          "desc": "",
+          "param": "wf12"
+        },
+        "wf10": {
+          "desc": "",
+          "param": "wf10"
+        },
+        "wf1": {
+          "desc": "",
+          "param": "wf1"
+        },
+        "landmark": {
+          "desc": "距捷運科技大樓站約270公尺"
+        }
+      },
+      "s9": [
+        1
+      ],
+      "s5": 0,
+      "d3": "",
+      "hrBehaviorPR": 0.5777184418453426,
+      "jobCat": [
+        2007001004,
+        2007001016
+      ],
+      "labels": [
+        "c@wf9",
+        "c@wf29",
+        "indexjob@ij048",
+        "c@wf30",
+        "joblist_search@jl_j0003_005.14",
+        "indexjob@ij010",
+        "c@wf26",
+        "joblist_search@jl_j0003_004.5",
+        "c@wf12",
+        "foreigners@foreigners_tick",
+        "indexjob@ij022",
+        "indexjob@ij027",
+        "c@wf10",
+        "c@wf1"
+      ],
+      "languageRequirements": [
+        {
+          "language": 1,
+          "ability": {
+            "listening": 8,
+            "speaking": 8,
+            "reading": 8,
+            "writing": 8
+          }
+        }
+      ],
+      "acceptRole": [
+        32
+      ],
+      "employeeCount": 100,
+      "pcSkills": [],
+      "pddScore": 0.74078566,
+      "custLogo": "https://static.104.com.tw/b_profile/cust_picture/9109/130000000159109/logo.jpg?v=20260126165455",
+      "jobSwitch": "on",
+      "isSave": null,
+      "interactionRecord": {
+        "lastProcessedResumeAtTime": 1782095068,
+        "lastCustReplyTimestamp": null,
+        "nowTimestamp": 1782545122
+      },
+      "isApplied": null,
+      "applyDate": null,
+      "userApplyCount": null
+    },
+    {
+      "appearDate": "20260623",
+      "applyCnt": 12,
+      "coIndustry": 1009001001,
+      "coIndustryDesc": "人力仲介代徵",
+      "custName": "台灣英特艾倫人力資源有限公司",
+      "custNo": "130000000048447",
+      "description": "1、5年以上golang經驗\n3、熟悉常用的設計模式，熟悉網路通信原理的優先考慮\n4、精通架構設計、Linux系統程式設計、網路程式設計，掌握多執行緒、多進程程式設計\n5、熟悉通用加解密演算法原理的優先考慮\n6、熟悉大資料模型架構的優先考慮\n7、",
+      "descSnippet": "1、5年以上[[[golang]]]經驗\n3、熟悉常用的設計模式，熟悉網路通信原理的優先考慮\n4、精通架構設計、Linux系統程式設計、網路程式設計，掌握多執行緒、多進程程式設計\n5、熟悉通用加解密演算法原理的優先考慮\n6、熟悉大資料模型架構的優先考慮\n7、",
+      "mrtDist": 0,
+      "jobAddress": "",
+      "jobAddrNo": 6001001003,
+      "jobAddrNoDesc": "台北市中山區",
+      "jobName": "【純遠端】國際遊戲公司 誠徵  Go/Golang 工程師",
+      "jobNameSnippet": "【純遠端】國際遊戲公司 誠徵  Go/[[[Golang]]] 工程師",
+      "jobNo": "13766806",
+      "jobRo": 1,
+      "jobType": 0,
+      "lat": 25.0792018,
+      "lon": 121.5427093,
+      "link": {
+        "job": "https://www.104.com.tw/job/872ja",
+        "cust": "https://www.104.com.tw/company/1a2x6bj0ov",
+        "applyAnalyze": "https://www.104.com.tw/jobs/apply/analysis/872ja?channel=104rpt"
+      },
+      "major": [],
+      "mrt": "",
+      "mrtDesc": "",
+      "optionEdu": [
+        4,
+        5,
+        6
+      ],
+      "period": 6,
+      "remoteWorkType": 1,
+      "s10": 50,
+      "salaryHigh": 180000,
+      "salaryLow": 150000,
+      "tags": {
+        "remote": {
+          "desc": "遠端工作"
+        },
+        "wf32": {
+          "desc": "",
+          "param": "wf32"
+        },
+        "wf7": {
+          "desc": "",
+          "param": "wf7"
+        },
+        "wf14": {
+          "desc": "",
+          "param": "wf14"
+        },
+        "wf1": {
+          "desc": "",
+          "param": "wf1"
+        },
+        "wf3": {
+          "desc": "",
+          "param": "wf3"
+        },
+        "wf4": {
+          "desc": "",
+          "param": "wf4"
+        }
+      },
+      "s9": [
+        1
+      ],
+      "s5": 0,
+      "d3": "",
+      "hrBehaviorPR": 0.878626593385058,
+      "jobCat": [
+        2007001004,
+        2007001008,
+        2007001012
+      ],
+      "labels": [
+        "indexjob@ij003",
+        "association@j00013",
+        "c@wf32",
+        "c@wf7",
+        "indexjob@ij022",
+        "c@wf14",
+        "c@wf1",
+        "association@j00028",
+        "indexjob@ij015",
+        "association@j00033",
+        "indexjob@ij025",
+        "indexjob@ij039",
+        "indexjob@ij008",
+        "association@j00018",
+        "association@j00017",
+        "c@wf3",
+        "c@wf4"
+      ],
+      "languageRequirements": [],
+      "acceptRole": [],
+      "employeeCount": 140,
+      "pcSkills": [
+        {
+          "code": "12001003010",
+          "description": "C++"
+        },
+        {
+          "code": "12001003080",
+          "description": "Go"
+        }
+      ],
+      "pddScore": 0.7312271,
+      "custLogo": "https://static.104.com.tw/b_profile/cust_picture/8447/130000000048447/logo.jpg?v=20250718181734",
+      "jobSwitch": "on",
+      "isSave": null,
+      "interactionRecord": {
+        "lastProcessedResumeAtTime": 1782504366,
+        "lastCustReplyTimestamp": 1782440884,
+        "nowTimestamp": 1782545122
+      },
+      "isApplied": null,
+      "applyDate": null,
+      "userApplyCount": null
+    },
+    {
+      "appearDate": "20260623",
+      "applyCnt": 5,
+      "coIndustry": 1001001006,
+      "coIndustryDesc": "其它軟體及網路相關業",
+      "custName": "天晴資訊有限公司",
+      "custNo": "130000000167545",
+      "description": "【職務內容】\n1.使用 Golang 開發與維護後端服務與系統。\n2.設計與實作 API 架構、資料處理流程與模組化後端框架。\n3.規劃與實作後端系統架構，提升系統 擴充性、穩定性與可維護性。\n4.撰寫技術文件與單元測試，維持良好的程式碼品質與可",
+      "descSnippet": "【職務內容】\n1.使用 [[[Golang]]] 開發與維護後端服務與系統。\n2.設計與實作 API 架構、資料處理流程與模組化後端框架。\n3.規劃與實作後端系統架構，提升系統 擴充性、穩定性與可維護性。\n4.撰寫技術文件與單元測試，維持良好的程式碼品質與可",
+      "mrtDist": 0,
+      "jobAddress": "科技大樓捷運站步行2分鐘",
+      "jobAddrNo": 6001001005,
+      "jobAddrNoDesc": "台北市大安區",
+      "jobName": "Golang 後端工程師(大安)",
+      "jobNameSnippet": "[[[Golang]]] 後端工程師(大安)",
+      "jobNo": "14645682",
+      "jobRo": 1,
+      "jobType": 0,
+      "lat": 25.02603,
+      "lon": 121.54362,
+      "link": {
+        "job": "https://www.104.com.tw/job/8pwoi",
+        "cust": "https://www.104.com.tw/company/1a2x6blkl5",
+        "applyAnalyze": "https://www.104.com.tw/jobs/apply/analysis/8pwoi?channel=104rpt"
+      },
+      "major": [],
+      "mrt": "",
+      "mrtDesc": "",
+      "optionEdu": [
+        3,
+        4,
+        5,
+        6
+      ],
+      "period": 4,
+      "remoteWorkType": 0,
+      "s10": 50,
+      "salaryHigh": 9999999,
+      "salaryLow": 50000,
+      "tags": {
+        "wf1": {
+          "desc": "",
+          "param": "wf1"
+        },
+        "wf35": {
+          "desc": "",
+          "param": "wf35"
+        },
+        "wf29": {
+          "desc": "",
+          "param": "wf29"
+        },
+        "wf2": {
+          "desc": "",
+          "param": "wf2"
+        },
+        "wf26": {
+          "desc": "",
+          "param": "wf26"
+        },
+        "wf7": {
+          "desc": "",
+          "param": "wf7"
+        },
+        "wf31": {
+          "desc": "",
+          "param": "wf31"
+        },
+        "wf20": {
+          "desc": "",
+          "param": "wf20"
+        }
+      },
+      "s9": [
+        1
+      ],
+      "s5": 0,
+      "d3": "",
+      "hrBehaviorPR": 0.5802037216842892,
+      "jobCat": [
+        2007001016,
+        2007001004,
+        2007001017
+      ],
+      "labels": [
+        "c@wf1",
+        "association@j00018",
+        "c@wf35",
+        "association@j00028",
+        "c@wf29",
+        "indexjob@ij006",
+        "c@wf2",
+        "indexjob@ij013",
+        "indexjob@ij023",
+        "association@j00013",
+        "indexjob@ij029",
+        "c@wf26",
+        "c@wf7",
+        "c@wf31",
+        "indexjob@ij039",
+        "indexjob@ij022",
+        "association@j00033",
+        "c@wf20",
+        "association@j00027"
+      ],
+      "languageRequirements": [
+        {
+          "language": 1,
+          "ability": {
+            "listening": 4,
+            "speaking": 4,
+            "reading": 4,
+            "writing": 4
+          }
+        }
+      ],
+      "acceptRole": [],
+      "employeeCount": 30,
+      "pcSkills": [
+        {
+          "code": "12001002018",
+          "description": "Git"
+        },
+        {
+          "code": "12001004032",
+          "description": "MySQL"
+        },
+        {
+          "code": "12001004039",
+          "description": "PostgreSQL"
+        }
+      ],
+      "pddScore": 0.72726697,
+      "custLogo": "https://static.104.com.tw/b_profile/cust_picture/7545/130000000167545/logo.png?v=20250819173725",
+      "jobSwitch": "on",
+      "isSave": null,
+      "interactionRecord": {
+        "lastProcessedResumeAtTime": 1782100073,
+        "lastCustReplyTimestamp": 1780295343,
+        "nowTimestamp": 1782545122
+      },
+      "isApplied": null,
+      "applyDate": null,
+      "userApplyCount": null
+    },
+    {
+      "appearDate": "20260623",
+      "applyCnt": 10,
+      "coIndustry": 1001001003,
+      "coIndustryDesc": "網際網路相關業",
+      "custName": "喬富科技股份有限公司",
+      "custNo": "130000000264905",
+      "description": "、對於技能有專研\n- 需基本中英文讀寫能力\n\n【Technique you will work with】\n- Ruby on Rails / Golang\n- MongoDB\n- Elastic Search\n- K8S\n- Git\n- AWS",
+      "descSnippet": "、對於技能有專研\n- 需基本中英文讀寫能力\n\n【Technique you will work with】\n- Ruby on Rails / [[[Golang]]]\n- MongoDB\n- Elastic Search\n- K8S\n- Git\n- AWS",
+      "mrtDist": 0,
+      "jobAddress": "敦化北路170號10樓A室",
+      "jobAddrNo": 6001001004,
+      "jobAddrNoDesc": "台北市松山區",
+      "jobName": "【TENG0502】Software Engineer (Backend) - Golang / RoR",
+      "jobNameSnippet": "【TENG0502】Software Engineer (Backend) - [[[Golang]]] / RoR",
+      "jobNo": "15043542",
+      "jobRo": 1,
+      "jobType": 2,
+      "lat": 25.0565484,
+      "lon": 121.5483818,
+      "link": {
+        "job": "https://www.104.com.tw/job/8yfo6",
+        "cust": "https://www.104.com.tw/company/1a2x6bnnpl",
+        "applyAnalyze": "https://www.104.com.tw/jobs/apply/analysis/8yfo6?channel=104rpt"
+      },
+      "major": [],
+      "mrt": "",
+      "mrtDesc": "",
+      "optionEdu": [
+        4,
+        5,
+        6
+      ],
+      "period": 3,
+      "remoteWorkType": 0,
+      "s10": 10,
+      "salaryHigh": 0,
+      "salaryLow": 0,
+      "tags": {
+        "wf13": {
+          "desc": "",
+          "param": "wf13"
+        },
+        "wf26": {
+          "desc": "",
+          "param": "wf26"
+        },
+        "wf29": {
+          "desc": "",
+          "param": "wf29"
+        },
+        "wf11": {
+          "desc": "",
+          "param": "wf11"
+        },
+        "wf31": {
+          "desc": "",
+          "param": "wf31"
+        },
+        "wf7": {
+          "desc": "",
+          "param": "wf7"
+        },
+        "wf1": {
+          "desc": "",
+          "param": "wf1"
+        },
+        "wf14": {
+          "desc": "",
+          "param": "wf14"
+        }
+      },
+      "s9": [
+        1
+      ],
+      "s5": 0,
+      "d3": "",
+      "hrBehaviorPR": 0.9152087545986585,
+      "jobCat": [
+        2007001016,
+        2007001004
+      ],
+      "labels": [
+        "c@wf13",
+        "c@wf26",
+        "c@wf29",
+        "indexjob@ij029",
+        "indexjob@ij009",
+        "c@wf11",
+        "c@wf31",
+        "indexjob@ij008",
+        "indexjob@ij022",
+        "c@wf7",
+        "indexjob@ij026",
+        "c@wf1",
+        "c@wf14"
+      ],
+      "languageRequirements": [],
+      "acceptRole": [],
+      "employeeCount": 110,
+      "pcSkills": [],
+      "pddScore": 0.71281433,
+      "custLogo": "https://static.104.com.tw/b_profile/cust_picture/4905/130000000264905/logo.png?v=20260223102533",
+      "jobSwitch": "on",
+      "isSave": null,
+      "interactionRecord": {
+        "lastProcessedResumeAtTime": 1782465941,
+        "lastCustReplyTimestamp": 1779787143,
+        "nowTimestamp": 1782545122
+      },
+      "isApplied": null,
+      "applyDate": null,
+      "userApplyCount": null
+    },
+    {
+      "appearDate": "20260529",
+      "applyCnt": 6,
+      "coIndustry": 1001001003,
+      "coIndustryDesc": "網際網路相關業",
+      "custName": "彼雅特科技股份有限公司",
+      "custNo": "130000000220505",
+      "description": "1. 開發和維護後端系統和資料庫\n2. 與前端團隊協作，協調系統功能的實現\n3. 解決問題並持續優化現有系統\n4. 實施新的功能和技術以提高系統效率和性能\n5. 協調和管理與後端開發相關的專案和任務\n",
+      "descSnippet": "1. 開發和維護後端系統和資料庫\n2. 與前端團隊協作，協調系統功能的實現\n3. 解決問題並持續優化現有系統\n4. 實施新的功能和技術以提高系統效率和性能\n5. 協調和管理與後端開發相關的專案和任務\n",
+      "mrtDist": 0,
+      "jobAddress": "松隆路102號16樓",
+      "jobAddrNo": 6001001007,
+      "jobAddrNoDesc": "台北市信義區",
+      "jobName": "Golang工程師-Junior",
+      "jobNameSnippet": "[[[Golang]]]工程師-Junior",
+      "jobNo": "14525012",
+      "jobRo": 1,
+      "jobType": 0,
+      "lat": 25.0458539,
+      "lon": 121.571029,
+      "link": {
+        "job": "https://www.104.com.tw/job/8nbkk",
+        "cust": "https://www.104.com.tw/company/1a2x6bmpg9",
+        "applyAnalyze": "https://www.104.com.tw/jobs/apply/analysis/8nbkk?channel=104rpt"
+      },
+      "major": [],
+      "mrt": "",
+      "mrtDesc": "",
+      "optionEdu": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "period": 0,
+      "remoteWorkType": 0,
+      "s10": 10,
+      "salaryHigh": 0,
+      "salaryLow": 0,
+      "tags": {
+        "wf7": {
+          "desc": "",
+          "param": "wf7"
+        },
+        "wf22": {
+          "desc": "",
+          "param": "wf22"
+        },
+        "wf35": {
+          "desc": "",
+          "param": "wf35"
+        },
+        "wf26": {
+          "desc": "",
+          "param": "wf26"
+        },
+        "wf20": {
+          "desc": "",
+          "param": "wf20"
+        },
+        "wf29": {
+          "desc": "",
+          "param": "wf29"
+        },
+        "wf8": {
+          "desc": "",
+          "param": "wf8"
+        }
+      },
+      "s9": [
+        1
+      ],
+      "s5": 0,
+      "d3": "",
+      "hrBehaviorPR": 0.40594685598738656,
+      "jobCat": [
+        2007001016,
+        2007001017,
+        2007001015
+      ],
+      "labels": [
+        "association@j00039",
+        "senior@senior_job_G",
+        "c@wf7",
+        "association@j00029",
+        "c@wf22",
+        "foreigners@foreigners_tick",
+        "association@j00019",
+        "c@rdss_welcome",
+        "indexjob@ij011",
+        "c@wf35",
+        "foreigners@overseasStudents_tick",
+        "association@j00034",
+        "joblist_search@jl_j0003_004.5",
+        "foreigners@fc_emp5m_jbs",
+        "c@wf26",
+        "association@j00024",
+        "c@wf20",
+        "indexjob@ij013",
+        "indexjob@ij006",
+        "c@wf29",
+        "indexjob@ij005",
+        "c@graduates_welcome",
+        "c@wf8",
+        "c@intern_welcome",
+        "association@j00042"
+      ],
+      "languageRequirements": [],
+      "acceptRole": [
+        2,
+        4,
+        8,
+        16,
+        32,
+        64,
+        1024,
+        2048,
+        4096,
+        8192,
+        16384,
+        32768,
+        65536,
+        131072
+      ],
+      "employeeCount": 30,
+      "pcSkills": [
+        {
+          "code": "12001003080",
+          "description": "Go"
+        },
+        {
+          "code": "12001006036",
+          "description": "ReactJS"
+        },
+        {
+          "code": "12001006038",
+          "description": "VueJS"
+        }
+      ],
+      "pddScore": 0.7116901,
+      "custLogo": "https://static.104.com.tw/b_profile/cust_picture/0505/130000000220505/logo.png?v=20251022152333",
+      "jobSwitch": "on",
+      "isSave": null,
+      "interactionRecord": {
+        "lastProcessedResumeAtTime": 1782280655,
+        "lastCustReplyTimestamp": null,
+        "nowTimestamp": 1782545122
+      },
+      "isApplied": null,
+      "applyDate": null,
+      "userApplyCount": null
+    },
+    {
+      "appearDate": "20260622",
+      "applyCnt": 6,
+      "coIndustry": 1011001002,
+      "coIndustryDesc": "建築工程業",
+      "custName": "虹耀建設股份有限公司",
+      "custNo": "130000000145239",
+      "description": "職務說明\n我們正在尋找擅長 Golang 的後端工程師，一起打造穩定、高效、可擴展的後端系統架構。你將參與系統設計、開發、測試與部署，為產品核心服務打下堅實基礎。\n你將參與：\n1.\t後端服務開發與維護\no\t使用 Golang 設計與實作核心",
+      "descSnippet": "職務說明\n我們正在尋找擅長 [[[Golang]]] 的後端工程師，一起打造穩定、高效、可擴展的後端系統架構。你將參與系統設計、開發、測試與部署，為產品核心服務打下堅實基礎。\n你將參與：\n1.\t後端服務開發與維護\no\t使用 [[[Golang]]] 設計與實作核心",
+      "mrtDist": 0.23,
+      "jobAddress": "紹興北街35號9樓之2",
+      "jobAddrNo": 6001001001,
+      "jobAddrNoDesc": "台北市中正區",
+      "jobName": "[資訊部]Golang工程師",
+      "jobNameSnippet": "[資訊部][[[Golang]]]工程師",
+      "jobNo": "14797877",
+      "jobRo": 1,
+      "jobType": 0,
+      "lat": 25.0454349,
+      "lon": 121.5255722,
+      "link": {
+        "job": "https://www.104.com.tw/job/8t645",
+        "cust": "https://www.104.com.tw/company/1a2x6bl3dj",
+        "applyAnalyze": "https://www.104.com.tw/jobs/apply/analysis/8t645?channel=104rpt"
+      },
+      "major": [
+        "資訊管理相關",
+        "資訊工程相關",
+        "通信學類"
+      ],
+      "mrt": "99001005013",
+      "mrtDesc": "捷運善導寺站",
+      "optionEdu": [
+        4,
+        5,
+        6
+      ],
+      "period": 6,
+      "remoteWorkType": 0,
+      "s10": 50,
+      "salaryHigh": 9999999,
+      "salaryLow": 75000,
+      "tags": {
+        "wf1": {
+          "desc": "",
+          "param": "wf1"
+        },
+        "wf7": {
+          "desc": "",
+          "param": "wf7"
+        },
+        "wf10": {
+          "desc": "",
+          "param": "wf10"
+        },
+        "wf2": {
+          "desc": "",
+          "param": "wf2"
+        },
+        "landmark": {
+          "desc": "距捷運善導寺站約230公尺"
+        }
+      },
+      "s9": [
+        1
+      ],
+      "s5": 0,
+      "d3": "",
+      "hrBehaviorPR": 0.004295792839899876,
+      "jobCat": [
+        2007001009,
+        2007001007,
+        2007002001
+      ],
+      "labels": [
+        "association@j00018",
+        "association@j00019",
+        "c@wf1",
+        "c@wf7",
+        "c@graduates_welcome",
+        "association@j00038",
+        "foreigners@foreigners_tick",
+        "indexjob@ij039",
+        "association@j00023",
+        "senior@senior_job_G",
+        "association@j00033",
+        "joblist_search@jl_j0003_004.5",
+        "indexjob@ij022",
+        "association@j00024",
+        "association@j00028",
+        "association@j00012",
+        "foreigners@overseasStudents_tick",
+        "c@wf10",
+        "association@j00034",
+        "foreigners@fc_emp5m_jbs",
+        "indexjob@ij019",
+        "c@intern_welcome",
+        "association@j00042",
+        "association@j00013",
+        "c@rdss_welcome",
+        "c@wf2",
+        "association@j00039",
+        "association@j00029"
+      ],
+      "languageRequirements": [],
+      "acceptRole": [
+        2,
+        4,
+        8,
+        16,
+        32,
+        64,
+        1024,
+        2048,
+        4096,
+        8192,
+        16384,
+        32768,
+        65536,
+        131072
+      ],
+      "employeeCount": 40,
+      "pcSkills": [
+        {
+          "code": "12001004041",
+          "description": "RDBMS"
+        },
+        {
+          "code": "12001003025",
+          "description": "Java"
+        },
+        {
+          "code": "12001003045",
+          "description": "Python"
+        },
+        {
+          "code": "12001003049",
+          "description": "Ruby"
+        },
+        {
+          "code": "12001003053",
+          "description": "Spring"
+        },
+        {
+          "code": "12001003056",
+          "description": "Struts"
+        },
+        {
+          "code": "12001003061",
+          "description": "Visual C#"
+        },
+        {
+          "code": "12001003066",
+          "description": "Visual Studio"
+        },
+        {
+          "code": "12001003067",
+          "description": "Visual Studio .net"
+        },
+        {
+          "code": "12001003069",
+          "description": "WinForm"
+        },
+        {
+          "code": "12001004031",
+          "description": "MS SQL"
+        },
+        {
+          "code": "12001004032",
+          "description": "MySQL"
+        },
+        {
+          "code": "12001004038",
+          "description": "PL/SQL"
+        },
+        {
+          "code": "12001004039",
+          "description": "PostgreSQL"
+        },
+        {
+          "code": "12001003009",
+          "description": "C#"
+        },
+        {
+          "code": "12001006013",
+          "description": "HTML"
+        },
+        {
+          "code": "12001006014",
+          "description": "J2EE"
+        },
+        {
+          "code": "12001006017",
+          "description": "JavaScript"
+        },
+        {
+          "code": "12001006030",
+          "description": "jQuery"
+        },
+        {
+          "code": "12001006032",
+          "description": "CSS"
+        },
+        {
+          "code": "12001006033",
+          "description": "Sass"
+        },
+        {
+          "code": "12001006034",
+          "description": "Node.js"
+        },
+        {
+          "code": "12001006036",
+          "description": "ReactJS"
+        },
+        {
+          "code": "12001006037",
+          "description": "AngularJS"
+        },
+        {
+          "code": "12001006038",
+          "description": "VueJS"
+        },
+        {
+          "code": "12001006039",
+          "description": "Redux"
+        },
+        {
+          "code": "12001006043",
+          "description": "Django"
+        },
+        {
+          "code": "12001006044",
+          "description": "Angular"
+        },
+        {
+          "code": "12001002005",
+          "description": "OOP"
+        },
+        {
+          "code": "12001002009",
+          "description": "Servlets"
+        },
+        {
+          "code": "12001002016",
+          "description": "Github"
+        },
+        {
+          "code": "12001002017",
+          "description": "Jenkins"
+        },
+        {
+          "code": "12001002018",
+          "description": "Git"
+        },
+        {
+          "code": "12001003004",
+          "description": "AJAX"
+        },
+        {
+          "code": "12001003006",
+          "description": "ASP.NET"
+        }
+      ],
+      "pddScore": 0.68117017,
+      "custLogo": "https://static.104.com.tw/b_profile/cust_picture/5239/130000000145239/logo.jpg?v=20260306112504",
+      "jobSwitch": "on",
+      "isSave": null,
+      "interactionRecord": {
+        "lastProcessedResumeAtTime": 1780936614,
+        "lastCustReplyTimestamp": null,
+        "nowTimestamp": 1782545122
+      },
+      "isApplied": null,
+      "applyDate": null,
+      "userApplyCount": null
+    },
+    {
+      "appearDate": "20260511",
+      "applyCnt": 2,
+      "coIndustry": 1001001002,
+      "coIndustryDesc": "電腦軟體服務業",
+      "custName": "炫石有限公司",
+      "custNo": "130000000241271",
+      "description": "【工作內容】\n 1. 設計、開發與維護核心平台服務與 API，確保系統高效、穩定且具備良好擴充性。\n 2. 使用 Golang / Java 建構後端系統，並持續進行效能優化與架構改善。\n 3. 分析並解決高併發、高流量情境下的系統瓶頸與技術難題",
+      "descSnippet": "【工作內容】\n 1. 設計、開發與維護核心平台服務與 API，確保系統高效、穩定且具備良好擴充性。\n 2. 使用 [[[Golang]]] / Java 建構後端系統，並持續進行效能優化與架構改善。\n 3. 分析並解決高併發、高流量情境下的系統瓶頸與技術難題",
+      "mrtDist": 0,
+      "jobAddress": "",
+      "jobAddrNo": 6001001007,
+      "jobAddrNoDesc": "台北市信義區",
+      "jobName": "資深後端工程師（Golang / Java） / Senior Backend Engineer（Golang / Java）",
+      "jobNameSnippet": "資深後端工程師（[[[Golang]]] / Java） / Senior Backend Engineer（[[[Golang]]] / Java）",
+      "jobNo": "14965947",
+      "jobRo": 1,
+      "jobType": 2,
+      "lat": 25.0409201,
+      "lon": 121.5720055,
+      "link": {
+        "job": "https://www.104.com.tw/job/8wrsr",
+        "cust": "https://www.104.com.tw/company/1a2x6bn5h3",
+        "applyAnalyze": "https://www.104.com.tw/jobs/apply/analysis/8wrsr?channel=104rpt"
+      },
+      "major": [],
+      "mrt": "",
+      "mrtDesc": "",
+      "optionEdu": [
+        3,
+        4,
+        5,
+        6
+      ],
+      "period": 4,
+      "remoteWorkType": 0,
+      "s10": 50,
+      "salaryHigh": 9999999,
+      "salaryLow": 60000,
+      "tags": {
+        "wf8": {
+          "desc": "",
+          "param": "wf8"
+        },
+        "wf1": {
+          "desc": "",
+          "param": "wf1"
+        }
+      },
+      "s9": [
+        1
+      ],
+      "s5": 0,
+      "d3": "",
+      "hrBehaviorPR": 0.14387676931436563,
+      "jobCat": [
+        2007001016,
+        2007001015,
+        2007001017
+      ],
+      "labels": [
+        "c@rdss_welcome",
+        "senior@senior_job_H",
+        "indexjob@ij005",
+        "indexjob@ij022",
+        "c@wf8",
+        "c@intern_welcome",
+        "association@j00019",
+        "indexjob@ij039",
+        "association@j00024",
+        "foreigners@overseasStudents_tick",
+        "association@j00042",
+        "joblist_search@jl_j0003_004.5",
+        "association@j00039",
+        "c@graduates_welcome",
+        "foreigners@foreigners_tick",
+        "association@j00029",
+        "indexjob@ij019",
+        "c@wf1",
+        "association@j00034"
+      ],
+      "languageRequirements": [],
+      "acceptRole": [
+        2,
+        4,
+        8,
+        16,
+        32,
+        64,
+        1024,
+        2048,
+        4096,
+        8192,
+        16384,
+        32768,
+        65536,
+        131072
+      ],
+      "employeeCount": 0,
+      "pcSkills": [],
+      "pddScore": 0.6276422,
+      "custLogo": "",
+      "jobSwitch": "on",
+      "isSave": null,
+      "interactionRecord": {
+        "lastProcessedResumeAtTime": 1781605825,
+        "lastCustReplyTimestamp": null,
+        "nowTimestamp": 1782545122
+      },
+      "isApplied": null,
+      "applyDate": null,
+      "userApplyCount": null
+    },
+    {
+      "appearDate": "20260622",
+      "applyCnt": 9,
+      "coIndustry": 1001001002,
+      "coIndustryDesc": "電腦軟體服務業",
+      "custName": "瑞典商英鉑科股份有限公司台灣分公司",
+      "custNo": "130000000217988",
+      "description": "研發高併發、高可用系統。\n\n【必要條件】\n1. 熟悉Golang語法與可能在運行階段才造成問題的實作。\n2. 熟悉資料庫相關操作(Transaction)與建置(Schema)。\n3. 熟悉如何設計流程用來同步/異步處理業務邏輯。\n4. 了解",
+      "descSnippet": "研發高併發、高可用系統。\n\n【必要條件】\n1. 熟悉[[[Golang]]]語法與可能在運行階段才造成問題的實作。\n2. 熟悉資料庫相關操作(Transaction)與建置(Schema)。\n3. 熟悉如何設計流程用來同步/異步處理業務邏輯。\n4. 了解",
+      "mrtDist": 0.33,
+      "jobAddress": "中山北路二段44號4樓",
+      "jobAddrNo": 6001001003,
+      "jobAddrNoDesc": "台北市中山區",
+      "jobName": "【擴編】Golang後端工程師/ Golang Developer",
+      "jobNameSnippet": "【擴編】[[[Golang]]]後端工程師/ [[[Golang]]] Developer",
+      "jobNo": "14935253",
+      "jobRo": 1,
+      "jobType": 0,
+      "lat": 25.0551969,
+      "lon": 121.5223734,
+      "link": {
+        "job": "https://www.104.com.tw/job/8w445",
+        "cust": "https://www.104.com.tw/company/1a2x6bmnic",
+        "applyAnalyze": "https://www.104.com.tw/jobs/apply/analysis/8w445?channel=104rpt"
+      },
+      "major": [
+        "資訊工程相關"
+      ],
+      "mrt": "99001002011",
+      "mrtDesc": "捷運雙連站",
+      "optionEdu": [
+        3,
+        4,
+        5,
+        6
+      ],
+      "period": 4,
+      "remoteWorkType": 0,
+      "s10": 10,
+      "salaryHigh": 0,
+      "salaryLow": 0,
+      "tags": {
+        "zoneForeign": {
+          "desc": "外商公司",
+          "param": 5
+        },
+        "wf7": {
+          "desc": "",
+          "param": "wf7"
+        },
+        "wf2": {
+          "desc": "",
+          "param": "wf2"
+        },
+        "wf26": {
+          "desc": "",
+          "param": "wf26"
+        },
+        "wf9": {
+          "desc": "",
+          "param": "wf9"
+        },
+        "wf29": {
+          "desc": "",
+          "param": "wf29"
+        },
+        "wf1": {
+          "desc": "",
+          "param": "wf1"
+        },
+        "wf12": {
+          "desc": "",
+          "param": "wf12"
+        },
+        "wf17": {
+          "desc": "",
+          "param": "wf17"
+        },
+        "wf10": {
+          "desc": "",
+          "param": "wf10"
+        },
+        "wf31": {
+          "desc": "",
+          "param": "wf31"
+        },
+        "landmark": {
+          "desc": "距捷運雙連站約330公尺"
+        }
+      },
+      "s9": [
+        1
+      ],
+      "s5": 0,
+      "d3": "",
+      "hrBehaviorPR": 0.8532415531662821,
+      "jobCat": [
+        2007001016,
+        2007001004
+      ],
+      "labels": [
+        "c@wf7",
+        "c@wf2",
+        "c@wf26",
+        "indexjob@ij048",
+        "c@wf9",
+        "c@wf29",
+        "c@wf1",
+        "c@wf12",
+        "c@wf17",
+        "indexjob@ij022",
+        "c@wf10",
+        "indexjob@ij010",
+        "c@wf31"
+      ],
+      "languageRequirements": [],
+      "acceptRole": [],
+      "employeeCount": 50,
+      "pcSkills": [
+        {
+          "code": "12001002017",
+          "description": "Jenkins"
+        },
+        {
+          "code": "12001002016",
+          "description": "Github"
+        },
+        {
+          "code": "12001003080",
+          "description": "Go"
+        },
+        {
+          "code": "12001007026",
+          "description": "HTTP"
+        }
+      ],
+      "pddScore": 0.6100985,
+      "custLogo": "https://static.104.com.tw/b_profile/cust_picture/7988/130000000217988/logo.jpg?v=20251107114306",
+      "jobSwitch": "on",
+      "isSave": null,
+      "interactionRecord": {
+        "lastProcessedResumeAtTime": 1782455243,
+        "lastCustReplyTimestamp": 1781758215,
+        "nowTimestamp": 1782545122
+      },
+      "isApplied": null,
+      "applyDate": null,
+      "userApplyCount": null
+    },
+    {
+      "appearDate": "20260622",
+      "applyCnt": 10,
+      "coIndustry": 1001001002,
+      "coIndustryDesc": "電腦軟體服務業",
+      "custName": "立特有限公司",
+      "custNo": "130000000211187",
+      "description": "----工作內容----\n1. 後端系統開發與維護\n    *使用 Golang 實作並維護企業後端服務與 API。\n    *依照需求設計並優化系統架構與資料庫結構。\n2. 資料庫操作與優化\n    *使用 PostgreSQL 進行資料庫設計",
+      "descSnippet": "----工作內容----\n1. 後端系統開發與維護\n    *使用 [[[Golang]]] 實作並維護企業後端服務與 API。\n    *依照需求設計並優化系統架構與資料庫結構。\n2. 資料庫操作與優化\n    *使用 PostgreSQL 進行資料庫設計",
+      "mrtDist": 0.12,
+      "jobAddress": "南京西路路62號7樓",
+      "jobAddrNo": 6001001003,
+      "jobAddrNoDesc": "台北市中山區",
+      "jobName": "後端工程師-Golang-台北",
+      "jobNameSnippet": "後端工程師-[[[Golang]]]-台北",
+      "jobNo": "14408054",
+      "jobRo": 1,
+      "jobType": 0,
+      "lat": 25.052828,
+      "lon": 121.5191693,
+      "link": {
+        "job": "https://www.104.com.tw/job/8ktbq",
+        "cust": "https://www.104.com.tw/company/1a2x6bmi9f",
+        "applyAnalyze": "https://www.104.com.tw/jobs/apply/analysis/8ktbq?channel=104rpt"
+      },
+      "major": [
+        "資訊工程相關",
+        "應用數學相關",
+        "數理統計相關"
+      ],
+      "mrt": "99001002010",
+      "mrtDesc": "捷運中山站",
+      "optionEdu": [
+        4,
+        5
+      ],
+      "period": 3,
+      "remoteWorkType": 0,
+      "s10": 10,
+      "salaryHigh": 0,
+      "salaryLow": 0,
+      "tags": {
+        "landmark": {
+          "desc": "距捷運中山站約120公尺"
+        }
+      },
+      "s9": [
+        1
+      ],
+      "s5": 0,
+      "d3": "",
+      "hrBehaviorPR": 0.44466466537800303,
+      "jobCat": [
+        2007001016,
+        2007001018,
+        2007001020
+      ],
+      "labels": [
+        "indexjob@ij019",
+        "indexjob@ij022",
+        "indexjob@ij023"
+      ],
+      "languageRequirements": [],
+      "acceptRole": [],
+      "employeeCount": 5,
+      "pcSkills": [
+        {
+          "code": "12001003025",
+          "description": "Java"
+        },
+        {
+          "code": "12001007071",
+          "description": "TCP/IP"
+        },
+        {
+          "code": "12001007067",
+          "description": "Socket"
+        },
+        {
+          "code": "12001005023",
+          "description": "AWS"
+        },
+        {
+          "code": "12001004039",
+          "description": "PostgreSQL"
+        },
+        {
+          "code": "12001004031",
+          "description": "MS SQL"
+        },
+        {
+          "code": "12001003097",
+          "description": "LLM"
+        },
+        {
+          "code": "12001003095",
+          "description": "SaaS"
+        },
+        {
+          "code": "12001003093",
+          "description": "Cloud"
+        },
+        {
+          "code": "12001003080",
+          "description": "Go"
+        },
+        {
+          "code": "12001003045",
+          "description": "Python"
+        },
+        {
+          "code": "12001003010",
+          "description": "C++"
+        },
+        {
+          "code": "12001003009",
+          "description": "C#"
+        },
+        {
+          "code": "12001002018",
+          "description": "Git"
+        },
+        {
+          "code": "12001002016",
+          "description": "Github"
+        }
+      ],
+      "pddScore": 0.5841425,
+      "custLogo": "https://static.104.com.tw/b_profile/cust_picture/1187/130000000211187/logo.png?v=20260104221502",
+      "jobSwitch": "on",
+      "isSave": null,
+      "interactionRecord": {
+        "lastProcessedResumeAtTime": 1782458134,
+        "lastCustReplyTimestamp": 1779110263,
+        "nowTimestamp": 1782545122
+      },
+      "isApplied": null,
+      "applyDate": null,
+      "userApplyCount": null
+    },
+    {
+      "appearDate": "20260622",
+      "applyCnt": 12,
+      "coIndustry": 1004001007,
+      "coIndustryDesc": "金融控股業",
+      "custName": "香港商六度科技有限公司",
+      "custNo": "130000000161268",
+      "description": " systems and understanding microservices architecture.\n· Familiar Distribution System Design\n· Familiar with Golang.\n· A AI",
+      "descSnippet": " systems and understanding microservices architecture.\n· Familiar Distribution System Design\n· Familiar with [[[Golang]]].\n· A AI",
+      "mrtDist": 0,
+      "jobAddress": "",
+      "jobAddrNo": 6001001007,
+      "jobAddrNoDesc": "台北市信義區",
+      "jobName": "Senior Backend Engineer (Golang), Virtual insurance",
+      "jobNameSnippet": "Senior Backend Engineer ([[[Golang]]]), Virtual insurance",
+      "jobNo": "15106548",
+      "jobRo": 1,
+      "jobType": 0,
+      "lat": 25.0409201,
+      "lon": 121.5720055,
+      "link": {
+        "job": "https://www.104.com.tw/job/8zsac",
+        "cust": "https://www.104.com.tw/company/1a2x6blfqs",
+        "applyAnalyze": "https://www.104.com.tw/jobs/apply/analysis/8zsac?channel=104rpt"
+      },
+      "major": [
+        "資訊工程相關"
+      ],
+      "mrt": "",
+      "mrtDesc": "",
+      "optionEdu": [
+        4,
+        5,
+        6
+      ],
+      "period": 0,
+      "remoteWorkType": 2,
+      "s10": 10,
+      "salaryHigh": 0,
+      "salaryLow": 0,
+      "tags": {
+        "remote": {
+          "desc": "遠端工作"
+        },
+        "wf26": {
+          "desc": "",
+          "param": "wf26"
+        },
+        "wf29": {
+          "desc": "",
+          "param": "wf29"
+        },
+        "wf10": {
+          "desc": "",
+          "param": "wf10"
+        },
+        "wf13": {
+          "desc": "",
+          "param": "wf13"
+        },
+        "wf8": {
+          "desc": "",
+          "param": "wf8"
+        },
+        "wf30": {
+          "desc": "",
+          "param": "wf30"
+        },
+        "wf1": {
+          "desc": "",
+          "param": "wf1"
+        },
+        "wf31": {
+          "desc": "",
+          "param": "wf31"
+        },
+        "wf12": {
+          "desc": "",
+          "param": "wf12"
+        },
+        "wf33": {
+          "desc": "",
+          "param": "wf33"
+        },
+        "wf9": {
+          "desc": "",
+          "param": "wf9"
+        },
+        "wf7": {
+          "desc": "",
+          "param": "wf7"
+        }
+      },
+      "s9": [
+        1
+      ],
+      "s5": 0,
+      "d3": "",
+      "hrBehaviorPR": 0.715308522104738,
+      "jobCat": [
+        2007001016
+      ],
+      "labels": [
+        "c@wf26",
+        "indexjob@ij022",
+        "c@wf29",
+        "c@wf10",
+        "c@wf13",
+        "c@wf8",
+        "indexjob@ij005",
+        "c@wf30",
+        "c@wf1",
+        "indexjob@ij017",
+        "indexjob@ij014",
+        "indexjob@ij010",
+        "c@wf31",
+        "c@wf12",
+        "c@wf33",
+        "c@wf9",
+        "indexjob@ij009",
+        "c@wf7"
+      ],
+      "languageRequirements": [],
+      "acceptRole": [],
+      "employeeCount": 110,
+      "pcSkills": [
+        {
+          "code": "12001003080",
+          "description": "Go"
+        },
+        {
+          "code": "12001002018",
+          "description": "Git"
+        }
+      ],
+      "pddScore": 0.48460802,
+      "custLogo": "https://static.104.com.tw/b_profile/cust_picture/1268/130000000161268/logo.png?v=20260224115242",
+      "jobSwitch": "on",
+      "isSave": null,
+      "interactionRecord": {
+        "lastProcessedResumeAtTime": 1782111954,
+        "lastCustReplyTimestamp": null,
+        "nowTimestamp": 1782545122
+      },
+      "isApplied": null,
+      "applyDate": null,
+      "userApplyCount": null
+    },
+    {
+      "appearDate": "20260623",
+      "applyCnt": 10,
+      "coIndustry": 1001001002,
+      "coIndustryDesc": "電腦軟體服務業",
+      "custName": "昕展資訊有限公司",
+      "custNo": "130000000261162",
+      "description": "【主要職責】\n- 參與產品後端平台及資料庫的開發及維護 。 \n- 構思設計及開發遊戲平台後端功能。 \n- 撰寫技術文件，系統架構說明等，確保程式的可讀性和維護性。 \n\n【必要技能】\n- 3年以上Golang開發經驗，具有團隊協作能力。\n- 熟悉",
+      "descSnippet": "【主要職責】\n- 參與產品後端平台及資料庫的開發及維護 。 \n- 構思設計及開發遊戲平台後端功能。 \n- 撰寫技術文件，系統架構說明等，確保程式的可讀性和維護性。 \n\n【必要技能】\n- 3年以上[[[Golang]]]開發經驗，具有團隊協作能力。\n- 熟悉",
+      "mrtDist": 0,
+      "jobAddress": "",
+      "jobAddrNo": 6001001003,
+      "jobAddrNoDesc": "台北市中山區",
+      "jobName": "Golang 後端工程師",
+      "jobNameSnippet": "[[[Golang]]] 後端工程師",
+      "jobNo": "15139656",
+      "jobRo": 1,
+      "jobType": 0,
+      "lat": 25.0792018,
+      "lon": 121.5427093,
+      "link": {
+        "job": "https://www.104.com.tw/job/90hu0",
+        "cust": "https://www.104.com.tw/company/1a2x6bnktm",
+        "applyAnalyze": "https://www.104.com.tw/jobs/apply/analysis/90hu0?channel=104rpt"
+      },
+      "major": [],
+      "mrt": "",
+      "mrtDesc": "",
+      "optionEdu": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "period": 0,
+      "remoteWorkType": 0,
+      "s10": 10,
+      "salaryHigh": 0,
+      "salaryLow": 0,
+      "tags": {
+        "wf7": {
+          "desc": "",
+          "param": "wf7"
+        },
+        "wf1": {
+          "desc": "",
+          "param": "wf1"
+        },
+        "wf26": {
+          "desc": "",
+          "param": "wf26"
+        },
+        "wf13": {
+          "desc": "",
+          "param": "wf13"
+        },
+        "wf9": {
+          "desc": "",
+          "param": "wf9"
+        },
+        "wf10": {
+          "desc": "",
+          "param": "wf10"
+        },
+        "wf8": {
+          "desc": "",
+          "param": "wf8"
+        },
+        "wf2": {
+          "desc": "",
+          "param": "wf2"
+        },
+        "wf12": {
+          "desc": "",
+          "param": "wf12"
+        },
+        "wf29": {
+          "desc": "",
+          "param": "wf29"
+        }
+      },
+      "s9": [
+        1
+      ],
+      "s5": 0,
+      "d3": "",
+      "hrBehaviorPR": 0.7535675791236494,
+      "jobCat": [
+        2007001016,
+        2007001004,
+        2007001008
+      ],
+      "labels": [
+        "c@wf7",
+        "c@wf1",
+        "indexjob@ij005",
+        "c@wf26",
+        "c@wf13",
+        "indexjob@ij009",
+        "c@wf9",
+        "indexjob@ij010",
+        "c@wf10",
+        "c@wf8",
+        "indexjob@ij022",
+        "c@wf2",
+        "c@wf12",
+        "c@wf29"
+      ],
+      "languageRequirements": [],
+      "acceptRole": [],
+      "employeeCount": 20,
+      "pcSkills": [
+        {
+          "code": "12001004039",
+          "description": "PostgreSQL"
+        },
+        {
+          "code": "12001002018",
+          "description": "Git"
+        },
+        {
+          "code": "12001003080",
+          "description": "Go"
+        }
+      ],
+      "pddScore": 0.3415006,
+      "custLogo": "https://static.104.com.tw/b_profile/cust_picture/1162/130000000261162/logo.png?v=20251217172753",
+      "jobSwitch": "on",
+      "isSave": null,
+      "interactionRecord": {
+        "lastProcessedResumeAtTime": 1782281794,
+        "lastCustReplyTimestamp": 1782381444,
+        "nowTimestamp": 1782545122
+      },
+      "isApplied": null,
+      "applyDate": null,
+      "userApplyCount": null
+    },
+    {
+      "appearDate": "20260626",
+      "applyCnt": 17,
+      "coIndustry": 1001003001,
+      "coIndustryDesc": "電腦及其週邊設備製造業",
+      "custName": "開端智能股份有限公司",
+      "custNo": "130000000255283",
+      "description": "• 後端 API 服務開發： 負責使用 Go (Golang) 進行高效能、高可靠性的 RESTful API 及 gRPC 服務的設計、開發與維護。\n• 雲端平台部署與維護： 參與基於 Kubernetes (K8s) 平台的服務部署 (",
+      "descSnippet": "• 後端 API 服務開發： 負責使用 Go ([[[Golang]]]) 進行高效能、高可靠性的 RESTful API 及 gRPC 服務的設計、開發與維護。\n• 雲端平台部署與維護： 參與基於 Kubernetes (K8s) 平台的服務部署 (",
+      "mrtDist": 0.39,
+      "jobAddress": "南京東路四段130號12F-1",
+      "jobAddrNo": 6001001004,
+      "jobAddrNoDesc": "台北市松山區",
+      "jobName": "後端工程師 (Backend Engineer - Golang)",
+      "jobNameSnippet": "後端工程師 (Backend Engineer - [[[Golang]]])",
+      "jobNo": "14946666",
+      "jobRo": 1,
+      "jobType": 0,
+      "lat": 25.0513574,
+      "lon": 121.5557135,
+      "link": {
+        "job": "https://www.104.com.tw/job/8wcx6",
+        "cust": "https://www.104.com.tw/company/1a2x6bngab",
+        "applyAnalyze": "https://www.104.com.tw/jobs/apply/analysis/8wcx6?channel=104rpt"
+      },
+      "major": [
+        "數學及電算機科學學科類"
+      ],
+      "mrt": "99001003018",
+      "mrtDesc": "捷運台北小巨蛋站",
+      "optionEdu": [
+        4,
+        5
+      ],
+      "period": 0,
+      "remoteWorkType": 0,
+      "s10": 50,
+      "salaryHigh": 80000,
+      "salaryLow": 50000,
+      "tags": {
+        "wf14": {
+          "desc": "",
+          "param": "wf14"
+        },
+        "wf12": {
+          "desc": "",
+          "param": "wf12"
+        },
+        "wf1": {
+          "desc": "",
+          "param": "wf1"
+        },
+        "wf15": {
+          "desc": "",
+          "param": "wf15"
+        },
+        "landmark": {
+          "desc": "距捷運台北小巨蛋站約390公尺"
+        }
+      },
+      "s9": [
+        1
+      ],
+      "s5": 0,
+      "d3": "",
+      "hrBehaviorPR": 0.975363216076821,
+      "jobCat": [
+        2007001016,
+        2007001017,
+        2007001004
+      ],
+      "labels": [
+        "foreigners@foreigners",
+        "foreigners@chineseDiasporas",
+        "indexjob@ij008",
+        "indexjob@ij039",
+        "association@j00039",
+        "association@j00003_001",
+        "c@wf14",
+        "indexjob@ij007",
+        "c@wf12",
+        "c@wf1",
+        "indexjob@ij022",
+        "indexjob@ij010",
+        "c@wf15",
+        "association@j00019",
+        "c@graduates_welcome"
+      ],
+      "languageRequirements": [],
+      "acceptRole": [
+        2,
+        64,
+        131072
+      ],
+      "employeeCount": 0,
+      "pcSkills": [
+        {
+          "code": "12001003080",
+          "description": "Go"
+        },
+        {
+          "code": "12001002018",
+          "description": "Git"
+        },
+        {
+          "code": "12001002016",
+          "description": "Github"
+        }
+      ],
+      "pddScore": 0.33508593,
+      "custLogo": "https://static.104.com.tw/b_profile/cust_picture/5283/130000000255283/logo.png?v=20260604091715",
+      "jobSwitch": "on",
+      "isSave": null,
+      "interactionRecord": {
+        "lastProcessedResumeAtTime": 1782456340,
+        "lastCustReplyTimestamp": 1782456417,
+        "nowTimestamp": 1782545122
+      },
+      "isApplied": null,
+      "applyDate": null,
+      "userApplyCount": null
+    },
+    {
+      "appearDate": "20260622",
+      "applyCnt": 17,
+      "coIndustry": 1001001002,
+      "coIndustryDesc": "電腦軟體服務業",
+      "custName": "重高科技股份有限公司",
+      "custNo": "130000000227435",
+      "description": "產品架構、資料與流程面。\n\n\n【技術需求】\n1. 具備2年以上的軟體開發相關經驗佳。\n2. 熟悉微服務開發。\n3. 有Golang實際產品上線經驗或有Side Projects用Golang實作。\n4. 熟悉 GO，並有實際後端經驗。\n5. 熟悉",
+      "descSnippet": "產品架構、資料與流程面。\n\n\n【技術需求】\n1. 具備2年以上的軟體開發相關經驗佳。\n2. 熟悉微服務開發。\n3. 有[[[Golang]]]實際產品上線經驗或有Side Projects用[[[Golang]]]實作。\n4. 熟悉 GO，並有實際後端經驗。\n5. 熟悉",
+      "mrtDist": 0,
+      "jobAddress": "",
+      "jobAddrNo": 6001001005,
+      "jobAddrNoDesc": "台北市大安區",
+      "jobName": "Backend Engineer(Java or Golang)",
+      "jobNameSnippet": "Backend Engineer(Java or [[[Golang]]])",
+      "jobNo": "13903564",
+      "jobRo": 1,
+      "jobType": 0,
+      "lat": 25.0249441,
+      "lon": 121.5433783,
+      "link": {
+        "job": "https://www.104.com.tw/job/8a024",
+        "cust": "https://www.104.com.tw/company/1a2x6bmusr",
+        "applyAnalyze": "https://www.104.com.tw/jobs/apply/analysis/8a024?channel=104rpt"
+      },
+      "major": [],
+      "mrt": "",
+      "mrtDesc": "",
+      "optionEdu": [
+        3,
+        4,
+        5,
+        6
+      ],
+      "period": 3,
+      "remoteWorkType": 0,
+      "s10": 10,
+      "salaryHigh": 0,
+      "salaryLow": 0,
+      "tags": {
+        "wf3": {
+          "desc": "",
+          "param": "wf3"
+        },
+        "wf2": {
+          "desc": "",
+          "param": "wf2"
+        },
+        "wf1": {
+          "desc": "",
+          "param": "wf1"
+        },
+        "wf4": {
+          "desc": "",
+          "param": "wf4"
+        },
+        "wf7": {
+          "desc": "",
+          "param": "wf7"
+        },
+        "wf26": {
+          "desc": "",
+          "param": "wf26"
+        }
+      },
+      "s9": [
+        1
+      ],
+      "s5": 0,
+      "d3": "",
+      "hrBehaviorPR": 0.9741695691290831,
+      "jobCat": [
+        2007001004,
+        2007001006,
+        2007001016
+      ],
+      "labels": [
+        "foreigners@foreigners",
+        "indexjob@ij003",
+        "c@wf3",
+        "association@j00039",
+        "association@j00019",
+        "association@j00003_001",
+        "indexjob@ij019",
+        "indexjob@ij017",
+        "indexjob@ij022",
+        "c@wf2",
+        "c@wf1",
+        "c@wf4",
+        "association@j00024",
+        "c@wf7",
+        "c@wf26"
+      ],
+      "languageRequirements": [],
+      "acceptRole": [
+        64,
+        2048,
+        131072
+      ],
+      "employeeCount": 30,
+      "pcSkills": [
+        {
+          "code": "12001001007",
+          "description": "Linux"
+        },
+        {
+          "code": "12001003080",
+          "description": "Go"
+        },
+        {
+          "code": "12001004032",
+          "description": "MySQL"
+        },
+        {
+          "code": "12001004039",
+          "description": "PostgreSQL"
+        },
+        {
+          "code": "12001005023",
+          "description": "AWS"
+        },
+        {
+          "code": "12001003025",
+          "description": "Java"
+        }
+      ],
+      "pddScore": 0.33428082,
+      "custLogo": "https://static.104.com.tw/b_profile/cust_picture/7435/130000000227435/logo.png?v=20260305141023",
+      "jobSwitch": "on",
+      "isSave": null,
+      "interactionRecord": {
+        "lastProcessedResumeAtTime": 1782460386,
+        "lastCustReplyTimestamp": 1782454362,
+        "nowTimestamp": 1782545122
+      },
+      "isApplied": null,
+      "applyDate": null,
+      "userApplyCount": null
+    },
+    {
+      "appearDate": "20260612",
+      "applyCnt": 19,
+      "coIndustry": 1001001002,
+      "coIndustryDesc": "電腦軟體服務業",
+      "custName": "日本NEC集團_統智科技股份有限公司",
+      "custNo": "12876266000",
+      "description": "統智科技是一支充滿活力和創新的團隊。我們致力於提供高品質的軟體解決方案，使用最新技術來解決複雜的業務問題。我們相信在專業與開明的工作環境中，每個人都能夠發揮最大的潛力。 \n\n【工作內容】 \n\n•\t使用 Golang 開發、維護和優化後端系統 \n•",
+      "descSnippet": "統智科技是一支充滿活力和創新的團隊。我們致力於提供高品質的軟體解決方案，使用最新技術來解決複雜的業務問題。我們相信在專業與開明的工作環境中，每個人都能夠發揮最大的潛力。 \n\n【工作內容】 \n\n•\t使用 [[[Golang]]] 開發、維護和優化後端系統 \n•",
+      "mrtDist": 0,
+      "jobAddress": "瑞湖街17號4樓",
+      "jobAddrNo": 6001001010,
+      "jobAddrNoDesc": "台北市內湖區",
+      "jobName": "Golang 網站開發工程師(Backend)_零售解決方案課",
+      "jobNameSnippet": "[[[Golang]]] 網站開發工程師(Backend)_零售解決方案課",
+      "jobNo": "14115841",
+      "jobRo": 1,
+      "jobType": 2,
+      "lat": 25.074769,
+      "lon": 121.5765296,
+      "link": {
+        "job": "https://www.104.com.tw/job/8ejup",
+        "cust": "https://www.104.com.tw/company/5wy72fk",
+        "applyAnalyze": "https://www.104.com.tw/jobs/apply/analysis/8ejup?channel=104rpt"
+      },
+      "major": [],
+      "mrt": "",
+      "mrtDesc": "",
+      "optionEdu": [
+        3,
+        4,
+        5
+      ],
+      "period": 2,
+      "remoteWorkType": 0,
+      "s10": 10,
+      "salaryHigh": 0,
+      "salaryLow": 0,
+      "tags": {
+        "wf30": {
+          "desc": "",
+          "param": "wf30"
+        },
+        "wf3": {
+          "desc": "",
+          "param": "wf3"
+        },
+        "wf29": {
+          "desc": "",
+          "param": "wf29"
+        },
+        "wf7": {
+          "desc": "",
+          "param": "wf7"
+        },
+        "wf14": {
+          "desc": "",
+          "param": "wf14"
+        },
+        "wf9": {
+          "desc": "",
+          "param": "wf9"
+        },
+        "wf23": {
+          "desc": "",
+          "param": "wf23"
+        },
+        "wf8": {
+          "desc": "",
+          "param": "wf8"
+        },
+        "wf28": {
+          "desc": "",
+          "param": "wf28"
+        },
+        "wf25": {
+          "desc": "",
+          "param": "wf25"
+        },
+        "wf4": {
+          "desc": "",
+          "param": "wf4"
+        },
+        "wf26": {
+          "desc": "",
+          "param": "wf26"
+        },
+        "wf1": {
+          "desc": "",
+          "param": "wf1"
+        },
+        "wf2": {
+          "desc": "",
+          "param": "wf2"
+        }
+      },
+      "s9": [
+        1
+      ],
+      "s5": 0,
+      "d3": "",
+      "hrBehaviorPR": 0.8712553780921246,
+      "jobCat": [
+        2007001004,
+        2007001016,
+        2007001017
+      ],
+      "labels": [
+        "c@wf30",
+        "indexjob@ij003",
+        "c@wf3",
+        "c@wf29",
+        "c@wf7",
+        "c@wf14",
+        "senior@senior_job_B",
+        "c@wf9",
+        "c@wf23",
+        "c@wf8",
+        "indexjob@ij023",
+        "indexjob@ij008",
+        "indexjob@ij005",
+        "association@j00028",
+        "c@wf28",
+        "indexjob@ij022",
+        "indexjob@ij019",
+        "c@wf25",
+        "c@wf4",
+        "association@j00018",
+        "association@j00013",
+        "c@wf26",
+        "association@j00033",
+        "c@wf1",
+        "c@wf2"
+      ],
+      "languageRequirements": [],
+      "acceptRole": [],
+      "employeeCount": 300,
+      "pcSkills": [
+        {
+          "code": "12001003080",
+          "description": "Go"
+        }
+      ],
+      "pddScore": 0.3123112,
+      "custLogo": "https://static.104.com.tw/b_profile/cust_picture/6000/12876266000/logo.jpg?v=20260120162102",
+      "jobSwitch": "on",
+      "isSave": null,
+      "interactionRecord": {
+        "lastProcessedResumeAtTime": 1782454385,
+        "lastCustReplyTimestamp": 1782471764,
+        "nowTimestamp": 1782545122
+      },
+      "isApplied": null,
+      "applyDate": null,
+      "userApplyCount": null
+    }
+  ],
+  "metadata": {
+    "pagination": {
+      "count": 30,
+      "currentPage": 1,
+      "lastPage": 7,
+      "total": 189
+    },
+    "isPreciseHotJob": false,
+    "filterQuery": {
+      "order": 15,
+      "asc": 0,
+      "keyword": "Golang",
+      "fz": 8,
+      "kwop": 7,
+      "excludeKwFz": 4,
+      "excludeKwKwop": 8,
+      "enableJobNoTopOrder": 1,
+      "area": [
+        "6001001000"
+      ],
+      "ro": [
+        0
+      ],
+      "scstrict": 0,
+      "scneg": 0,
+      "page": 1,
+      "pagesize": 30
+    },
+    "offJobs": [],
+    "personalBoost": 0
+  }
+}

@@ -1,0 +1,170 @@
+{
+  "data": {
+    "custSwitch": "on",
+    "custName": "台灣積體電路製造股份有限公司(台積電)",
+    "custNo": "a5h92m0",
+    "industryDesc": "半導體製造業",
+    "industryNo": 1001006002,
+    "indcat": "晶圓製造服務",
+    "empNo": "暫不提供",
+    "capital": "暫不提供",
+    "address": "新竹市研新二路6號",
+    "industryArea": "新竹科學園區",
+    "custLink": "http://www.tsmc.com.tw",
+    "profile": "台積公司是全世界最大的專業積體電路製造服務公司．\n\n台積公司在民國七十六年成立於台灣新竹科學工業園區，並開創了專業積體電路製造服務商業模式。\n\n台積公司以領先業界的製程技術及設計解決方案組合支援其全球客戶及夥伴生態系統的蓬勃發展，以此釋放全球半導體產業的創新。身為全球的企業公民，台積公司的營運範圍遍及亞洲、歐洲及北美。",
+    "product": "台積公司專注於生產由客戶所設計的晶片，本身並不設計、生產或銷售自有品牌產品，確保絕不與客戶競爭。基於這個創始的原則，台積公司成功的關鍵就在於協助客戶獲得成功。台積公司的專業積體電路製造服務商業模式造就了全球無晶圓廠IC設計產業的崛起。\n\n自創立以來，台積公司一直是世界領先的專業積體電路製造服務公司，單單在民國一百一十三年，台積公司就以288種製程技術，為522個客戶生產1萬1,878種不同產品。\n\n台積公司的眾多客戶遍布全球，為客戶生產的晶片廣泛地被運用在各種終端市場，例如高效能運算、智慧型手機、物聯網、車用電子與消費性電子產品等。",
+    "welfare": "詳見企業網站 https://www.tsmc.com/static/chinese/careers/life_at_tsmc.htm\n投遞履歷請上台積人才招募網站 https://careers.tsmc.com/zh_TW/careers/",
+    "management": "企業經營理念\n\n一、堅持誠信正直\n二、專注於「專業積體電路製造服務」本業\n三、放眼世界市場，國際化經營\n四、注意長期策略，追求永續經營\n五、客戶是我們的夥伴\n六、品質是我們工作與服務的原則\n七、鼓勵在各方面的創新，確保高度企業活力\n八、營造具挑戰性、有樂趣的工作環境\n九、建立開放型管理模式\n十、兼顧員工福利與股東權益，盡力回饋社會",
+    "phone": "暫不提供",
+    "fax": "暫不提供",
+    "hrName": "招募部",
+    "lat": "24.778719000000002",
+    "lon": "120.9918425",
+    "news": "請至台積官網查看更多職缺並投遞履歷。網址: https://careers.tsmc.com/zh_TW/careers/",
+    "newsLink": "https://careers.tsmc.com/zh_TW/careers/",
+    "zone": {
+      "竹科": "https://www.104.com.tw/company/search/?newZone=1",
+      "南科": "https://www.104.com.tw/company/search/?newZone=3"
+    },
+    "linkMore": {
+      "企業網站": "http://www.tsmc.com/chinese/default.htm",
+      "加入台積": "http://www.tsmc.com/chinese/careers/join_tsmc.htm",
+      "公司地圖": "http://www.tsmc.com/chinese/careers/contact_us.htm"
+    },
+    "logo": "https://static.104.com.tw/b_profile/cust_picture/1000/22099131000/logo.gif?v=20251029172504",
+    "corpImage1": "https://static.104.com.tw/b_profile/cust_picture/1000/22099131000/custintroduce/image1.jpg?v=20251029172504",
+    "corpImage2": "https://static.104.com.tw/b_profile/cust_picture/1000/22099131000/custintroduce/image2.jpg?v=20251029172504",
+    "corpImage3": "",
+    "corpLink1": "http://www.tsmc.com.tw",
+    "corpLink2": "",
+    "corpLink3": "",
+    "productPictures": [],
+    "envPictures": [
+      {
+        "auto_no": 894196076745326563,
+        "custno": "22099131000",
+        "picture_sort": 1,
+        "file": "894196076745326563.jpg",
+        "description": "",
+        "is_cover": 0,
+        "type": 2,
+        "input_date": "2025-10-29 17:25:03",
+        "link_l": "https://static.104.com.tw/b_profile/cust_picture/1000/22099131000/env/l_894196076745326563.jpg?v=20251029172504",
+        "link_s": "https://static.104.com.tw/b_profile/cust_picture/1000/22099131000/env/s_894196076745326563.jpg?v=20251029172504"
+      },
+      {
+        "auto_no": 966243507333910951,
+        "custno": "22099131000",
+        "picture_sort": 2,
+        "file": "966243507333910951.jpg",
+        "description": "",
+        "is_cover": 0,
+        "type": 2,
+        "input_date": "2025-10-29 17:25:03",
+        "link_l": "https://static.104.com.tw/b_profile/cust_picture/1000/22099131000/env/l_966243507333910951.jpg?v=20251029172504",
+        "link_s": "https://static.104.com.tw/b_profile/cust_picture/1000/22099131000/env/s_966243507333910951.jpg?v=20251029172504"
+      },
+      {
+        "auto_no": 966243507333910952,
+        "custno": "22099131000",
+        "picture_sort": 3,
+        "file": "966243507333910952.jpg",
+        "description": "",
+        "is_cover": 0,
+        "type": 2,
+        "input_date": "2025-10-29 17:25:03",
+        "link_l": "https://static.104.com.tw/b_profile/cust_picture/1000/22099131000/env/l_966243507333910952.jpg?v=20251029172504",
+        "link_s": "https://static.104.com.tw/b_profile/cust_picture/1000/22099131000/env/s_966243507333910952.jpg?v=20251029172504"
+      },
+      {
+        "auto_no": 966243507333910953,
+        "custno": "22099131000",
+        "picture_sort": 4,
+        "file": "966243507333910953.jpg",
+        "description": "",
+        "is_cover": 0,
+        "type": 2,
+        "input_date": "2025-10-29 17:25:03",
+        "link_l": "https://static.104.com.tw/b_profile/cust_picture/1000/22099131000/env/l_966243507333910953.jpg?v=20251029172504",
+        "link_s": "https://static.104.com.tw/b_profile/cust_picture/1000/22099131000/env/s_966243507333910953.jpg?v=20251029172504"
+      },
+      {
+        "auto_no": 894196076745323432,
+        "custno": 22099131000,
+        "file": "894196076745323432.jpg",
+        "description": "",
+        "is_cover": 0,
+        "type": 2,
+        "input_date": "2025-10-29 17:20:53",
+        "update_date": "2025-10-29 17:25:03",
+        "picture_sort": 5,
+        "link_l": "https://static.104.com.tw/b_profile/cust_picture/1000/22099131000/env/l_894196076745323432.jpg?v=20251029172504",
+        "link_s": "https://static.104.com.tw/b_profile/cust_picture/1000/22099131000/env/s_894196076745323432.jpg?v=20251029172504"
+      },
+      {
+        "auto_no": 894196076745323433,
+        "custno": 22099131000,
+        "file": "894196076745323433.jpg",
+        "description": "",
+        "is_cover": 0,
+        "type": 2,
+        "input_date": "2025-10-29 17:20:53",
+        "update_date": "2025-10-29 17:25:03",
+        "picture_sort": 6,
+        "link_l": "https://static.104.com.tw/b_profile/cust_picture/1000/22099131000/env/l_894196076745323433.jpg?v=20251029172504",
+        "link_s": "https://static.104.com.tw/b_profile/cust_picture/1000/22099131000/env/s_894196076745323433.jpg?v=20251029172504"
+      },
+      {
+        "auto_no": 894196076745323434,
+        "custno": 22099131000,
+        "file": "894196076745323434.jpg",
+        "description": "",
+        "is_cover": 0,
+        "type": 2,
+        "input_date": "2025-10-29 17:20:53",
+        "update_date": "2025-10-29 17:25:03",
+        "picture_sort": 7,
+        "link_l": "https://static.104.com.tw/b_profile/cust_picture/1000/22099131000/env/l_894196076745323434.jpg?v=20251029172504",
+        "link_s": "https://static.104.com.tw/b_profile/cust_picture/1000/22099131000/env/s_894196076745323434.jpg?v=20251029172504"
+      },
+      {
+        "auto_no": 966243507333907931,
+        "custno": 22099131000,
+        "file": "966243507333907931.jpg",
+        "description": "",
+        "is_cover": 0,
+        "type": 2,
+        "input_date": "2025-10-29 17:20:53",
+        "update_date": "2025-10-29 17:25:03",
+        "picture_sort": 8,
+        "link_l": "https://static.104.com.tw/b_profile/cust_picture/1000/22099131000/env/l_966243507333907931.jpg?v=20251029172504",
+        "link_s": "https://static.104.com.tw/b_profile/cust_picture/1000/22099131000/env/s_966243507333907931.jpg?v=20251029172504"
+      }
+    ],
+    "tagNames": [],
+    "legalTagNames": [],
+    "histories": [],
+    "addrNoDesc": "新竹市",
+    "reportUrl": "https://www.104.com.tw/feedback?custName=%E5%8F%B0%E7%81%A3%E7%A9%8D%E9%AB%94%E9%9B%BB%E8%B7%AF%E8%A3%BD%E9%80%A0%E8%82%A1%E4%BB%BD%E6%9C%89%E9%99%90%E5%85%AC%E5%8F%B8%28%E5%8F%B0%E7%A9%8D%E9%9B%BB%29&category=2",
+    "postalCode": "300",
+    "social": [],
+    "corpVideo": "",
+    "tools": [],
+    "questions": [],
+    "teams": [],
+    "employerBrand": [],
+    "follow": {
+      "isSaved": false,
+      "followedJobCount": 0,
+      "isTracked": false,
+      "isNewsNotify": false,
+      "isDuplexFollowed": false
+    },
+    "followerCount": 30040
+  },
+  "metadata": {
+    "seo": {
+      "noindex": false
+    }
+  }
+}

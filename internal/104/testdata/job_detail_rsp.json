@@ -1,0 +1,238 @@
+{
+  "data": {
+    "corpImageRight": {
+      "corpImageRight": {
+        "imageUrl": "",
+        "link": ""
+      }
+    },
+    "header": {
+      "corpImageTop": {
+        "imageUrl": "",
+        "link": ""
+      },
+      "jobName": "軟體工程師 (數位工程發展部)",
+      "appearDate": "2026/06/22",
+      "custName": "亞新工程顧問股份有限公司",
+      "custUrl": "https://www.104.com.tw/company/264c9zc",
+      "analysisType": 2,
+      "analysisUrl": "//www.104.com.tw/jobs/apply/analysis/8uz4j",
+      "isSaved": false,
+      "isFollowed": false,
+      "isApplied": false,
+      "applyDate": "",
+      "userApplyCount": 0,
+      "hrBehaviorPR": 0.8677902388184677
+    },
+    "contact": {
+      "hrName": "Rachel Chiu 邱小姐",
+      "email": "personnel@maaconsultants.com,cj.yu@maaconsultants.com,eugene.shen@maaconsultants.com,fred.chou@maaconsultants.com",
+      "visit": "",
+      "phone": [],
+      "other": "",
+      "reply": ""
+    },
+    "environmentPic": {
+      "environmentPic": [
+        {
+          "thumbnailLink": "https://static.104.com.tw/b_profile/cust_picture/3000/4723653000/env/s_894196076745472442.jpg?v=20251109153133",
+          "link": "https://static.104.com.tw/b_profile/cust_picture/3000/4723653000/env/l_894196076745472442.jpg?v=20251109153133",
+          "description": ""
+        },
+        {
+          "thumbnailLink": "https://static.104.com.tw/b_profile/cust_picture/3000/4723653000/env/s_894196076745472443.jpg?v=20251109153133",
+          "link": "https://static.104.com.tw/b_profile/cust_picture/3000/4723653000/env/l_894196076745472443.jpg?v=20251109153133",
+          "description": ""
+        },
+        {
+          "thumbnailLink": "https://static.104.com.tw/b_profile/cust_picture/3000/4723653000/env/s_966243507334056647.jpg?v=20251109153133",
+          "link": "https://static.104.com.tw/b_profile/cust_picture/3000/4723653000/env/l_966243507334056647.jpg?v=20251109153133",
+          "description": ""
+        },
+        {
+          "thumbnailLink": "https://static.104.com.tw/b_profile/cust_picture/3000/4723653000/env/s_966243507334056648.jpg?v=20251109153133",
+          "link": "https://static.104.com.tw/b_profile/cust_picture/3000/4723653000/env/l_966243507334056648.jpg?v=20251109153133",
+          "description": ""
+        },
+        {
+          "thumbnailLink": "https://static.104.com.tw/b_profile/cust_picture/3000/4723653000/env/s_966243507334056649.jpg?v=20251109153133",
+          "link": "https://static.104.com.tw/b_profile/cust_picture/3000/4723653000/env/l_966243507334056649.jpg?v=20251109153133",
+          "description": ""
+        },
+        {
+          "thumbnailLink": "https://static.104.com.tw/b_profile/cust_picture/3000/4723653000/env/s_966243507334056650.jpg?v=20251109153133",
+          "link": "https://static.104.com.tw/b_profile/cust_picture/3000/4723653000/env/l_966243507334056650.jpg?v=20251109153133",
+          "description": ""
+        },
+        {
+          "thumbnailLink": "https://static.104.com.tw/b_profile/cust_picture/3000/4723653000/env/s_894196076745472444.jpg?v=20251109153133",
+          "link": "https://static.104.com.tw/b_profile/cust_picture/3000/4723653000/env/l_894196076745472444.jpg?v=20251109153133",
+          "description": "113年度尾牙"
+        },
+        {
+          "thumbnailLink": "https://static.104.com.tw/b_profile/cust_picture/3000/4723653000/env/s_966243507334056651.jpg?v=20251109153133",
+          "link": "https://static.104.com.tw/b_profile/cust_picture/3000/4723653000/env/l_966243507334056651.jpg?v=20251109153133",
+          "description": "新春團拜"
+        },
+        {
+          "thumbnailLink": "https://static.104.com.tw/b_profile/cust_picture/3000/4723653000/env/s_894196076745472445.jpg?v=20251109153133",
+          "link": "https://static.104.com.tw/b_profile/cust_picture/3000/4723653000/env/l_894196076745472445.jpg?v=20251109153133",
+          "description": "親子日"
+        },
+        {
+          "thumbnailLink": "https://static.104.com.tw/b_profile/cust_picture/3000/4723653000/env/s_894196076745472446.jpg?v=20251109153133",
+          "link": "https://static.104.com.tw/b_profile/cust_picture/3000/4723653000/env/l_894196076745472446.jpg?v=20251109153133",
+          "description": "社團活動"
+        }
+      ],
+      "corpImageBottom": {
+        "imageUrl": "",
+        "link": ""
+      }
+    },
+    "condition": {
+      "acceptRole": {
+        "role": [
+          {
+            "code": 64,
+            "description": "原住民"
+          }
+        ],
+        "disRole": {
+          "needHandicapCompendium": false,
+          "disability": []
+        }
+      },
+      "workExp": "不拘",
+      "edu": "大學以上",
+      "major": [
+        "資訊工程相關"
+      ],
+      "language": [
+        {
+          "code": 1,
+          "language": "英文",
+          "ability": {
+            "listening": "中等",
+            "speaking": "略懂",
+            "reading": "中等",
+            "writing": "略懂"
+          }
+        }
+      ],
+      "localLanguage": [],
+      "specialty": [
+        {
+          "code": "12001003009",
+          "description": "C#"
+        },
+        {
+          "code": "12001003006",
+          "description": "ASP.NET"
+        },
+        {
+          "code": "12001004031",
+          "description": "MS SQL"
+        },
+        {
+          "code": "12001003045",
+          "description": "Python"
+        },
+        {
+          "code": "12003001003",
+          "description": "GIS"
+        },
+        {
+          "code": "12001003094",
+          "description": "IoT"
+        },
+        {
+          "code": "12002003010",
+          "description": "Revit"
+        }
+      ],
+      "skill": [
+        {
+          "code": "11009005001",
+          "description": "軟體程式設計"
+        },
+        {
+          "code": "11009002008",
+          "description": "軟體工程系統開發"
+        },
+        {
+          "code": "11009005012",
+          "description": "AI"
+        }
+      ],
+      "certificate": [],
+      "driverLicense": [],
+      "other": "高度邏輯思考能力、善於溝通系統需求與設計取捨、具備獨立軟體開發能力\n具 Azure DevOps、Docker、Kubernetes 經驗者優先\n\n- 熟悉現代軟體系統研發流程與版本控制\n- 熟悉至少一種指令式程式設計語言（C#、JavaScript、Python、PHP 尤佳）\n- 具 ASP.NET、SQL、Vue.js、Laravel、Unity、GIS、IoT、Revit等開發經驗\n- 具軟體設計、開發、運營、開發、機器學習、AI 模型訓練 (Finetuning)、 AI 應用設計（OCR、RAG、LLM、Agentic 等）開發、導入經驗\n"
+    },
+    "welfare": {
+      "tag": [],
+      "welfare": "在亞新，我們重視同仁的職涯成長與友善職場，透過全方位的福利與支持，推動以人為本、永續發展的職場環境，實現工作與生活的和諧平衡。\n\n【薪酬與獎金】\n  •  具市場競爭力的薪資水準\n  •  年節獎金與專案獎金，共享成果回饋\n\n【健康與保障】\n  •  勞健保及完整團體保險(意外、醫療、重大疾病、職災保障)\n  •  定期健康檢查、健康講座與員工關懷方案\n\n【休假與彈性】\n  •  彈性上下班、育兒友善措施，兼顧生活平衡\n\n【教育訓練與發展】\n  •  完善新人培訓與師徒制\n  •  E-learning 線上學習資源\n  •  專業證照補助（如 PMP、專業技師等）\n  •  外部訓練與國際研討會，拓展國際視野\n  •  參與國家級重大工程，累積獨特專業經驗\n\n【生活與休閒】\n  •  福委會關懷：生日禮金、節慶禮品或禮券、婚喪喜慶、傷病住院慰問與生育補助\n  •  部門聚餐、咖啡分享日、社團活動、Happy Hour，促進交流與凝聚力\n  •  舒適職場環境：明亮開放空間、零食吧、茶包與自助研磨咖啡機\n\n【招募流程】\n  1. 投遞履歷\n  2. HR初審履歷 → 部門主管面試\n  3. Final面談（含專案介紹與Q&A）\n  4. 錄取通知\n （流程清楚透明，讓你安心應徵!)",
+      "legalTag": []
+    },
+    "jobDetail": {
+      "jobDescription": "無相關經驗可，大學以上資訊工程、資訊管理等相關科系畢業\n\n【工作內容】\n- 參與智慧工程數位平台的設計、開發與維運\n- 開發與維護 GIS、BIM 系統，並支援無人機地形數據應用\n- 參與 AI 工具與文件管理系統之開發 \n- 與跨領域團隊合作（工程、IoT、BIM、AI），推動數位轉型與自動化流程\n\n【希望條件】\n- 熟悉現代軟體系統研發流程與版本控制\n- 熟悉至少一種指令式程式設計語言（C#、JavaScript、Python、PHP 尤佳）\n- 具 ASP.NET、SQL、Vue.js、Laravel、Unity、GIS、IoT、Revit等開發經驗\n- 具軟體設計、開發、運營、開發、機器學習、AI 模型訓練 (Finetuning)、 AI 應用設計（OCR、RAG、LLM、Agentic 等）開發、導入經驗\n- 具 Azure DevOps、Docker、Kubernetes 經驗者優先\n\n＊我們期待具備高度邏輯思維、善於溝通系統需求與設計選擇，並能獨立完成軟體開發的夥伴加入，一起參與系統規劃與優化。",
+      "jobCategory": [
+        {
+          "code": "2007001004",
+          "description": "軟體工程師"
+        }
+      ],
+      "salary": "待遇面議",
+      "salaryMin": 0,
+      "salaryMax": 0,
+      "salaryType": 10,
+      "jobType": 1,
+      "workType": [],
+      "addressNo": "6001002004",
+      "addressRegion": "新北市汐止區",
+      "addressArea": "新北市",
+      "addressDetail": "新台五路一段112號22樓",
+      "industryArea": "",
+      "longitude": "121.649211",
+      "latitude": "25.060495",
+      "manageResp": "不需負擔管理責任",
+      "businessTrip": "無需出差外派",
+      "workPeriod": {
+        "shifts": {
+          "日班": []
+        },
+        "note": ""
+      },
+      "workPeriodTags": [],
+      "vacationPolicy": "依公司規定",
+      "startWorkingDay": "一個月內",
+      "hireType": 0,
+      "delegatedRecruit": "",
+      "needEmp": "2~3人",
+      "landmark": "",
+      "remoteWork": null
+    },
+    "switch": "on",
+    "custLogo": "https://static.104.com.tw/b_profile/cust_picture/3000/4723653000/logo.jpg?v=20251109153133",
+    "postalCode": "221",
+    "closeDate": "",
+    "industry": "建築及工程技術服務業",
+    "custNo": "264c9zc",
+    "reportUrl": "https://www.104.com.tw/feedback?category=2&custName=%E4%BA%9E%E6%96%B0%E5%B7%A5%E7%A8%8B%E9%A1%A7%E5%95%8F%E8%82%A1%E4%BB%BD%E6%9C%89%E9%99%90%E5%85%AC%E5%8F%B8&jobName=%E8%BB%9F%E9%AB%94%E5%B7%A5%E7%A8%8B%E5%B8%AB+%28%E6%95%B8%E4%BD%8D%E5%B7%A5%E7%A8%8B%E7%99%BC%E5%B1%95%E9%83%A8%29",
+    "industryNo": "1011003001",
+    "employees": "1200人",
+    "chinaCorp": false,
+    "interactionRecord": {
+      "lastProcessedResumeAtTime": 1782295399,
+      "lastCustReplyTimestamp": 1782369797,
+      "nowTimestamp": 1782545122
+    }
+  },
+  "metadata": {
+    "enableHTML": false,
+    "hiddenBanner": false,
+    "seo": {
+      "noindex": false
+    }
+  }
+}
