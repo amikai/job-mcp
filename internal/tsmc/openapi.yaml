@@ -1,0 +1,359 @@
+openapi: 3.2.0
+info:
+  title: TSMC Careers API
+  version: "1.0"
+  description: >
+    API for the TSMC Careers website. The overall architecture is SSR (Server-Side Rendering):
+    search, filtering, sorting, and pagination all return full HTML page responses with no JSON API.
+    RelatedJobs returns an HTML fragment (not a full page).
+
+servers:
+  - url: https://careers.tsmc.com
+
+paths:
+  /zh_TW/careers/SearchJobs:
+    get:
+      summary: Search jobs (no keyword)
+      description: >
+        Returns a full SSR HTML page containing the search form and job listing.
+        Without a keyword all jobs are shown. Filter conditions are passed as
+        query parameters using numeric field IDs.
+      operationId: searchJobsNoKeyword
+      parameters:
+        - $ref: "#/components/parameters/listFilterMode"
+        - $ref: "#/components/parameters/jobRecordsPerPage"
+        - $ref: "#/components/parameters/jobOffset"
+        - $ref: "#/components/parameters/organization"
+        - $ref: "#/components/parameters/location"
+        - $ref: "#/components/parameters/jobCategory"
+        - $ref: "#/components/parameters/jobType"
+        - $ref: "#/components/parameters/employmentType"
+        - $ref: "#/components/parameters/jobSort"
+        - $ref: "#/components/parameters/jobSortDirection"
+        - $ref: "#/components/parameters/source"
+      responses:
+        "200":
+          description: Job listing page (SSR HTML)
+          content:
+            text/html:
+              schema:
+                type: string
+                description: Full HTML page containing the search form, filters, job cards, and pagination navigation
+
+  /zh_TW/careers/SearchJobs/{keyword}:
+    get:
+      summary: Search jobs (with keyword)
+      description: >
+        Searches jobs using a keyword as a path segment and returns a full SSR HTML page.
+        The keyword is a path segment, not a query parameter. Filter conditions are
+        passed as query parameters.
+      operationId: searchJobsByKeyword
+      parameters:
+        - name: keyword
+          in: path
+          required: true
+          description: Search keyword (used directly as a URL path segment)
+          schema:
+            type: string
+          example: engineer
+        - $ref: "#/components/parameters/listFilterMode"
+        - $ref: "#/components/parameters/jobRecordsPerPage"
+        - $ref: "#/components/parameters/jobOffset"
+        - $ref: "#/components/parameters/organization"
+        - $ref: "#/components/parameters/location"
+        - $ref: "#/components/parameters/jobCategory"
+        - $ref: "#/components/parameters/jobType"
+        - $ref: "#/components/parameters/employmentType"
+        - $ref: "#/components/parameters/jobSort"
+        - $ref: "#/components/parameters/jobSortDirection"
+        - $ref: "#/components/parameters/source"
+      responses:
+        "200":
+          description: Job listing page (SSR HTML)
+          content:
+            text/html:
+              schema:
+                type: string
+                description: Full HTML page containing the search form, filters, job cards, and pagination navigation
+
+  /zh_TW/careers/JobDetail:
+    get:
+      summary: Job detail (query param style)
+      description: >
+        Returns the full SSR HTML page for a job detail.
+        This is the format used by "More details" links in the listing.
+      operationId: getJobDetailByQuery
+      parameters:
+        - name: jobId
+          in: query
+          required: true
+          description: Job ID
+          schema:
+            type: integer
+          example: 19713
+        - $ref: "#/components/parameters/source"
+      responses:
+        "200":
+          description: Job detail page (SSR HTML)
+          content:
+            text/html:
+              schema:
+                type: string
+                description: Full HTML page containing the job title, location, category, description, and apply entry point
+
+  /zh_TW/careers/JobDetail/{job-slug}/{jobId}:
+    get:
+      summary: Job detail (slug + ID style)
+      description: >
+        Returns the full SSR HTML page for a job detail.
+        This clean URL format is used in social share links.
+      operationId: getJobDetailBySlug
+      parameters:
+        - name: job-slug
+          in: path
+          required: true
+          description: URL slug of the job title (hyphen-separated)
+          schema:
+            type: string
+          example: R-D-Advanced-Packaging-Integration-Engineer
+        - name: jobId
+          in: path
+          required: true
+          description: Job ID
+          schema:
+            type: integer
+          example: 21826
+      responses:
+        "200":
+          description: Job detail page (SSR HTML)
+          content:
+            text/html:
+              schema:
+                type: string
+                description: Full HTML page containing the job title, location, category, description, and apply entry point
+
+  /zh_TW/careers/RelatedJobs:
+    get:
+      summary: Related jobs (HTML fragment)
+      description: >
+        Returns an HTML fragment (not a full page) of related jobs.
+        Loaded via AJAX on the job detail page to render the "Latest Job Openings" section.
+      operationId: getRelatedJobs
+      parameters:
+        - name: jobId
+          in: query
+          required: true
+          description: Job ID
+          schema:
+            type: integer
+          example: 19713
+        - $ref: "#/components/parameters/source"
+      responses:
+        "200":
+          description: Related jobs HTML fragment
+          content:
+            text/html:
+              schema:
+                type: string
+                description: >
+                  HTML fragment (no full page structure) containing the heading "Latest Job Openings"
+                  and a list of up to 5 related job links
+
+components:
+  parameters:
+    listFilterMode:
+      name: listFilterMode
+      in: query
+      required: false
+      description: Enables filter mode. Value is always 1 (true).
+      schema:
+        type: integer
+        enum:
+          - 1 # enabled
+        default: 1
+      example: 1
+
+    jobRecordsPerPage:
+      name: jobRecordsPerPage
+      in: query
+      required: false
+      description: Number of job records to display per page.
+      schema:
+        type: integer
+        default: 10
+      example: 10
+
+    jobOffset:
+      name: jobOffset
+      in: query
+      required: false
+      description: >
+        Zero-based pagination offset. Page 2 = 10, page 3 = 20, and so on
+        (i.e. pageNumber * jobRecordsPerPage).
+      schema:
+        type: integer
+        default: 0
+      example: 10
+
+    organization:
+      name: "4177"
+      in: query
+      required: false
+      description: Organization filter (form field ID 4177).
+      schema:
+        type: integer
+        enum:
+          - 5410262 # TSMC Group
+          - 5410263 # ESMC
+          - 5410264 # JASM
+      example: 5410262
+
+    location:
+      name: "1277"
+      in: query
+      required: false
+      description: Location filter (form field ID 1277).
+      schema:
+        type: integer
+        enum:
+          - 13209 # Taiwan
+          - 13210 # Canada
+          - 13211 # China
+          - 2326764 # Germany-Dresden
+          - 4762540 # Germany-Munich
+          - 13214 # Japan-Yokohama
+          - 13215 # Japan-Osaka
+          - 13216 # Japan-Tsukuba
+          - 13217 # Japan-Kumamoto
+          - 13212 # Korea
+          - 13213 # Netherlands
+          - 13221 # USA-Arizona
+          - 13218 # USA-California
+          - 13219 # USA-Massachusetts
+          - 13220 # USA-Texas
+          - 13222 # USA-Washington
+          - 13223 # USA-Washington, D.C.
+      example: 13209
+
+    jobCategory:
+      name: "558"
+      in: query
+      required: false
+      description: Job category filter (form field ID 558).
+      schema:
+        type: integer
+        enum:
+          - 38617 # R&D
+          - 38618 # Specialty Technology
+          - 38619 # IC Design Technology
+          - 38620 # Manufacturing (fabs)
+          - 38621 # Facility & Industrial Safety / Environmental Protection
+          - 38622 # Product Development
+          - 38623 # IC Interconnect & Packaging Technology
+          - 38635 # Testing Development and Technology
+          - 38624 # Quality and Reliability
+          - 38625 # Information Technology
+          - 38626 # Internal Audit
+          - 38627 # Business Development
+          - 38628 # Customer Service
+          - 38629 # Corporate Planning
+          - 38630 # Finance / Accounting / Risk Management
+          - 38631 # Human Resources
+          - 38632 # Legal
+          - 38633 # Materials Management
+          - 7898835 # Corporate Sustainability (ESG)
+          - 38634 # Administration
+          - 38636 # Accessibility Inclusion
+      example: 38617
+
+    jobType:
+      name: "147"
+      in: query
+      required: false
+      description: Job level filter (form field ID 147).
+      schema:
+        type: integer
+        enum:
+          - 5710 # Technician
+          - 39075 # Associate Engineer / Admin
+          - 5709 # Engineer / Admin
+          - 5708 # Manager / Executive
+          - 39076 # Others
+      example: 5709
+
+    employmentType:
+      name: "542"
+      in: query
+      required: false
+      description: Employment type filter (form field ID 542).
+      schema:
+        type: integer
+        enum:
+          - 5701 # Regular
+          - 5702 # Temporary
+          - 13100 # Intern
+          - 4348108 # Apprenticeship
+      example: 5701
+
+    jobSort:
+      name: jobSort
+      in: query
+      required: false
+      description: >
+        Sort field. Corresponds to the "Sort by" UI options:
+        "Title (A - Z)" or "Latest Update". Exact values are injected by the
+        hidden form fields and are not publicly documented.
+      schema:
+        type: string
+      example: ""
+
+    jobSortDirection:
+      name: jobSortDirection
+      in: query
+      required: false
+      description: Sort direction (ASC / DESC).
+      schema:
+        type: string
+      example: ""
+
+    source:
+      name: source
+      in: query
+      required: false
+      description: Traffic source identifier.
+      schema:
+        type: string
+        default: "External+Career+Site"
+      example: "External+Career+Site"
+
+x-examples:
+  SearchAllJobs:
+    summary: List all jobs (home page)
+    value: GET /zh_TW/careers/SearchJobs?listFilterMode=1&jobRecordsPerPage=10
+
+  SearchByKeyword:
+    summary: Search jobs with keyword "engineer"
+    value: GET /zh_TW/careers/SearchJobs/engineer?listFilterMode=1&jobRecordsPerPage=10
+
+  SearchWithFilters:
+    summary: Search for R&D Engineer/Admin regular positions in Taiwan
+    value: >
+      GET /zh_TW/careers/SearchJobs/engineer
+        ?listFilterMode=1
+        &jobRecordsPerPage=10
+        &1277=13209
+        &558=38617
+        &147=5709
+        &542=5701
+
+  SearchPage2:
+    summary: Fetch page 2 of results
+    value: GET /zh_TW/careers/SearchJobs?listFilterMode=1&jobRecordsPerPage=10&jobOffset=10
+
+  GetJobDetail:
+    summary: Get a specific job detail
+    value: "GET /zh_TW/careers/JobDetail?jobId=19713&source=External+Career+Site"
+
+  GetRelatedJobs:
+    summary: Get related jobs HTML fragment
+    value: "GET /zh_TW/careers/RelatedJobs?jobId=19713&source=External+Career+Site"
