@@ -6,11 +6,11 @@ import (
 )
 
 type Job struct {
-	JobNo         string `json:"jobNo"`
-	JobName       string `json:"jobName"`
-	CustName      string `json:"custName"`
-	CustNo        string `json:"custNo"`
-	Link          struct {
+	JobNo    string `json:"jobNo"`
+	JobName  string `json:"jobName"`
+	CustName string `json:"custName"`
+	CustNo   string `json:"custNo"`
+	Link     struct {
 		Job  string `json:"job"`
 		Cust string `json:"cust"`
 	} `json:"link"`
@@ -85,7 +85,7 @@ type SearchJobsParams struct {
 	Order      *int // 15=newest, 1=relevance
 	Page       *int
 	Edu        string
-	RemoteWork *int // 1=partial, 2=full
+	RemoteWork *int   // 0=no remote, 1=partial, 2=full
 	S9         string // experience codes, comma-separated
 }
 
