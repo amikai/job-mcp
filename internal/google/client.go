@@ -23,7 +23,7 @@ type Client struct {
 	baseURL    string
 }
 
-type SearchParams struct {
+type JobRequest struct {
 	Query          string
 	Locations      []string
 	HasRemote      bool
@@ -66,7 +66,7 @@ func NewClient(cfg Config) *Client {
 	}
 }
 
-func (c *Client) SearchJobs(ctx context.Context, p SearchParams) (*SearchResponse, error) {
+func (c *Client) Jobs(ctx context.Context, p *JobRequest) (*SearchResponse, error) {
 	u, err := url.Parse(c.baseURL + "/jobs/results")
 	if err != nil {
 		return nil, err

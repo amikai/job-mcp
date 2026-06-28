@@ -51,7 +51,7 @@ func NewClient(cfg Config) *Client {
 	}
 }
 
-func (c *Client) Jobs(ctx context.Context, p SearchJobsParams) (*SearchJobResponse, error) {
+func (c *Client) Jobs(ctx context.Context, p *JobRequest) (*SearchJobResponse, error) {
 	q := url.Values{}
 	if p.Keyword != "" {
 		q.Set("keyword", p.Keyword)

@@ -28,7 +28,7 @@ func run() error {
 	defer cancel()
 
 	client := tsmc.NewClient(tsmc.Config{})
-	search, err := client.SearchJobs(ctx, tsmc.SearchParams{
+	search, err := client.Jobs(ctx, &tsmc.JobRequest{
 		Keyword:         keyword,
 		Locations:       []string{tsmc.LocTaiwan},
 		EmploymentTypes: []string{tsmc.EmployRegular},

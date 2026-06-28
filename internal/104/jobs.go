@@ -78,7 +78,7 @@ const (
 	AreaKaohsiung = "6001006000"
 )
 
-type SearchJobsParams struct {
+type JobRequest struct {
 	Keyword    string
 	Area       string
 	RO         *int // 0=full-time, 1=part-time

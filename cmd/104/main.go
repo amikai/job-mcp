@@ -71,9 +71,9 @@ func keywordFromInput(args []string, stdin *os.File) (string, error) {
 	return keyword, nil
 }
 
-func defaultSearchParams(keyword string) job104.SearchJobsParams {
+func defaultSearchParams(keyword string) *job104.JobRequest {
 	fullTime := 0
-	return job104.SearchJobsParams{
+	return &job104.JobRequest{
 		Keyword: keyword,
 		RO:      &fullTime,
 	}

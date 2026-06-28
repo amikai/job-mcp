@@ -28,7 +28,7 @@ func run() error {
 	defer cancel()
 
 	client := google.NewClient(google.Config{})
-	search, err := client.SearchJobs(ctx, defaultSearchParams(keyword))
+	search, err := client.Jobs(ctx, defaultSearchParams(keyword))
 	if err != nil {
 		return err
 	}
@@ -66,8 +66,8 @@ func keywordFromInput(args []string, stdin *os.File) (string, error) {
 	return keyword, nil
 }
 
-func defaultSearchParams(keyword string) google.SearchParams {
-	return google.SearchParams{
+func defaultSearchParams(keyword string) *google.JobRequest {
+	return &google.JobRequest{
 		Query:          keyword,
 		EmploymentType: []string{"FULL_TIME"},
 		SortBy:         "date",

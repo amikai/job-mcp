@@ -19,7 +19,7 @@ type FacetFilter struct {
 	FieldName string
 }
 
-type SearchJobsParams struct {
+type JobRequest struct {
 	Keywords       string
 	Location       string
 	Page           int
@@ -64,7 +64,7 @@ type JobDetail struct {
 	DisplayID      string
 }
 
-func buildSearchQuery(p SearchJobsParams) url.Values {
+func buildSearchQuery(p *JobRequest) url.Values {
 	q := url.Values{
 		"SearchType":              {"5"},
 		"ResultsType":             {"0"},

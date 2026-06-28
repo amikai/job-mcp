@@ -108,7 +108,7 @@ type Client struct {
 	baseURL    string
 }
 
-type SearchParams struct {
+type JobRequest struct {
 	Keyword         string
 	Locations       []string
 	Categories      []string
@@ -154,7 +154,7 @@ func NewClient(cfg Config) *Client {
 	}
 }
 
-func (c *Client) searchURL(p SearchParams) (string, error) {
+func (c *Client) searchURL(p *JobRequest) (string, error) {
 	u, err := url.Parse(c.baseURL)
 	if err != nil {
 		return "", err
@@ -195,7 +195,7 @@ func (c *Client) searchURL(p SearchParams) (string, error) {
 	return u.String(), nil
 }
 
-func (c *Client) SearchJobs(ctx context.Context, p SearchParams) (*SearchResponse, error) {
+func (c *Client) Jobs(ctx context.Context, p *JobRequest) (*SearchResponse, error) {
 	rawURL, err := c.searchURL(p)
 	if err != nil {
 		return nil, err

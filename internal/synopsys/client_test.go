@@ -34,12 +34,12 @@ func serveTestdata(path string) http.HandlerFunc {
 	}
 }
 
-func TestSearchJobs(t *testing.T) {
+func TestJobs(t *testing.T) {
 	srv := newMockServer(t)
 	defer srv.Close()
 	c := NewClient(Config{BaseURL: srv.URL})
 
-	got, err := c.SearchJobs(t.Context(), SearchJobsParams{Keywords: "software engineer"})
+	got, err := c.Jobs(t.Context(), &JobRequest{Keywords: "software engineer"})
 	require.NoError(t, err)
 
 	want := &SearchResults{

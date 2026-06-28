@@ -41,7 +41,7 @@ func TestJobs(t *testing.T) {
 	defer srv.Close()
 	c := NewClient(Config{BaseURL: srv.URL})
 
-	r, err := c.Jobs(t.Context(), SearchJobsParams{Keyword: "Golang", Area: AreaTaipei})
+	r, err := c.Jobs(t.Context(), &JobRequest{Keyword: "Golang", Area: AreaTaipei})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -73,7 +73,7 @@ func TestJobDetail(t *testing.T) {
 	defer srv.Close()
 	c := NewClient(Config{BaseURL: srv.URL})
 
-	r, err := c.Jobs(t.Context(), SearchJobsParams{})
+	r, err := c.Jobs(t.Context(), &JobRequest{})
 	if err != nil || len(r.Data) == 0 {
 		t.Skip("no jobs in testdata")
 	}

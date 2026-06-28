@@ -45,7 +45,7 @@ func newRequest(ctx context.Context, method, rawURL string) (*http.Request, erro
 	return req, nil
 }
 
-func (c *Client) SearchJobs(ctx context.Context, p SearchJobsParams) (*SearchResults, error) {
+func (c *Client) Jobs(ctx context.Context, p *JobRequest) (*SearchResults, error) {
 	q := buildSearchQuery(p)
 	req, err := newRequest(ctx, http.MethodGet, c.baseURL+"/search-jobs/results?"+q.Encode())
 	if err != nil {
