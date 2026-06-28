@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	job104 "github.com/amikai/job-mcp/internal/provider/104"
+	job104 "github.com/amikai/job-mcp/internal/provider/job104"
 	"github.com/amikai/job-mcp/internal/provider/tsmc"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
@@ -46,8 +46,8 @@ func TestServerListsJobTools(t *testing.T) {
 		got[tool.Name] = true
 	}
 	for _, name := range []string{
-		"tw104_search_jobs",
-		"tw104_get_job_detail",
+		"104_search_jobs",
+		"104_get_job_detail",
 		"tsmc_search_jobs",
 		"tsmc_get_job_detail",
 	} {

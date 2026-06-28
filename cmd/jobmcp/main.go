@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/amikai/job-mcp/internal/jobmcp"
-	job104 "github.com/amikai/job-mcp/internal/provider/104"
+	job104 "github.com/amikai/job-mcp/internal/provider/job104"
 	"github.com/amikai/job-mcp/internal/provider/tsmc"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
@@ -38,7 +38,7 @@ func runWithTransport(transport mcp.Transport) error {
 
 func newServer(c104 *job104.Client, cTSMC *tsmc.Client) *mcp.Server {
 	server := mcp.NewServer(&mcp.Implementation{Name: "job-mcp", Version: "v0.1.0"}, nil)
-	jobmcp.RegisterTW104(server, c104)
+	jobmcp.RegisterJob104(server, c104)
 	jobmcp.RegisterTSMC(server, cTSMC)
 	return server
 }

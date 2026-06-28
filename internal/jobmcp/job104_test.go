@@ -3,11 +3,11 @@ package jobmcp
 import (
 	"testing"
 
-	job104 "github.com/amikai/job-mcp/internal/provider/104"
+	job104 "github.com/amikai/job-mcp/internal/provider/job104"
 )
 
-func TestTW104ToRequest(t *testing.T) {
-	in := tw104SearchInput{
+func TestJob104ToRequest(t *testing.T) {
+	in := job104SearchInput{
 		Keyword: "golang",
 		Area:    "taipei",
 		JobType: "part",
@@ -15,7 +15,7 @@ func TestTW104ToRequest(t *testing.T) {
 		Remote:  "full",
 		Page:    2,
 	}
-	got, err := tw104ToRequest(in)
+	got, err := job104ToRequest(in)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -39,8 +39,8 @@ func TestTW104ToRequest(t *testing.T) {
 	}
 }
 
-func TestTW104ToRequestInvalidArea(t *testing.T) {
-	_, err := tw104ToRequest(tw104SearchInput{Keyword: "x", Area: "atlantis"})
+func TestJob104ToRequestInvalidArea(t *testing.T) {
+	_, err := job104ToRequest(job104SearchInput{Keyword: "x", Area: "atlantis"})
 	if err == nil {
 		t.Fatal("expected error for invalid area, got nil")
 	}
