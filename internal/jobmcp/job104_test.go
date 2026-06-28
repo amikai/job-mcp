@@ -8,20 +8,12 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
-func TestJob104Tools(t *testing.T) {
-	j := NewJob104(job104.NewClient(job104.Config{HTTPClient: http.DefaultClient}))
+func TestRegisterJob104(t *testing.T) {
+	server := mcp.NewServer(&mcp.Implementation{Name: "test", Version: "v0"}, nil)
 
-	searchTool, searchHandler := j.SearchJobsTool()
-	if searchTool.Name != "104_search_jobs" {
-		t.Fatalf("SearchJobsTool name = %q, want 104_search_jobs", searchTool.Name)
-	}
-	mcp.AddTool(mcp.NewServer(&mcp.Implementation{Name: "test", Version: "v0"}, nil), searchTool, searchHandler)
+	RegisterJob104(server, job104.NewClient(job104.Config{HTTPClient: http.DefaultClient}))
 
-	detailTool, detailHandler := j.JobDetailTool()
-	if detailTool.Name != "104_get_job_detail" {
-		t.Fatalf("JobDetailTool name = %q, want 104_get_job_detail", detailTool.Name)
-	}
-	mcp.AddTool(mcp.NewServer(&mcp.Implementation{Name: "test", Version: "v0"}, nil), detailTool, detailHandler)
+	assertTools(t, server, "104_search_jobs", "104_get_job_detail")
 }
 
 func TestJob104ToRequest(t *testing.T) {
