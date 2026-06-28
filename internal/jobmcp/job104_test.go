@@ -1,10 +1,28 @@
 package jobmcp
 
 import (
+	"net/http"
 	"testing"
 
 	job104 "github.com/amikai/job-mcp/internal/provider/job104"
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
+
+func TestJob104Tools(t *testing.T) {
+	j := NewJob104(job104.NewClient(job104.Config{HTTPClient: http.DefaultClient}))
+
+	searchTool, searchHandler := j.SearchJobsTool()
+	if searchTool.Name != "104_search_jobs" {
+		t.Fatalf("SearchJobsTool name = %q, want 104_search_jobs", searchTool.Name)
+	}
+	mcp.AddTool(mcp.NewServer(&mcp.Implementation{Name: "test", Version: "v0"}, nil), searchTool, searchHandler)
+
+	detailTool, detailHandler := j.JobDetailTool()
+	if detailTool.Name != "104_get_job_detail" {
+		t.Fatalf("JobDetailTool name = %q, want 104_get_job_detail", detailTool.Name)
+	}
+	mcp.AddTool(mcp.NewServer(&mcp.Implementation{Name: "test", Version: "v0"}, nil), detailTool, detailHandler)
+}
 
 func TestJob104ToRequest(t *testing.T) {
 	in := job104SearchInput{

@@ -38,8 +38,19 @@ func runWithTransport(transport mcp.Transport) error {
 
 func newServer(c104 *job104.Client, cTSMC *tsmc.Client) *mcp.Server {
 	server := mcp.NewServer(&mcp.Implementation{Name: "job-mcp", Version: "v0.1.0"}, nil)
-	jobmcp.RegisterJob104(server, c104)
-	jobmcp.RegisterTSMC(server, cTSMC)
+
+	j104 := jobmcp.NewJob104(c104)
+	search104Tool, search104Handler := j104.SearchJobsTool()
+	mcp.AddTool(server, search104Tool, search104Handler)
+	detail104Tool, detail104Handler := j104.JobDetailTool()
+	mcp.AddTool(server, detail104Tool, detail104Handler)
+
+	jTSMC := jobmcp.NewTSMC(cTSMC)
+	searchTSMCTool, searchTSMCHandler := jTSMC.SearchJobsTool()
+	mcp.AddTool(server, searchTSMCTool, searchTSMCHandler)
+	detailTSMCTool, detailTSMCHandler := jTSMC.JobDetailTool()
+	mcp.AddTool(server, detailTSMCTool, detailTSMCHandler)
+
 	return server
 }
 

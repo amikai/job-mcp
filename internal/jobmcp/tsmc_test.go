@@ -1,10 +1,28 @@
 package jobmcp
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/amikai/job-mcp/internal/provider/tsmc"
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
+
+func TestTSMCTools(t *testing.T) {
+	j := NewTSMC(tsmc.NewClient(tsmc.Config{HTTPClient: http.DefaultClient}))
+
+	searchTool, searchHandler := j.SearchJobsTool()
+	if searchTool.Name != "tsmc_search_jobs" {
+		t.Fatalf("SearchJobsTool name = %q, want tsmc_search_jobs", searchTool.Name)
+	}
+	mcp.AddTool(mcp.NewServer(&mcp.Implementation{Name: "test", Version: "v0"}, nil), searchTool, searchHandler)
+
+	detailTool, detailHandler := j.JobDetailTool()
+	if detailTool.Name != "tsmc_get_job_detail" {
+		t.Fatalf("JobDetailTool name = %q, want tsmc_get_job_detail", detailTool.Name)
+	}
+	mcp.AddTool(mcp.NewServer(&mcp.Implementation{Name: "test", Version: "v0"}, nil), detailTool, detailHandler)
+}
 
 func TestTSMCToRequest(t *testing.T) {
 	in := tsmcSearchInput{

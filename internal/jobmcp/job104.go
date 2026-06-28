@@ -72,31 +72,48 @@ func job104ToRequest(in job104SearchInput) (*job104.JobRequest, error) {
 	return r, nil
 }
 
-// RegisterJob104 registers the 104 search and job-detail tools.
-func RegisterJob104(s *mcp.Server, c *job104.Client) {
-	mcp.AddTool(s, &mcp.Tool{
+// Job104 adapts the 104 provider client into MCP tools.
+type Job104 struct {
+	client *job104.Client
+}
+
+// NewJob104 creates the MCP adapter for 104 tools.
+func NewJob104(c *job104.Client) *Job104 {
+	return &Job104{client: c}
+}
+
+// SearchJobsTool returns the 104 job search tool definition and typed handler.
+func (j *Job104) SearchJobsTool() (*mcp.Tool, mcp.ToolHandlerFor[job104SearchInput, any]) {
+	return &mcp.Tool{
 		Name:        "104_search_jobs",
 		Description: "Search jobs on 104 (Taiwan's largest job board) by keyword, with optional city/job-type/remote/sort filters.",
-	}, func(ctx context.Context, _ *mcp.CallToolRequest, in job104SearchInput) (*mcp.CallToolResult, any, error) {
-		req, err := job104ToRequest(in)
-		if err != nil {
-			return errorResult(err), nil, nil
-		}
-		resp, err := c.Jobs(ctx, req)
-		if err != nil {
-			return errorResult(err), nil, nil
-		}
-		return textResult(job104.FormatSearchJobResponse(resp)), nil, nil
-	})
+	}, j.searchJobs
+}
 
-	mcp.AddTool(s, &mcp.Tool{
+// JobDetailTool returns the 104 job detail tool definition and typed handler.
+func (j *Job104) JobDetailTool() (*mcp.Tool, mcp.ToolHandlerFor[job104DetailInput, any]) {
+	return &mcp.Tool{
 		Name:        "104_get_job_detail",
 		Description: "Get the full job description for a 104 job code (jobNo from search results).",
-	}, func(ctx context.Context, _ *mcp.CallToolRequest, in job104DetailInput) (*mcp.CallToolResult, any, error) {
-		resp, err := c.JobDetail(ctx, in.JobCode)
-		if err != nil {
-			return errorResult(err), nil, nil
-		}
-		return textResult(job104.FormatJobDetail(resp, in.JobCode)), nil, nil
-	})
+	}, j.getJobDetail
+}
+
+func (j *Job104) searchJobs(ctx context.Context, _ *mcp.CallToolRequest, in job104SearchInput) (*mcp.CallToolResult, any, error) {
+	req, err := job104ToRequest(in)
+	if err != nil {
+		return errorResult(err), nil, nil
+	}
+	resp, err := j.client.Jobs(ctx, req)
+	if err != nil {
+		return errorResult(err), nil, nil
+	}
+	return textResult(job104.FormatSearchJobResponse(resp)), nil, nil
+}
+
+func (j *Job104) getJobDetail(ctx context.Context, _ *mcp.CallToolRequest, in job104DetailInput) (*mcp.CallToolResult, any, error) {
+	resp, err := j.client.JobDetail(ctx, in.JobCode)
+	if err != nil {
+		return errorResult(err), nil, nil
+	}
+	return textResult(job104.FormatJobDetail(resp, in.JobCode)), nil, nil
 }

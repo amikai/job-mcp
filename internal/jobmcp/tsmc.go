@@ -134,31 +134,48 @@ func formatTSMCDetail(d *tsmc.JobDetail) string {
 	return sb.String()
 }
 
-// RegisterTSMC registers the tsmc search and job-detail tools.
-func RegisterTSMC(s *mcp.Server, c *tsmc.Client) {
-	mcp.AddTool(s, &mcp.Tool{
+// TSMC adapts the TSMC provider client into MCP tools.
+type TSMC struct {
+	client *tsmc.Client
+}
+
+// NewTSMC creates the MCP adapter for TSMC tools.
+func NewTSMC(c *tsmc.Client) *TSMC {
+	return &TSMC{client: c}
+}
+
+// SearchJobsTool returns the TSMC job search tool definition and typed handler.
+func (j *TSMC) SearchJobsTool() (*mcp.Tool, mcp.ToolHandlerFor[tsmcSearchInput, any]) {
+	return &mcp.Tool{
 		Name:        "tsmc_search_jobs",
 		Description: "Search TSMC careers by keyword, with optional location/category/seniority/employment filters.",
-	}, func(ctx context.Context, _ *mcp.CallToolRequest, in tsmcSearchInput) (*mcp.CallToolResult, any, error) {
-		req, err := tsmcToRequest(in)
-		if err != nil {
-			return errorResult(err), nil, nil
-		}
-		resp, err := c.Jobs(ctx, req)
-		if err != nil {
-			return errorResult(err), nil, nil
-		}
-		return textResult(formatTSMCSearch(resp)), nil, nil
-	})
+	}, j.searchJobs
+}
 
-	mcp.AddTool(s, &mcp.Tool{
+// JobDetailTool returns the TSMC job detail tool definition and typed handler.
+func (j *TSMC) JobDetailTool() (*mcp.Tool, mcp.ToolHandlerFor[tsmcDetailInput, any]) {
+	return &mcp.Tool{
 		Name:        "tsmc_get_job_detail",
 		Description: "Get the full TSMC job description for a job id (from search results).",
-	}, func(ctx context.Context, _ *mcp.CallToolRequest, in tsmcDetailInput) (*mcp.CallToolResult, any, error) {
-		resp, err := c.JobDetail(ctx, in.JobID)
-		if err != nil {
-			return errorResult(err), nil, nil
-		}
-		return textResult(formatTSMCDetail(resp)), nil, nil
-	})
+	}, j.getJobDetail
+}
+
+func (j *TSMC) searchJobs(ctx context.Context, _ *mcp.CallToolRequest, in tsmcSearchInput) (*mcp.CallToolResult, any, error) {
+	req, err := tsmcToRequest(in)
+	if err != nil {
+		return errorResult(err), nil, nil
+	}
+	resp, err := j.client.Jobs(ctx, req)
+	if err != nil {
+		return errorResult(err), nil, nil
+	}
+	return textResult(formatTSMCSearch(resp)), nil, nil
+}
+
+func (j *TSMC) getJobDetail(ctx context.Context, _ *mcp.CallToolRequest, in tsmcDetailInput) (*mcp.CallToolResult, any, error) {
+	resp, err := j.client.JobDetail(ctx, in.JobID)
+	if err != nil {
+		return errorResult(err), nil, nil
+	}
+	return textResult(formatTSMCDetail(resp)), nil, nil
 }
