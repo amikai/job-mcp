@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"strings"
 	"testing"
@@ -24,7 +25,9 @@ func TestFormatReportIncludesEveryJobDetail(t *testing.T) {
 		"backend-engineer": {Path: "backend-engineer", Title: "Backend Engineer", Description: "<p>Build APIs</p>", Requirements: ""},
 	}
 
-	got := formatReport("Golang", search, jobsForDetail(search.Data), details)
+	var buf bytes.Buffer
+	writeReport(&buf, "Golang", search, jobsForDetail(search.Data), details)
+	got := buf.String()
 
 	for _, want := range []string{
 		"Cake Jobs Report",

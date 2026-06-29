@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"strings"
@@ -13,16 +14,12 @@ import (
 )
 
 func main() {
-	if err := run(); err != nil {
-		fmt.Fprintln(os.Stderr, err)
+	scanner := bufio.NewScanner(os.Stdin)
+	scanner.Scan()
+	keyword := strings.TrimSpace(scanner.Text())
+	if keyword == "" {
+		fmt.Fprintln(os.Stderr, "keyword is required")
 		os.Exit(1)
-	}
-}
-
-func run() error {
-	keyword, err := keywordFromInput(os.Args[1:], os.Stdin)
-	if err != nil {
-		return err
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
@@ -35,7 +32,8 @@ func run() error {
 		EmploymentTypes: []string{tsmc.EmployRegular},
 	})
 	if err != nil {
-		return err
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
 	}
 
 	jobs := search.Jobs
@@ -46,62 +44,42 @@ func run() error {
 	for _, job := range jobs {
 		detail, err := client.JobDetail(ctx, job.ID)
 		if err != nil {
-			return err
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
 		}
 		details[job.ID] = detail
 	}
 
-	fmt.Print(formatReport(keyword, search, jobs, details))
-	return nil
+	writeReport(os.Stdout, keyword, search, jobs, details)
 }
 
-func keywordFromInput(args []string, stdin *os.File) (string, error) {
-	if len(args) > 0 {
-		return strings.TrimSpace(strings.Join(args, " ")), nil
-	}
-	fmt.Fprint(os.Stderr, "Keyword: ")
-	scanner := bufio.NewScanner(stdin)
-	if !scanner.Scan() {
-		if err := scanner.Err(); err != nil {
-			return "", err
-		}
-		return "", fmt.Errorf("keyword is required")
-	}
-	keyword := strings.TrimSpace(scanner.Text())
-	if keyword == "" {
-		return "", fmt.Errorf("keyword is required")
-	}
-	return keyword, nil
-}
 
-func formatReport(keyword string, search *tsmc.JobsResponse, jobs []tsmc.Job, details map[string]*tsmc.JobDetailResponse) string {
-	var sb strings.Builder
-	fmt.Fprintf(&sb, "TSMC Jobs Report\n")
-	fmt.Fprintf(&sb, "Keyword: %s\n", keyword)
-	fmt.Fprintf(&sb, "Filters: Taiwan, regular\n")
-	fmt.Fprintf(&sb, "Found %d jobs; showing %d\n\n", search.Total, len(jobs))
+func writeReport(w io.Writer, keyword string, search *tsmc.JobsResponse, jobs []tsmc.Job, details map[string]*tsmc.JobDetailResponse) {
+	fmt.Fprintf(w, "TSMC Jobs Report\n")
+	fmt.Fprintf(w, "Keyword: %s\n", keyword)
+	fmt.Fprintf(w, "Filters: Taiwan, regular\n")
+	fmt.Fprintf(w, "Found %d jobs; showing %d\n\n", search.Total, len(jobs))
 
 	for i, job := range jobs {
-		fmt.Fprintf(&sb, "%d. [%s] %s\n", i+1, job.ID, job.Title)
-		fmt.Fprintf(&sb, "URL: https://careers.tsmc.com/zh_TW/careers/JobDetail/%s/%s\n", job.Slug, job.ID)
+		fmt.Fprintf(w, "%d. [%s] %s\n", i+1, job.ID, job.Title)
+		fmt.Fprintf(w, "URL: https://careers.tsmc.com/zh_TW/careers/JobDetail/%s/%s\n", job.Slug, job.ID)
 		if job.Location != "" {
-			fmt.Fprintf(&sb, "Location: %s\n", job.Location)
+			fmt.Fprintf(w, "Location: %s\n", job.Location)
 		}
 		if job.CareerArea != "" {
-			fmt.Fprintf(&sb, "Career Area: %s\n", job.CareerArea)
+			fmt.Fprintf(w, "Career Area: %s\n", job.CareerArea)
 		}
 		if job.Posted != "" {
-			fmt.Fprintf(&sb, "Posted: %s\n", job.Posted)
+			fmt.Fprintf(w, "Posted: %s\n", job.Posted)
 		}
 		if detail := details[job.ID]; detail != nil {
 			if detail.Responsibilities != "" {
-				fmt.Fprintf(&sb, "Responsibilities: %s\n", detail.Responsibilities)
+				fmt.Fprintf(w, "Responsibilities: %s\n", detail.Responsibilities)
 			}
 			if detail.Qualifications != "" {
-				fmt.Fprintf(&sb, "Qualifications: %s\n", detail.Qualifications)
+				fmt.Fprintf(w, "Qualifications: %s\n", detail.Qualifications)
 			}
 		}
-		sb.WriteByte('\n')
+		fmt.Fprintln(w)
 	}
-	return sb.String()
 }

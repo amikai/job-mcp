@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"strings"
@@ -13,16 +14,12 @@ import (
 )
 
 func main() {
-	if err := run(); err != nil {
-		fmt.Fprintln(os.Stderr, err)
+	scanner := bufio.NewScanner(os.Stdin)
+	scanner.Scan()
+	keyword := strings.TrimSpace(scanner.Text())
+	if keyword == "" {
+		fmt.Fprintln(os.Stderr, "keyword is required")
 		os.Exit(1)
-	}
-}
-
-func run() error {
-	keyword, err := keywordFromInput(os.Args[1:], os.Stdin)
-	if err != nil {
-		return err
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
@@ -31,7 +28,8 @@ func run() error {
 	client := google.NewClient(http.DefaultClient)
 	search, err := client.Jobs(ctx, defaultSearchParams(keyword))
 	if err != nil {
-		return err
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
 	}
 
 	jobs := jobsForDetail(search.Jobs)
@@ -39,33 +37,15 @@ func run() error {
 	for _, job := range jobs {
 		detail, err := client.JobDetail(ctx, job.Path)
 		if err != nil {
-			return err
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
 		}
 		details[job.ID] = detail
 	}
 
-	fmt.Print(formatReport(keyword, search, jobs, details))
-	return nil
+	writeReport(os.Stdout, keyword, search, jobs, details)
 }
 
-func keywordFromInput(args []string, stdin *os.File) (string, error) {
-	if len(args) > 0 {
-		return strings.TrimSpace(strings.Join(args, " ")), nil
-	}
-	fmt.Fprint(os.Stderr, "Keyword: ")
-	scanner := bufio.NewScanner(stdin)
-	if !scanner.Scan() {
-		if err := scanner.Err(); err != nil {
-			return "", err
-		}
-		return "", fmt.Errorf("keyword is required")
-	}
-	keyword := strings.TrimSpace(scanner.Text())
-	if keyword == "" {
-		return "", fmt.Errorf("keyword is required")
-	}
-	return keyword, nil
-}
 
 func defaultSearchParams(keyword string) *google.JobsRequest {
 	return &google.JobsRequest{
@@ -83,38 +63,36 @@ func jobsForDetail(jobs []google.Job) []google.Job {
 	return jobs
 }
 
-func formatReport(keyword string, search *google.JobsResponse, jobs []google.Job, details map[string]*google.JobDetailResponse) string {
-	var sb strings.Builder
-	fmt.Fprintf(&sb, "Google Jobs Report\n")
-	fmt.Fprintf(&sb, "Keyword: %s\n", keyword)
-	fmt.Fprintf(&sb, "Filters: full-time, newest first\n")
-	fmt.Fprintf(&sb, "Found %d jobs; showing %d\n\n", len(search.Jobs), len(jobs))
+func writeReport(w io.Writer, keyword string, search *google.JobsResponse, jobs []google.Job, details map[string]*google.JobDetailResponse) {
+	fmt.Fprintf(w, "Google Jobs Report\n")
+	fmt.Fprintf(w, "Keyword: %s\n", keyword)
+	fmt.Fprintf(w, "Filters: full-time, newest first\n")
+	fmt.Fprintf(w, "Found %d jobs; showing %d\n\n", len(search.Jobs), len(jobs))
 
 	for i, job := range jobs {
-		fmt.Fprintf(&sb, "%d. [%s] %s\n", i+1, job.ID, job.Title)
-		fmt.Fprintf(&sb, "URL: https://www.google.com/about/careers/applications/jobs/results/%s\n", job.Path)
+		fmt.Fprintf(w, "%d. [%s] %s\n", i+1, job.ID, job.Title)
+		fmt.Fprintf(w, "URL: https://www.google.com/about/careers/applications/jobs/results/%s\n", job.Path)
 		if job.Company != "" {
-			fmt.Fprintf(&sb, "Company: %s\n", job.Company)
+			fmt.Fprintf(w, "Company: %s\n", job.Company)
 		}
 		if job.Location != "" {
-			fmt.Fprintf(&sb, "Location: %s\n", job.Location)
+			fmt.Fprintf(w, "Location: %s\n", job.Location)
 		}
 		if detail := details[job.ID]; detail != nil {
-			writeGoogleDetail(&sb, detail)
+			writeDetail(w, detail)
 		}
-		sb.WriteByte('\n')
+		fmt.Fprintln(w)
 	}
-	return sb.String()
 }
 
-func writeGoogleDetail(sb *strings.Builder, detail *google.JobDetailResponse) {
+func writeDetail(w io.Writer, detail *google.JobDetailResponse) {
 	if detail.About != "" {
-		fmt.Fprintf(sb, "About: %s\n", detail.About)
+		fmt.Fprintf(w, "About: %s\n", detail.About)
 	}
 	if detail.Qualifications != "" {
-		fmt.Fprintf(sb, "Qualifications: %s\n", detail.Qualifications)
+		fmt.Fprintf(w, "Qualifications: %s\n", detail.Qualifications)
 	}
 	if detail.Responsibilities != "" {
-		fmt.Fprintf(sb, "Responsibilities: %s\n", detail.Responsibilities)
+		fmt.Fprintf(w, "Responsibilities: %s\n", detail.Responsibilities)
 	}
 }

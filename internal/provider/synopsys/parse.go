@@ -267,16 +267,3 @@ func textContent(n *html.Node) string {
 	walk(n)
 	return sb.String()
 }
-
-var htmlTagRe = regexp.MustCompile(`<[^>]+>`)
-
-func stripHTML(s string) string {
-	s = htmlTagRe.ReplaceAllString(s, "")
-	s = strings.ReplaceAll(s, "&lt;", "<")
-	s = strings.ReplaceAll(s, "&gt;", ">")
-	s = strings.ReplaceAll(s, "&amp;", "&")
-	s = strings.ReplaceAll(s, "&quot;", `"`)
-	s = strings.ReplaceAll(s, "&#39;", "'")
-	s = strings.ReplaceAll(s, "&nbsp;", " ")
-	return strings.TrimSpace(s)
-}

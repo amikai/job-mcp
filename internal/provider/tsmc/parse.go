@@ -49,6 +49,9 @@ func parseSearchHTML(body string) ([]Job, int) {
 		}
 	}
 	walk(doc)
+	if total == 0 {
+		total = len(jobs)
+	}
 	return jobs, total
 }
 

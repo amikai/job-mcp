@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"os"
@@ -14,16 +15,12 @@ import (
 )
 
 func main() {
-	if err := run(); err != nil {
-		fmt.Fprintln(os.Stderr, err)
+	scanner := bufio.NewScanner(os.Stdin)
+	scanner.Scan()
+	keyword := strings.TrimSpace(scanner.Text())
+	if keyword == "" {
+		fmt.Fprintln(os.Stderr, "keyword is required")
 		os.Exit(1)
-	}
-}
-
-func run() error {
-	keyword, err := keywordFromInput(os.Args[1:], os.Stdin)
-	if err != nil {
-		return err
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
@@ -32,7 +29,8 @@ func run() error {
 	client := job104.NewClient(http.DefaultClient)
 	search, err := client.Jobs(ctx, defaultSearchParams(keyword))
 	if err != nil {
-		return err
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
 	}
 
 	jobs := jobsForDetail(search.Data)
@@ -44,33 +42,15 @@ func run() error {
 		}
 		detail, err := client.JobDetail(ctx, code)
 		if err != nil {
-			return fmt.Errorf("job detail %s: %w", code, err)
+			fmt.Fprintf(os.Stderr, "job detail %s: %v\n", code, err)
+			os.Exit(1)
 		}
 		details[code] = detail
 	}
 
-	fmt.Print(formatReport(keyword, search, jobs, details))
-	return nil
+	writeReport(os.Stdout, keyword, search, jobs, details)
 }
 
-func keywordFromInput(args []string, stdin *os.File) (string, error) {
-	if len(args) > 0 {
-		return strings.TrimSpace(strings.Join(args, " ")), nil
-	}
-	fmt.Fprint(os.Stderr, "Keyword: ")
-	scanner := bufio.NewScanner(stdin)
-	if !scanner.Scan() {
-		if err := scanner.Err(); err != nil {
-			return "", err
-		}
-		return "", fmt.Errorf("keyword is required")
-	}
-	keyword := strings.TrimSpace(scanner.Text())
-	if keyword == "" {
-		return "", fmt.Errorf("keyword is required")
-	}
-	return keyword, nil
-}
 
 func defaultSearchParams(keyword string) *job104.JobsRequest {
 	fullTime := 0
@@ -104,39 +84,37 @@ func jobsForDetail(jobs []job104.Job) []job104.Job {
 	return limited
 }
 
-func formatReport(keyword string, search *job104.JobsResponse, jobs []job104.Job, details map[string]*job104.JobDetailResponse) string {
-	var sb strings.Builder
+func writeReport(w io.Writer, keyword string, search *job104.JobsResponse, jobs []job104.Job, details map[string]*job104.JobDetailResponse) {
 	p := search.Metadata.Pagination
-	fmt.Fprintf(&sb, "104 Jobs Report\n")
-	fmt.Fprintf(&sb, "Keyword: %s\n", keyword)
-	fmt.Fprintf(&sb, "Filters: full-time, non-remote\n")
-	fmt.Fprintf(&sb, "Found %d jobs (page %d/%d); showing %d\n\n", p.Total, p.CurrentPage, p.LastPage, len(jobs))
+	fmt.Fprintf(w, "104 Jobs Report\n")
+	fmt.Fprintf(w, "Keyword: %s\n", keyword)
+	fmt.Fprintf(w, "Filters: full-time, non-remote\n")
+	fmt.Fprintf(w, "Found %d jobs (page %d/%d); showing %d\n\n", p.Total, p.CurrentPage, p.LastPage, len(jobs))
 
 	for i, job := range jobs {
 		code := jobCodeFromURL(job.Link.Job)
-		fmt.Fprintf(&sb, "%d. [%s] %s\n", i+1, code, job.JobName)
-		fmt.Fprintf(&sb, "Company: %s\n", job.CustName)
+		fmt.Fprintf(w, "%d. [%s] %s\n", i+1, code, job.JobName)
+		fmt.Fprintf(w, "Company: %s\n", job.CustName)
 		if job.JobAddrNoDesc != "" {
-			fmt.Fprintf(&sb, "Location: %s\n", job.JobAddrNoDesc)
+			fmt.Fprintf(w, "Location: %s\n", job.JobAddrNoDesc)
 		}
 		if detail := details[code]; detail != nil {
-			write104Detail(&sb, detail)
+			writeDetail(w, detail)
 		}
-		sb.WriteByte('\n')
+		fmt.Fprintln(w)
 	}
-	return sb.String()
 }
 
-func write104Detail(sb *strings.Builder, detail *job104.JobDetailResponse) {
+func writeDetail(w io.Writer, detail *job104.JobDetailResponse) {
 	d := detail.Data
 	jd := d.JobDetail
 	if jd.Salary != "" {
-		fmt.Fprintf(sb, "Salary: %s\n", jd.Salary)
+		fmt.Fprintf(w, "Salary: %s\n", jd.Salary)
 	}
 	if d.Condition.WorkExp != "" || d.Condition.Edu != "" {
-		fmt.Fprintf(sb, "Experience: %s | Education: %s\n", d.Condition.WorkExp, d.Condition.Edu)
+		fmt.Fprintf(w, "Experience: %s | Education: %s\n", d.Condition.WorkExp, d.Condition.Edu)
 	}
 	if jd.JobDescription != "" {
-		fmt.Fprintf(sb, "Description:\n%s\n", strings.TrimSpace(jd.JobDescription))
+		fmt.Fprintf(w, "Description:\n%s\n", strings.TrimSpace(jd.JobDescription))
 	}
 }
