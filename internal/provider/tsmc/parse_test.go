@@ -6,6 +6,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/net/html"
 )
 
 var wantJobs = []Job{
@@ -41,19 +42,25 @@ var wantDetail = &JobDetailResponse{
 }
 
 func TestParseSearchHTML(t *testing.T) {
-	data, err := os.ReadFile("testdata/jobs_rsp.html")
+	f, err := os.Open("testdata/jobs_rsp.html")
+	require.NoError(t, err)
+	defer f.Close()
+	doc, err := html.Parse(f)
 	require.NoError(t, err)
 
-	gotJobs, gotTotal := parseSearchHTML(string(data))
+	gotJobs, gotTotal := parseSearchHTML(doc)
 	assert.Equal(t, 22, gotTotal)
 	assert.Equal(t, wantJobs, gotJobs)
 }
 
 func TestParseDetailHTML(t *testing.T) {
-	data, err := os.ReadFile("testdata/job_detail_rsp.html")
+	f, err := os.Open("testdata/job_detail_rsp.html")
+	require.NoError(t, err)
+	defer f.Close()
+	doc, err := html.Parse(f)
 	require.NoError(t, err)
 
-	got, ok := parseDetailHTML(string(data))
+	got, ok := parseDetailHTML(doc)
 	require.True(t, ok)
 
 	got.ID = wantDetail.ID

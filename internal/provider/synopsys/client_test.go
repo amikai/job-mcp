@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -25,7 +26,7 @@ func serveTestdata(path string) http.HandlerFunc {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		if path[len(path)-5:] == ".json" {
+		if strings.HasSuffix(path, ".json") {
 			w.Header().Set("Content-Type", "application/json")
 		} else {
 			w.Header().Set("Content-Type", "text/html; charset=utf-8")
