@@ -3,6 +3,7 @@ package google
 import (
 	"cmp"
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -14,6 +15,7 @@ import (
 const (
 	defaultBaseURL = "https://www.google.com/about/careers/applications"
 	jobsPath       = "/jobs/results"
+	jobDetailPath  = "/jobs/results/%s" // id
 )
 
 type Config struct {
@@ -114,8 +116,25 @@ func (c *Client) Jobs(ctx context.Context, req *JobsRequest) (*JobsResponse, err
 	return &JobsResponse{Jobs: parseJobsHTML(doc)}, nil
 }
 
+func (c *Client) jobsDetailRawURL(jobID string) (string, error) {
+	if jobID == "" {
+		return "", errors.New("empty job id")
+	}
+
+	u, err := url.JoinPath(c.baseURL, fmt.Sprintf(jobDetailPath, jobID))
+	if err != nil {
+		return "", fmt.Errorf("join path: %w", err)
+	}
+
+	return u, nil
+}
+
 func (c *Client) JobDetail(ctx context.Context, jobID string) (*JobDetailResponse, error) {
-	u := c.baseURL + "/jobs/results/" + jobID
+	u, err := c.jobsDetailRawURL(jobID)
+	if err != nil {
+		return nil, fmt.Errorf("build job detail url: %w", err)
+	}
+
 	doc, err := c.getHTML(ctx, u, c.baseURL+"/jobs/results")
 	if err != nil {
 		return nil, fmt.Errorf("job detail %s: %w", jobID, err)
