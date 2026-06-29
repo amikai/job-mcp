@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"strings"
 	"testing"
 
@@ -19,7 +20,9 @@ func TestFormatReportIncludesEveryGoogleJobDetail(t *testing.T) {
 		"126340255522398918": {ID: "126340255522398918", Path: "126340255522398918-senior-engineer-gdc", Title: "Senior Engineer, GDC", Company: "Google", Location: "Sunnyvale, CA, USA", About: "Build backend services."},
 	}
 
-	got := formatReport("software engineer", search, jobsForDetail(search.Jobs), details)
+	var buf bytes.Buffer
+	writeReport(&buf, "software engineer", search, jobsForDetail(search.Jobs), details)
+	got := buf.String()
 
 	for _, want := range []string{
 		"Google Jobs Report",

@@ -13,16 +13,12 @@ import (
 )
 
 func main() {
-	if err := run(); err != nil {
-		fmt.Fprintln(os.Stderr, err)
+	scanner := bufio.NewScanner(os.Stdin)
+	scanner.Scan()
+	keyword := strings.TrimSpace(scanner.Text())
+	if keyword == "" {
+		fmt.Fprintln(os.Stderr, "keyword is required")
 		os.Exit(1)
-	}
-}
-
-func run() error {
-	keyword, err := keywordFromInput(os.Args[1:], os.Stdin)
-	if err != nil {
-		return err
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
@@ -35,17 +31,18 @@ func run() error {
 		RecordsPerPage: 15,
 	})
 	if err != nil {
-		return err
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
 	}
 
-	p := results.TotalResults
 	fmt.Fprintf(os.Stdout, "Synopsys Jobs — keyword: %q\nFound %d jobs (page %d/%d); showing %d\n\n",
-		keyword, p, results.CurrentPage, results.TotalPages, len(results.Jobs))
+		keyword, results.TotalResults, results.CurrentPage, results.TotalPages, len(results.Jobs))
 
 	for i, job := range results.Jobs {
 		detail, err := c.JobDetail(ctx, job.City, job.Slug, job.JobID)
 		if err != nil {
-			return fmt.Errorf("job detail %s: %w", job.JobID, err)
+			fmt.Fprintf(os.Stderr, "job detail %s: %v\n", job.JobID, err)
+			os.Exit(1)
 		}
 		fmt.Printf("%d. [%s] %s\n", i+1, job.DisplayID, job.Title)
 		fmt.Printf("   Location: %s\n", job.Location)
@@ -53,7 +50,6 @@ func run() error {
 		fmt.Printf("   URL: %s\n", job.URL())
 		fmt.Printf("   Description:\n%s\n\n", indent(detail.Description, "   "))
 	}
-	return nil
 }
 
 func indent(s, prefix string) string {
@@ -66,21 +62,3 @@ func indent(s, prefix string) string {
 	return strings.Join(lines, "\n")
 }
 
-func keywordFromInput(args []string, stdin *os.File) (string, error) {
-	if len(args) > 0 {
-		return strings.TrimSpace(strings.Join(args, " ")), nil
-	}
-	fmt.Fprint(os.Stderr, "Keyword: ")
-	scanner := bufio.NewScanner(stdin)
-	if !scanner.Scan() {
-		if err := scanner.Err(); err != nil {
-			return "", err
-		}
-		return "", fmt.Errorf("keyword is required")
-	}
-	keyword := strings.TrimSpace(scanner.Text())
-	if keyword == "" {
-		return "", fmt.Errorf("keyword is required")
-	}
-	return keyword, nil
-}
