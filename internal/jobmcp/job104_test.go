@@ -1,18 +1,20 @@
 package jobmcp
 
 import (
-	"net/http"
 	"testing"
 
 	"github.com/amikai/job-mcp/internal/provider/job104"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestRegisterJob104(t *testing.T) {
 	server := mcp.NewServer(&mcp.Implementation{Name: "test", Version: "v0"}, nil)
 
-	RegisterJob104(server, job104.NewClient(http.DefaultClient))
+	client, err := job104.NewClient("https://www.104.com.tw")
+	require.NoError(t, err)
+	RegisterJob104(server, client)
 
 	assertTools(t, server, "104_search_jobs", "104_get_job_detail")
 }
@@ -27,21 +29,15 @@ func TestJob104ToRequest(t *testing.T) {
 		Page:    2,
 	}
 	got, err := job104ToRequest(in)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	require.NoError(t, err)
 
-	ro := 1
-	order := 15
-	remoteWork := 2
-	page := 2
-	want := &job104.JobsRequest{
-		Keyword:    "golang",
-		Area:       job104.AreaTaipei,
-		RO:         &ro,
-		Order:      &order,
-		RemoteWork: &remoteWork,
-		Page:       &page,
+	want := job104.SearchJobsParams{
+		Keyword:    job104.NewOptString("golang"),
+		Area:       job104.NewOptSearchJobsArea(job104.AreaIDs["Taipei"]),
+		Ro:         job104.NewOptSearchJobsRo(job104.SearchJobsRo2),
+		Order:      job104.NewOptSearchJobsOrder(job104.SearchJobsOrder2),
+		RemoteWork: job104.NewOptSearchJobsRemoteWork(job104.SearchJobsRemoteWork1),
+		Page:       job104.NewOptInt(2),
 	}
 	assert.Equal(t, want, got)
 }

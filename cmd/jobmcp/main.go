@@ -24,8 +24,12 @@ func runWithTransport(transport mcp.Transport) error {
 	// Shared client: one connection pool, with a ceiling so a hung upstream
 	// fails that call instead of stalling the MCP session.
 	hc := &http.Client{Timeout: 30 * time.Second}
+	hc104 := &http.Client{Timeout: 30 * time.Second, Transport: job104.BrowserTransport{}}
 
-	c104 := job104.NewClient(hc)
+	c104, err := job104.NewClient("https://www.104.com.tw", job104.WithClient(hc104))
+	if err != nil {
+		return err
+	}
 	cTSMC := tsmc.NewClient(hc)
 	server := newServer(c104, cTSMC)
 
@@ -41,4 +45,3 @@ func newServer(c104 *job104.Client, cTSMC *tsmc.Client) *mcp.Server {
 	jobmcp.RegisterTSMC(server, cTSMC)
 	return server
 }
-

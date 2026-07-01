@@ -1,0 +1,487 @@
+openapi: 3.1.0
+
+info:
+  title: 104 Careers Minimal Job Search API
+  version: "1.0.0"
+  description: >
+    Minimal client API surface needed to search 104 (104.com.tw) jobs and
+    fetch a full job description: search for a job to get its job code, then
+    fetch detail by that code.
+
+    Every request must send a browser-like User-Agent/Accept/Referer or the
+    site's edge (Cloudflare) returns an HTML challenge page instead of JSON;
+    that's handled at the HTTP client level, not modeled in this spec.
+
+servers:
+  - url: https://www.104.com.tw
+    description: 104 Careers
+
+tags:
+  - name: Jobs
+    description: Minimal job search and detail endpoints
+
+paths:
+  /jobs/search/api/jobs:
+    get:
+      tags: [Jobs]
+      summary: Search jobs
+      description: >
+        Searches jobs by keyword and/or filters. All parameters are
+        optional; omit a parameter to leave that dimension unfiltered.
+      operationId: searchJobs
+      parameters:
+        - name: keyword
+          in: query
+          required: false
+          description: Free-text keyword search.
+          schema:
+            type: string
+          example: "Golang"
+        - name: area
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - "6001001000" # Taipei
+              - "6001002000" # NewTaipei
+              - "6001003000" # Yilan
+              - "6001004000" # Keelung
+              - "6001005000" # Taoyuan
+              - "6001006000" # Hsinchu
+              - "6001007000" # Miaoli
+              - "6001008000" # Taichung
+              - "6001010000" # Changhua
+              - "6001011000" # Nantou
+              - "6001012000" # Yunlin
+              - "6001013000" # Chiayi
+              - "6001014000" # Tainan
+              - "6001016000" # Kaohsiung
+              - "6001018000" # Pingtung
+              - "6001019000" # Taitung
+              - "6001020000" # Hualien
+              - "6001021000" # Penghu
+              - "6001022000" # Kinmen
+              - "6001023000" # Lienchiang
+              - "6002001000" # Beijing
+              - "6002002000" # Tianjin
+              - "6002003000" # Shanghai
+              - "6002004000" # Chongqing
+              - "6002005000" # Guangdong
+              - "6002006000" # Fujian
+              - "6002007000" # Hainan
+              - "6002008000" # Zhejiang
+              - "6002009000" # Jiangsu
+              - "6002010000" # Shandong
+              - "6002011000" # Hebei
+              - "6002012000" # Liaoning
+              - "6002013000" # Jilin
+              - "6002014000" # Heilongjiang
+              - "6002015000" # Hunan
+              - "6002016000" # Hubei
+              - "6002017000" # Jiangxi
+              - "6002018000" # Anhui
+              - "6002019000" # Henan
+              - "6002020000" # Shanxi
+              - "6002021000" # Shaanxi
+              - "6002022000" # Gansu
+              - "6002023000" # Qinghai
+              - "6002024000" # Sichuan
+              - "6002025000" # Guizhou
+              - "6002026000" # Yunnan
+              - "6002027000" # InnerMongolia
+              - "6002028000" # Tibet
+              - "6002029000" # Ningxia
+              - "6002030000" # Xinjiang
+              - "6002031000" # Guangxi
+              - "6002032000" # HongKong
+              - "6002033000" # Macao
+              - "6003001000" # NortheastAsia
+              - "6003002000" # SoutheastAsia
+              - "6003003000" # OtherAsia
+              - "6004001000" # AustraliaNZ
+              - "6004002000" # OtherOceania
+              - "6005001000" # Canada
+              - "6005002000" # EasternUS
+              - "6005003000" # WesternUS
+              - "6005004000" # MidwesternUS
+              - "6006001000" # CentralAmerica
+              - "6006002000" # SouthAmerica
+              - "6007001000" # NorthernEurope
+              - "6007002000" # SouthernEurope
+              - "6007003000" # EasternEurope
+              - "6007004000" # WesternEurope
+              - "6007005000" # CentralEurope
+              - "6008001000" # NorthAfrica
+              - "6008002000" # CentralAfrica
+              - "6008003000" # SouthAfrica
+              - "6008004000" # EastAfrica
+              - "6008005000" # WestAfrica
+          example: "6001001000"
+        - name: ro
+          in: query
+          required: false
+          description: >
+            Job type. `0` is accepted but a no-op (same as omitting `ro`).
+            This is a soft filter, not a hard one: `metadata.pagination.total`
+            reflects the true filtered count, but `data` is backfilled with
+            non-matching postings past that count (e.g. `ro=2` returned 9
+            rows for `total=4`, 5 of them `jobRo=1`). Check each JobSummary
+            against the filter you asked for if you need a strict result
+            set.
+          schema:
+            type: integer
+            enum:
+              - 1 # Full-time (全職)
+              - 2 # Part-time (兼職)
+              - 3 # Senior (高階)
+              - 4 # Dispatch (派遣)
+          example: 1
+        - name: order
+          in: query
+          required: false
+          description: >
+            Sort order. `order=2` biases toward today's `appearDate` first
+            (Newest); `16` is an equivalent A/B-test variant. `order=1`
+            (Relevance) is the default and what `order=15` also resolves
+            to — `15` is not a separate Newest value despite older docs
+            claiming otherwise.
+          schema:
+            type: integer
+            enum:
+              - 1 # Relevance (符合度高)
+              - 2 # Newest (最近更新)
+          example: 2
+        - name: page
+          in: query
+          required: false
+          description: 1-based page number.
+          schema:
+            type: integer
+            minimum: 1
+          example: 1
+        - name: edu
+          in: query
+          required: false
+          description: >
+            Education level, comma-separated for multiple (e.g. `4,5`).
+            Matches are OR'd (union), not summed — a job matching more
+            than one selected value is only counted once.
+          schema:
+            type: array
+            items:
+              type: integer
+              enum:
+                - 1 # High school or below (高中職以下)
+                - 2 # High school / vocational (高中職)
+                - 3 # College / junior college (專科)
+                - 4 # University (大學)
+                - 5 # Master's (碩士)
+                - 6 # Doctorate (博士)
+          style: form
+          explode: false
+          example: [4, 5]
+        - name: remoteWork
+          in: query
+          required: false
+          description: >
+            Remote work type. Same soft-filter caveat as `ro`:
+            `remoteWork=1` returned 14 rows for `total=9`, including 2
+            rows with `remoteWorkType=0` (fully on-site) and 2 with
+            `remoteWorkType=2`.
+          schema:
+            type: integer
+            enum:
+              - 1 # Fully remote (完全遠端)
+              - 2 # Partial/hybrid remote (部分遠端)
+          example: 1
+        - name: s9
+          in: query
+          required: false
+          description: >
+            Shift type, comma-separated for multiple (e.g. `1,2`). Despite
+            looking like bit flags, they don't OR together — only the
+            exact values below round-trip, not combinations like `3`.
+          schema:
+            type: array
+            items:
+              type: integer
+              enum:
+                - 1 # Day shift (日班)
+                - 2 # Night shift (晚班)
+                - 4 # Graveyard shift (大夜班)
+                - 8 # Holiday shift (假日班)
+          style: form
+          explode: false
+          example: [1, 2]
+      responses:
+        "200":
+          description: Search succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JobsResponse"
+        default:
+          description: Unexpected error.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /job/ajax/content/{jobCode}:
+    get:
+      tags: [Jobs]
+      summary: Get job detail
+      description: >
+        Fetches a single job by the code embedded in a search result's
+        `link.job` URL (e.g. `https://www.104.com.tw/job/624o1` → `624o1`).
+      operationId: getJobDetail
+      parameters:
+        - name: jobCode
+          in: path
+          required: true
+          description: >
+            Job code from a search result's `link.job` URL — the trailing
+            path segment, not `jobNo` (e.g.
+            `https://www.104.com.tw/job/624o1` → `624o1`; `jobNo` in the
+            same JobSummary is a different, unrelated internal id and
+            404s if used here).
+          schema:
+            type: string
+          example: "624o1"
+      responses:
+        "200":
+          description: Job detail found.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JobDetailResponse"
+        "404":
+          description: Job posting not found or no longer active.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        default:
+          description: Unexpected error.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+components:
+  schemas:
+    JobsResponse:
+      type: object
+      required: [data, metadata]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/JobSummary"
+        metadata:
+          type: object
+          required: [pagination]
+          properties:
+            pagination:
+              type: object
+              required: [currentPage, lastPage, total]
+              properties:
+                currentPage:
+                  type: integer
+                lastPage:
+                  type: integer
+                total:
+                  type: integer
+
+    JobSummary:
+      type: object
+      required:
+        - jobNo
+        - jobName
+        - custName
+        - custNo
+        - link
+        - salaryHigh
+        - salaryLow
+        - jobAddrNoDesc
+        - appearDate
+        - applyCnt
+        - remoteWorkType
+        - jobRo
+      properties:
+        jobNo:
+          type: string
+        jobName:
+          type: string
+          example: "GoLang Developer"
+        custName:
+          type: string
+          example: "曜驊智能股份有限公司"
+        custNo:
+          type: string
+        link:
+          type: object
+          required: [job, cust]
+          properties:
+            job:
+              type: string
+              description: Public job posting URL; the trailing path segment is the job code.
+              example: "https://www.104.com.tw/job/624o1"
+            cust:
+              type: string
+        salaryHigh:
+          type: integer
+        salaryLow:
+          type: integer
+        jobAddrNoDesc:
+          type: string
+          example: "台北市內湖區"
+        appearDate:
+          type: string
+          example: "20260515"
+        applyCnt:
+          type: integer
+        remoteWorkType:
+          type: integer
+          description: >
+            0 = not remote; matches the remoteWork request values otherwise.
+            The `remoteWork` request param is a soft filter — check this
+            field per entry if you need a strict result set (see the
+            `remoteWork` parameter description on searchJobs).
+        jobRo:
+          type: integer
+          description: >
+            Matches the `ro` request values (1 = Full-time, 2 = Part-time).
+            The `ro` request param is a soft filter — check this field per
+            entry if you need a strict result set (see the `ro` parameter
+            description on searchJobs).
+
+    JobDetailResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: "#/components/schemas/JobDetail"
+
+    JobDetail:
+      type: object
+      required:
+        [
+          header,
+          contact,
+          condition,
+          welfare,
+          jobDetail,
+          industry,
+          employees,
+          custNo,
+        ]
+      properties:
+        header:
+          type: object
+          required: [jobName, custName, custUrl, appearDate, isSaved, isApplied]
+          properties:
+            jobName:
+              type: string
+            custName:
+              type: string
+            custUrl:
+              type: string
+            appearDate:
+              type: string
+              example: "2026/06/22"
+            isSaved:
+              type: boolean
+            isApplied:
+              type: boolean
+        contact:
+          type: object
+          properties:
+            hrName:
+              type: string
+            email:
+              type: string
+            reply:
+              type: string
+        condition:
+          type: object
+          properties:
+            workExp:
+              type: string
+              example: "不拘"
+            edu:
+              type: string
+              example: "大學以上"
+            major:
+              type: array
+              items:
+                type: string
+            specialty:
+              type: array
+              items:
+                $ref: "#/components/schemas/CodeDescription"
+        welfare:
+          type: object
+          properties:
+            welfare:
+              type: string
+        jobDetail:
+          type: object
+          properties:
+            jobDescription:
+              type: string
+            jobCategory:
+              type: array
+              items:
+                $ref: "#/components/schemas/CodeDescription"
+            salary:
+              type: string
+              example: "待遇面議"
+            salaryMin:
+              type: integer
+            salaryMax:
+              type: integer
+            jobType:
+              type: integer
+            addressRegion:
+              type: string
+            addressDetail:
+              type: string
+            manageResp:
+              type: string
+            needEmp:
+              type: string
+            remoteWork:
+              type: object
+              nullable: true
+              description: >
+                Null for non-remote postings, not just absent. `type`
+                matches the `remoteWork` request values (1 = Fully remote,
+                2 = Partial/hybrid remote).
+              properties:
+                type:
+                  type: integer
+                description:
+                  type: string
+        industry:
+          type: string
+        employees:
+          type: string
+        custNo:
+          type: string
+
+    CodeDescription:
+      type: object
+      properties:
+        code:
+          type: string
+        description:
+          type: string
+
+    ErrorResponse:
+      type: object
+      properties:
+        message:
+          type: string
+      additionalProperties: true

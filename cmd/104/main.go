@@ -18,46 +18,20 @@ import (
 	"github.com/amikai/job-mcp/internal/provider/job104"
 )
 
-var areaIDs = map[string]string{
-	"Taipei":     job104.AreaTaipei,
-	"New Taipei": job104.AreaNewTaipei,
-	"Taoyuan":    job104.AreaTaoyuan,
-	"Taichung":   job104.AreaTaichung,
-	"Tainan":     job104.AreaTainan,
-	"Kaohsiung":  job104.AreaKaohsiung,
-}
-
-var roIDs = map[string]int{
-	"Full-time": job104.ROFullTime,
-	"Part-time": job104.ROPartTime,
-}
-
-var orderIDs = map[string]int{
-	"Relevance": job104.OrderRelevance,
-	"Newest":    job104.OrderNewest,
-}
-
-// No "no remote" choice here: the server rejects that value outright
-// (confirmed live: remoteWork=0 400s). Omit --remote-work for that instead.
-var remoteWorkIDs = map[string]int{
-	"Partial": job104.RemoteWorkPartial,
-	"Full":    job104.RemoteWorkFull,
-}
-
-// main issues a single JobsRequest built entirely from flags, then fetches
-// JobDetail for every job the search returned.
+// main issues a single SearchJobs request built entirely from flags, then
+// fetches GetJobDetail for every job the search returned.
 func main() {
 	fs := ff.NewFlagSet("104")
 	var (
 		timeout    = fs.DurationLong("timeout", 60*time.Second, "request timeout")
 		keyword    = fs.StringLong("keyword", "", "free-text keyword search")
-		area       = fs.StringEnumLong("area", usageWithChoices("Area label", areaLabels()), areaLabels()...)
-		ro         = fs.StringEnumLong("ro", usageWithChoices("Job type label", intLabels(roIDs)), intLabels(roIDs)...)
-		order      = fs.StringEnumLong("order", usageWithChoices("Sort order label", intLabels(orderIDs)), intLabels(orderIDs)...)
+		area       = fs.StringEnumLong("area", usageWithChoices("Area", labels(job104.AreaIDs)), enumChoices(job104.AreaIDs)...)
+		ro         = fs.StringEnumLong("ro", usageWithChoices("Job type", labels(job104.RoIDs)), enumChoices(job104.RoIDs)...)
+		order      = fs.StringEnumLong("order", usageWithChoices("Sort order", labels(job104.OrderIDs)), enumChoices(job104.OrderIDs)...)
 		page       = fs.IntLong("page", 0, "1-based page number (0 = unset, server default)")
-		edu        = fs.StringLong("edu", "", "education code, passed through as-is")
-		remoteWork = fs.StringEnumLong("remote-work", usageWithChoices("Remote work label", intLabels(remoteWorkIDs)), intLabels(remoteWorkIDs)...)
-		s9         = fs.StringLong("s9", "", "comma-separated experience codes, passed through as-is")
+		edu        = fs.StringSetLong("edu", usageWithChoices("Education (repeatable)", labels(job104.EduIDs)))
+		remoteWork = fs.StringEnumLong("remote-work", usageWithChoices("Remote work", labels(job104.RemoteWorkIDs)), enumChoices(job104.RemoteWorkIDs)...)
+		s9         = fs.StringSetLong("s9", usageWithChoices("Shift type (repeatable)", labels(job104.S9IDs)))
 	)
 	if err := ff.Parse(fs, os.Args[1:], ff.WithEnvVarPrefix("JOB104")); err != nil {
 		fmt.Fprintln(os.Stderr, ffhelp.Flags(fs))
@@ -68,13 +42,22 @@ func main() {
 		os.Exit(1)
 	}
 
-	req := buildJobsRequest(*keyword, *area, *ro, *order, *edu, *remoteWork, *s9, *page)
+	params, err := buildSearchParams(*keyword, *area, *ro, *order, *edu, *remoteWork, *s9, *page)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), *timeout)
 	defer cancel()
 
-	client := job104.NewClient(http.DefaultClient)
-	search, err := client.Jobs(ctx, req)
+	client, err := job104.NewClient("https://www.104.com.tw", job104.WithClient(&http.Client{Transport: job104.BrowserTransport{}}))
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+
+	search, err := client.SearchJobs(ctx, params)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
@@ -91,13 +74,24 @@ func main() {
 		if job.JobAddrNoDesc != "" {
 			fmt.Printf("Location: %s\n", job.JobAddrNoDesc)
 		}
+		// ro/remoteWork are soft filters server-side — the true match count
+		// is search.Metadata.Pagination.Total, but individual entries here
+		// can fail to match what was asked for. Surface the raw values so
+		// that's visible instead of silently assumed.
+		fmt.Printf("jobRo=%d remoteWorkType=%d\n", job.JobRo, job.RemoteWorkType)
 		if code == "" {
 			fmt.Println()
 			continue
 		}
-		detail, err := client.JobDetail(ctx, code)
+		detailRes, err := client.GetJobDetail(ctx, job104.GetJobDetailParams{JobCode: code})
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "job detail %s: %v\n", code, err)
+			fmt.Println()
+			continue
+		}
+		detail, ok := detailRes.(*job104.JobDetailResponse)
+		if !ok {
+			fmt.Fprintf(os.Stderr, "job detail %s returned %T\n", code, detailRes)
 			fmt.Println()
 			continue
 		}
@@ -106,48 +100,72 @@ func main() {
 	}
 }
 
-// buildJobsRequest resolves each flag's human label to its job104 request
+// buildSearchParams resolves each flag's human label to its job104 request
 // value via the lookup tables above. Labels are already validated against
 // the flag's enum at parse time. An empty label (flag not set) leaves that
-// field at its zero value (unfiltered); page 0 leaves Page nil.
-func buildJobsRequest(keyword, area, ro, order, edu, remoteWork, s9 string, page int) *job104.JobsRequest {
-	req := &job104.JobsRequest{
-		Keyword: keyword,
-		Edu:     edu,
-		S9:      s9,
+// field unset (unfiltered); page 0 leaves Page unset.
+func buildSearchParams(keyword, area, ro, order string, edu []string, remoteWork string, s9 []string, page int) (job104.SearchJobsParams, error) {
+	params := job104.SearchJobsParams{}
+	if keyword != "" {
+		params.Keyword = job104.NewOptString(keyword)
 	}
 	if area != "" {
-		req.Area = areaIDs[area]
+		params.Area = job104.NewOptSearchJobsArea(job104.AreaIDs[area])
 	}
 	if ro != "" {
-		v := roIDs[ro]
-		req.RO = &v
+		params.Ro = job104.NewOptSearchJobsRo(job104.RoIDs[ro])
 	}
 	if order != "" {
-		v := orderIDs[order]
-		req.Order = &v
+		params.Order = job104.NewOptSearchJobsOrder(job104.OrderIDs[order])
 	}
 	if page != 0 {
-		req.Page = &page
+		params.Page = job104.NewOptInt(page)
+	}
+	if len(edu) > 0 {
+		items, err := lookupList(job104.EduIDs, edu, "--edu")
+		if err != nil {
+			return params, err
+		}
+		params.Edu = items
 	}
 	if remoteWork != "" {
-		v := remoteWorkIDs[remoteWork]
-		req.RemoteWork = &v
+		params.RemoteWork = job104.NewOptSearchJobsRemoteWork(job104.RemoteWorkIDs[remoteWork])
 	}
-	return req
+	if len(s9) > 0 {
+		items, err := lookupList(job104.S9IDs, s9, "--s9")
+		if err != nil {
+			return params, err
+		}
+		params.S9 = items
+	}
+	return params, nil
+}
+
+// lookupList resolves each value against table, mirroring the single-value
+// lookups above but for the repeatable flags (--edu, --s9).
+func lookupList[T any](table map[string]T, values []string, flag string) ([]T, error) {
+	out := make([]T, 0, len(values))
+	for _, v := range values {
+		item, ok := table[v]
+		if !ok {
+			return nil, fmt.Errorf("%s: unknown value %q (see job104 label tables)", flag, v)
+		}
+		out = append(out, item)
+	}
+	return out, nil
 }
 
 func writeDetail(w io.Writer, detail *job104.JobDetailResponse) {
 	d := detail.Data
 	jd := d.JobDetail
-	if jd.Salary != "" {
-		fmt.Fprintf(w, "Salary: %s\n", jd.Salary)
+	if jd.Salary.Set {
+		fmt.Fprintf(w, "Salary: %s\n", jd.Salary.Value)
 	}
-	if d.Condition.WorkExp != "" || d.Condition.Edu != "" {
-		fmt.Fprintf(w, "Experience: %s | Education: %s\n", d.Condition.WorkExp, d.Condition.Edu)
+	if d.Condition.WorkExp.Set || d.Condition.Edu.Set {
+		fmt.Fprintf(w, "Experience: %s | Education: %s\n", d.Condition.WorkExp.Value, d.Condition.Edu.Value)
 	}
-	if jd.JobDescription != "" {
-		fmt.Fprintf(w, "Description:\n%s\n", strings.TrimSpace(jd.JobDescription))
+	if jd.JobDescription.Set && jd.JobDescription.Value != "" {
+		fmt.Fprintf(w, "Description:\n%s\n", strings.TrimSpace(jd.JobDescription.Value))
 	}
 }
 
@@ -161,23 +179,9 @@ func jobCodeFromURL(raw string) string {
 	return parts[len(parts)-1]
 }
 
-// areaLabels returns the sorted keys of areaIDs, prefixed with "" so an
-// ff.StringEnumLong flag can default to unset (no filter) instead of
-// silently falling back to the first real label.
-func areaLabels() []string {
-	l := make([]string, 0, len(areaIDs)+1)
-	l = append(l, "")
-	for label := range areaIDs {
-		l = append(l, label)
-	}
-	sort.Strings(l)
-	return l
-}
-
-// intLabels is areaLabels for int-valued lookup tables (RO/Order/RemoteWork).
-func intLabels(table map[string]int) []string {
-	l := make([]string, 0, len(table)+1)
-	l = append(l, "")
+// labels returns the sorted keys of a generic lookup table.
+func labels[T any](table map[string]T) []string {
+	l := make([]string, 0, len(table))
 	for label := range table {
 		l = append(l, label)
 	}
@@ -185,12 +189,15 @@ func intLabels(table map[string]int) []string {
 	return l
 }
 
+// enumChoices is labels prefixed with "" so an ff.StringEnumLong flag can
+// default to unset (no filter) instead of silently falling back to the
+// first real label — ffval.Enum's zero Default only survives initialize()
+// if it's itself in the Valid list.
+func enumChoices[T any](table map[string]T) []string {
+	return append([]string{""}, labels(table)...)
+}
+
 // usageWithChoices appends a comma-separated "one of: ..." list to base.
-// choices is expected to include the leading "" sentinel from
-// areaLabels/intLabels; it's dropped here since it's not a real choice.
 func usageWithChoices(base string, choices []string) string {
-	if len(choices) > 0 && choices[0] == "" {
-		choices = choices[1:]
-	}
 	return fmt.Sprintf("%s, one of: %s", base, strings.Join(choices, " | "))
 }
