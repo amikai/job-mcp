@@ -20,8 +20,12 @@ func (writeCloser) Close() error { return nil }
 
 func TestServerListsJobTools(t *testing.T) {
 	ctx := context.Background()
+	c104, err := job104.NewClient("https://www.104.com.tw", job104.WithClient(http.DefaultClient))
+	if err != nil {
+		t.Fatal(err)
+	}
 	server := newServer(
-		job104.NewClient(http.DefaultClient),
+		c104,
 		tsmc.NewClient(http.DefaultClient),
 	)
 	client := mcp.NewClient(&mcp.Implementation{Name: "smoke", Version: "v0"}, nil)

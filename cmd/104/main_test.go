@@ -7,51 +7,8 @@ import (
 
 	"github.com/amikai/job-mcp/internal/provider/job104"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
-
-func TestFormatReportIncludesEveryJobDetail(t *testing.T) {
-	search := &job104.JobsResponse{}
-	search.Metadata.Pagination.Total = 2
-	search.Metadata.Pagination.CurrentPage = 1
-	search.Metadata.Pagination.LastPage = 1
-	search.Data = []job104.Job{
-		{JobName: "Go Engineer", CustName: "Acme", JobAddrNoDesc: "Taipei"},
-		{JobName: "Backend Engineer", CustName: "Beta", JobAddrNoDesc: "Remote"},
-	}
-	search.Data[0].Link.Job = "https://www.104.com.tw/job/abc123"
-	search.Data[1].Link.Job = "https://www.104.com.tw/job/def456"
-
-	details := map[string]*job104.JobDetailResponse{
-		"abc123": detail("Go Engineer", "Build Go services"),
-		"def456": detail("Backend Engineer", "Build APIs"),
-	}
-
-	var buf bytes.Buffer
-	writeReport(&buf, "Golang", search, jobsForDetail(search.Data), details)
-	got := buf.String()
-
-	for _, want := range []string{
-		"104 Jobs Report",
-		"Keyword: Golang",
-		"Filters: full-time, non-remote",
-		"Found 2 jobs (page 1/1); showing 2",
-		"[abc123] Go Engineer",
-		"Build Go services",
-		"[def456] Backend Engineer",
-		"Build APIs",
-	} {
-		if !strings.Contains(got, want) {
-			t.Fatalf("report missing %q:\n%s", want, got)
-		}
-	}
-}
-
-func detail(title, description string) *job104.JobDetailResponse {
-	d := &job104.JobDetailResponse{}
-	d.Data.Header.JobName = title
-	d.Data.JobDetail.JobDescription = description
-	return d
-}
 
 func TestJobCodeFromURL(t *testing.T) {
 	got := jobCodeFromURL("https://www.104.com.tw/job/abc123?jobsource=foo")
@@ -60,36 +17,70 @@ func TestJobCodeFromURL(t *testing.T) {
 	}
 }
 
-func TestJobsForDetailLimitsToTen(t *testing.T) {
-	jobs := make([]job104.Job, 12)
-	got := jobsForDetail(jobs)
-	if len(got) != 10 {
-		t.Fatalf("jobsForDetail returned %d jobs, want 10", len(got))
-	}
+func TestBuildSearchParamsUnfilteredByDefault(t *testing.T) {
+	got, err := buildSearchParams("Golang", "", "", "", nil, "", nil, 0)
+	require.NoError(t, err)
+	want := job104.SearchJobsParams{Keyword: job104.NewOptString("Golang")}
+	assert.Equal(t, want, got)
 }
 
-func TestJobsForDetailSkipsRemoteJobs(t *testing.T) {
-	jobs := []job104.Job{
-		{JobName: "Onsite"},
-		{JobName: "Partial", RemoteWorkType: 1},
-		{JobName: "Full Remote", RemoteWorkType: 2},
-		{JobName: "Another Onsite"},
-	}
+func TestBuildSearchParamsResolvesLabels(t *testing.T) {
+	got, err := buildSearchParams("Golang", "Taipei", "Full-time", "Newest", []string{"University", "Master"}, "Partial", []string{"Day", "Night"}, 2)
+	require.NoError(t, err)
 
-	got := jobsForDetail(jobs)
-	want := []job104.Job{
-		{JobName: "Onsite"},
-		{JobName: "Another Onsite"},
+	want := job104.SearchJobsParams{
+		Keyword:    job104.NewOptString("Golang"),
+		Area:       job104.NewOptSearchJobsArea(job104.AreaIDs["Taipei"]),
+		Ro:         job104.NewOptSearchJobsRo(job104.SearchJobsRo1),
+		Order:      job104.NewOptSearchJobsOrder(job104.SearchJobsOrder2),
+		Page:       job104.NewOptInt(2),
+		Edu:        []job104.SearchJobsEduItem{job104.SearchJobsEduItem4, job104.SearchJobsEduItem5},
+		RemoteWork: job104.NewOptSearchJobsRemoteWork(job104.SearchJobsRemoteWork2),
+		S9:         []job104.SearchJobsS9Item{job104.SearchJobsS9Item1, job104.SearchJobsS9Item2},
 	}
 	assert.Equal(t, want, got)
 }
 
-func TestDefaultSearchParamsUseFullTime(t *testing.T) {
-	got := defaultSearchParams("Golang")
-	ro := 0
-	want := &job104.JobsRequest{
-		Keyword: "Golang",
-		RO:      &ro,
+func TestBuildSearchParamsUnknownEduLabel(t *testing.T) {
+	_, err := buildSearchParams("", "", "", "", []string{"Bogus"}, "", nil, 0)
+	require.ErrorContains(t, err, "--edu")
+}
+
+func TestBuildSearchParamsUnknownS9Label(t *testing.T) {
+	_, err := buildSearchParams("", "", "", "", nil, "", []string{"Bogus"}, 0)
+	require.ErrorContains(t, err, "--s9")
+}
+
+func TestBuildSearchParamsPageZeroLeavesPageUnset(t *testing.T) {
+	got, err := buildSearchParams("", "", "", "", nil, "", nil, 0)
+	require.NoError(t, err)
+	assert.False(t, got.Page.Set)
+}
+
+func TestWriteDetail(t *testing.T) {
+	d := detail("Go Engineer", "Build Go services")
+	d.Data.JobDetail.Salary = job104.NewOptString("60k-80k")
+	d.Data.Condition.WorkExp = job104.NewOptString("3 years")
+	d.Data.Condition.Edu = job104.NewOptString("Bachelor")
+
+	var buf bytes.Buffer
+	writeDetail(&buf, d)
+	got := buf.String()
+
+	for _, want := range []string{
+		"Salary: 60k-80k",
+		"Experience: 3 years | Education: Bachelor",
+		"Build Go services",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("writeDetail missing %q:\n%s", want, got)
+		}
 	}
-	assert.Equal(t, want, got)
+}
+
+func detail(title, description string) *job104.JobDetailResponse {
+	d := &job104.JobDetailResponse{}
+	d.Data.Header.JobName = title
+	d.Data.JobDetail.JobDescription = job104.NewOptString(description)
+	return d
 }
