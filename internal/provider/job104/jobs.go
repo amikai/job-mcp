@@ -64,23 +64,48 @@ type JobDetail struct {
 	CustNo    string `json:"custNo"`
 }
 
+// Codes confirmed live via the site's own area filter UI (not sequential/
+// guessable from the value): the naive assumption that area codes increment
+// in some obvious order (city population, alphabetical, etc.) is wrong.
 const (
 	AreaTaipei    = "6001001000"
 	AreaNewTaipei = "6001002000"
-	AreaTaoyuan   = "6001003000"
-	AreaTaichung  = "6001004000"
-	AreaTainan    = "6001005000"
-	AreaKaohsiung = "6001006000"
+	AreaTaoyuan   = "6001005000"
+	AreaTaichung  = "6001008000"
+	AreaTainan    = "6001014000"
+	AreaKaohsiung = "6001016000"
+)
+
+// Confirmed live via the site's own 上班型態 filter tabs (全職/兼職). ro=0
+// is accepted but a no-op (same result as omitting the param entirely).
+const (
+	ROFullTime = 1
+	ROPartTime = 2
+)
+
+const (
+	OrderRelevance = 1
+	OrderNewest    = 15
+)
+
+// remoteWork only accepts these two values server-side (confirmed live: 0 and
+// 3 both 400 with "Items in remoteWork is invalid: validation.in"). There is
+// no explicit "no remote" value — omit RemoteWork entirely for that.
+// Confirmed via the site's own filter UI (not guessable from the value
+// alone): 1 = 完全遠端 (fully remote), 2 = 部分遠端 (partial/hybrid remote).
+const (
+	RemoteWorkFull    = 1
+	RemoteWorkPartial = 2
 )
 
 type JobsRequest struct {
 	Keyword    string
 	Area       string
-	RO         *int // 0=full-time, 1=part-time
-	Order      *int // 15=newest, 1=relevance
+	RO         *int // one of RO*
+	Order      *int // one of Order*
 	Page       *int
 	Edu        string
-	RemoteWork *int   // 0=no remote, 1=partial, 2=full
+	RemoteWork *int   // one of RemoteWork*
 	S9         string // experience codes, comma-separated
 }
 
