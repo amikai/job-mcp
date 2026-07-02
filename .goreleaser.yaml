@@ -24,6 +24,22 @@ archives:
       - goos: windows
         formats: [zip]
 
+dockers_v2:
+  - images:
+      - ghcr.io/amikai/job-mcp
+    tags:
+      - '{{ .Version }}'
+      - latest
+    platforms:
+      - linux/amd64
+      - linux/arm64
+    labels:
+      org.opencontainers.image.title: '{{ .ProjectName }}'
+      org.opencontainers.image.description: 'MCP server for searching job listings across job boards and company career sites'
+      org.opencontainers.image.source: 'https://github.com/amikai/job-mcp'
+      org.opencontainers.image.version: '{{ .Version }}'
+      org.opencontainers.image.licenses: MIT
+
 checksum:
   name_template: checksums.txt
 
