@@ -107,33 +107,6 @@ func mustSchema(rawSchema []byte) *jsonschema.Schema {
 	return &s
 }
 
-// lookupCode translates one human label to its typed code, erroring with the
-// field name on unknown labels.
-func lookupCode[T any](field, label string, m map[string]T) (T, error) {
-	code, ok := m[label]
-	if !ok {
-		var zero T
-		return zero, fmt.Errorf("invalid %s %q", field, label)
-	}
-	return code, nil
-}
-
-// lookupCodes is lookupCode over a multi-select field.
-func lookupCodes[T any](field string, labels []string, m map[string]T) ([]T, error) {
-	if len(labels) == 0 {
-		return nil, nil
-	}
-	out := make([]T, 0, len(labels))
-	for _, label := range labels {
-		code, err := lookupCode(field, label, m)
-		if err != nil {
-			return nil, err
-		}
-		out = append(out, code)
-	}
-	return out, nil
-}
-
 func job104MCPToHTTPRequest(in *job104SearchInput) (*job104.SearchJobsParams, error) {
 	var params job104.SearchJobsParams
 	// The schema already marks keyword and area required; this guards direct
