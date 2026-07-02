@@ -118,7 +118,6 @@ func TestJob104ToRequest(t *testing.T) {
 		Sort:    "Newest",
 		Remote:  "Full",
 		Edu:     []string{"University", "Master"},
-		Shift:   []string{"Day", "Holiday"},
 		Page:    2,
 	}
 	got, err := job104ToRequest(in)
@@ -132,28 +131,37 @@ func TestJob104ToRequest(t *testing.T) {
 		RemoteWork: job104.NewOptSearchJobsRemoteWork(job104.SearchJobsRemoteWork1),
 		Page:       job104.NewOptInt(2),
 		Edu:        []job104.SearchJobsEduItem{job104.SearchJobsEduItem4, job104.SearchJobsEduItem5},
-		S9:         []job104.SearchJobsS9Item{job104.SearchJobsS9Item1, job104.SearchJobsS9Item8},
 	}
 	assert.Equal(t, want, got)
 }
 
-func TestJob104ToRequestMissingKeyword(t *testing.T) {
-	for name, in := range map[string]job104SearchInput{
-		"all empty":    {},
-		"filters only": {Area: "Taipei", Sort: "Newest", Page: 2},
-	} {
-		t.Run(name, func(t *testing.T) {
-			_, err := job104ToRequest(in)
+func TestJob104ToRequestMissingRequired(t *testing.T) {
+	cases := []struct {
+		name string
+		in   job104SearchInput
+		want string
+	}{
+		{"all empty", job104SearchInput{}, "keyword is required"},
+		{"filters only", job104SearchInput{Area: "Taipei", Sort: "Newest", Page: 2}, "keyword is required"},
+		{"keyword only", job104SearchInput{Keyword: "golang"}, "area is required"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			_, err := job104ToRequest(tc.in)
 			require.Error(t, err)
-			assert.Contains(t, err.Error(), "keyword is required")
+			assert.Contains(t, err.Error(), tc.want)
 		})
 	}
 }
 
-func TestJob104ToRequestKeywordOnly(t *testing.T) {
-	got, err := job104ToRequest(job104SearchInput{Keyword: "golang"})
+func TestJob104ToRequestMinimal(t *testing.T) {
+	got, err := job104ToRequest(job104SearchInput{Keyword: "golang", Area: "Taipei"})
 	require.NoError(t, err)
-	assert.Equal(t, job104.SearchJobsParams{Keyword: job104.NewOptString("golang")}, got)
+	want := job104.SearchJobsParams{
+		Keyword: job104.NewOptString("golang"),
+		Area:    job104.NewOptSearchJobsArea(job104.AreaIDs["Taipei"]),
+	}
+	assert.Equal(t, want, got)
 }
 
 func TestJob104ToRequestInvalidLabels(t *testing.T) {
@@ -163,11 +171,10 @@ func TestJob104ToRequestInvalidLabels(t *testing.T) {
 		want string
 	}{
 		{"area", job104SearchInput{Keyword: "x", Area: "Mars"}, `invalid area "Mars"`},
-		{"job_type", job104SearchInput{Keyword: "x", JobType: "full"}, `invalid job_type "full"`},
-		{"sort", job104SearchInput{Keyword: "x", Sort: "newest"}, `invalid sort "newest"`},
-		{"remote", job104SearchInput{Keyword: "x", Remote: "hybrid"}, `invalid remote "hybrid"`},
-		{"edu", job104SearchInput{Keyword: "x", Edu: []string{"University", "PhD"}}, `invalid edu "PhD"`},
-		{"shift", job104SearchInput{Keyword: "x", Shift: []string{"Midnight"}}, `invalid shift "Midnight"`},
+		{"job_type", job104SearchInput{Keyword: "x", Area: "Taipei", JobType: "full"}, `invalid job_type "full"`},
+		{"sort", job104SearchInput{Keyword: "x", Area: "Taipei", Sort: "newest"}, `invalid sort "newest"`},
+		{"remote", job104SearchInput{Keyword: "x", Area: "Taipei", Remote: "hybrid"}, `invalid remote "hybrid"`},
+		{"edu", job104SearchInput{Keyword: "x", Area: "Taipei", Edu: []string{"University", "PhD"}}, `invalid edu "PhD"`},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

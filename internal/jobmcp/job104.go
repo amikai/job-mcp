@@ -12,12 +12,11 @@ import (
 
 type job104SearchInput struct {
 	Keyword string   `json:"keyword"` // required
-	Area    string   `json:"area,omitempty"`
+	Area    string   `json:"area"`    // required
 	JobType string   `json:"job_type,omitempty"`
 	Sort    string   `json:"sort,omitempty"`
 	Remote  string   `json:"remote,omitempty"`
 	Edu     []string `json:"edu,omitempty"`
-	Shift   []string `json:"shift,omitempty"`
 	Page    int      `json:"page,omitempty"`
 }
 
@@ -137,19 +136,20 @@ func lookupCodes[T any](field string, labels []string, m map[string]T) ([]T, err
 
 func job104ToRequest(in job104SearchInput) (job104.SearchJobsParams, error) {
 	var params job104.SearchJobsParams
-	// The schema already marks keyword required (keyword has no omitempty);
-	// this guards direct callers and clients that skip schema validation.
+	// The schema already marks keyword and area required; these guard direct
+	// callers and clients that skip schema validation.
 	if in.Keyword == "" {
 		return params, fmt.Errorf("keyword is required")
 	}
 	params.Keyword = job104.NewOptString(in.Keyword)
-	if in.Area != "" {
-		code, err := lookupCode("area", in.Area, job104.AreaIDs)
-		if err != nil {
-			return params, err
-		}
-		params.Area = job104.NewOptSearchJobsArea(code)
+	if in.Area == "" {
+		return params, fmt.Errorf("area is required")
 	}
+	code, err := lookupCode("area", in.Area, job104.AreaIDs)
+	if err != nil {
+		return params, err
+	}
+	params.Area = job104.NewOptSearchJobsArea(code)
 	if in.JobType != "" {
 		code, err := lookupCode("job_type", in.JobType, job104.RoIDs)
 		if err != nil {
@@ -171,11 +171,7 @@ func job104ToRequest(in job104SearchInput) (job104.SearchJobsParams, error) {
 		}
 		params.RemoteWork = job104.NewOptSearchJobsRemoteWork(code)
 	}
-	var err error
 	if params.Edu, err = lookupCodes("edu", in.Edu, job104.EduIDs); err != nil {
-		return params, err
-	}
-	if params.S9, err = lookupCodes("shift", in.Shift, job104.S9IDs); err != nil {
 		return params, err
 	}
 	if in.Page > 0 {
@@ -188,7 +184,7 @@ func job104ToRequest(in job104SearchInput) (job104.SearchJobsParams, error) {
 func RegisterJob104(s *mcp.Server, c *job104.Client) {
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "104_search_jobs",
-		Description: "Search jobs on 104 (Taiwan's largest job board) by keyword, with optional area/job-type/remote/education/shift/sort filters.",
+		Description: "Search jobs on 104 (Taiwan's largest job board) by keyword and area, with optional job-type/remote/education/sort filters.",
 		InputSchema: job104SearchInputSchema,
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, in job104SearchInput) (*mcp.CallToolResult, any, error) {
 		params, err := job104ToRequest(in)
