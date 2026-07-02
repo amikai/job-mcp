@@ -40,16 +40,6 @@ dockers_v2:
       org.opencontainers.image.version: '{{ .Version }}'
       org.opencontainers.image.licenses: MIT
 
-release:
-  footer: |
-    ## Docker image
-
-    Multi-arch image (linux/amd64, linux/arm64):
-
-    ```
-    docker pull ghcr.io/amikai/job-mcp:{{ .Version }}
-    ```
-
 checksum:
   name_template: checksums.txt
 
