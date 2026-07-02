@@ -44,7 +44,7 @@ var job104SearchInputRawSchema = []byte(`{
 		},
 		"job_type": {
 			"type": "string",
-			"description": "Employment basis. Soft filter — verify each result's jobRo.",
+			"description": "Employment basis. Soft filter — verify each result's job_type.",
 			"enum": ["Full-time", "Part-time", "Senior", "Dispatch"]
 		},
 		"sort": {
@@ -54,7 +54,7 @@ var job104SearchInputRawSchema = []byte(`{
 		},
 		"remote": {
 			"type": "string",
-			"description": "Remote work. Soft filter — verify each result's remoteWorkType. Omit for on-site.",
+			"description": "Remote work. Soft filter — verify each result's remote. Omit for on-site.",
 			"enum": ["Full", "Partial"]
 		},
 		"edu": {
@@ -376,7 +376,7 @@ func RegisterJob104(s *mcp.Server, c *job104.Client) {
 		Name:        "104_search_jobs",
 		Description: "Search jobs on 104 (Taiwan's largest job board) by keyword and area, with optional job-type/remote/education/sort filters.",
 		InputSchema: job104SearchInputSchema,
-	}, func(ctx context.Context, _ *mcp.CallToolRequest, in *job104SearchInput) (*mcp.CallToolResult, *job104.JobsResponse, error) {
+	}, func(ctx context.Context, _ *mcp.CallToolRequest, in *job104SearchInput) (*mcp.CallToolResult, *job104SearchOutput, error) {
 		params, err := job104MCPToHTTPRequest(in)
 		if err != nil {
 			return errorResult(err), nil, nil
@@ -385,13 +385,13 @@ func RegisterJob104(s *mcp.Server, c *job104.Client) {
 		if err != nil {
 			return errorResult(err), nil, nil
 		}
-		return nil, resp, nil
+		return nil, job104HTTPToMCPResponse(resp), nil
 	})
 
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "104_get_job_detail",
 		Description: "Get the full job description for a 104 job code (jobNo from search results).",
-	}, func(ctx context.Context, _ *mcp.CallToolRequest, in *job104DetailInput) (*mcp.CallToolResult, *job104.JobDetailResponse, error) {
+	}, func(ctx context.Context, _ *mcp.CallToolRequest, in *job104DetailInput) (*mcp.CallToolResult, *job104DetailOutput, error) {
 		resp, err := c.GetJobDetail(ctx, job104.GetJobDetailParams{JobCode: in.JobCode})
 		if err != nil {
 			return errorResult(err), nil, nil
@@ -400,6 +400,6 @@ func RegisterJob104(s *mcp.Server, c *job104.Client) {
 		if !ok {
 			return errorResult(fmt.Errorf("job detail %s returned %T", in.JobCode, resp)), nil, nil
 		}
-		return nil, detail, nil
+		return nil, job104HTTPToMCPDetail(detail), nil
 	})
 }
