@@ -63,6 +63,13 @@ func TestSearchJobs(t *testing.T) {
 
 	got, ok := res.(*JobSearchResponse)
 	require.True(t, ok, "expected *JobSearchResponse, got %T", res)
+	require.NotEmpty(t, got.Data)
+	page, ok := got.Data[0].Page.Get()
+	require.True(t, ok)
+	assert.Equal(t, "lctech_", page.Path)
+	for i := range got.Data {
+		got.Data[i].Page.Reset()
+	}
 
 	assert.Equal(t, wantSearch, got)
 }
