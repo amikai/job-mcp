@@ -16,6 +16,14 @@ Without Go: download the archive for your platform from
 [Releases](https://github.com/amikai/job-mcp/releases) and put `jobmcp` on
 your PATH.
 
+With Docker (multi-arch: linux/amd64, linux/arm64):
+
+```
+docker pull ghcr.io/amikai/job-mcp
+```
+
+Pin a version with `:X.Y.Z` (see [Releases](https://github.com/amikai/job-mcp/releases)).
+
 ## Add the MCP server to your tool
 
 With `jobmcp` on your PATH:
@@ -36,6 +44,12 @@ codex mcp add job-mcp -- jobmcp
 
 ```
 gemini mcp add job-mcp jobmcp
+```
+
+With Docker instead, replace `jobmcp` with `docker run -i --rm ghcr.io/amikai/job-mcp`, e.g.:
+
+```
+claude mcp add job-mcp -- docker run -i --rm ghcr.io/amikai/job-mcp
 ```
 
 ## Disclaimer
