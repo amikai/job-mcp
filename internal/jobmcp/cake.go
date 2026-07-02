@@ -140,6 +140,7 @@ type cakeSearchOutput struct {
 
 type cakeJobSummary struct {
 	Path        string `json:"path" jsonschema:"Job path; pass to cake_get_job_detail."`
+	URL         string `json:"url" jsonschema:"Public Cake.me job posting URL."`
 	Title       string `json:"title"`
 	Description string `json:"description" jsonschema:"Plain-text preview; cake_get_job_detail returns the full description."`
 }
@@ -153,8 +154,13 @@ func cakeHTTPToMCPResponse(resp *cake.JobSearchResponse) *cakeSearchOutput {
 		Data:         make([]cakeJobSummary, 0, len(resp.Data)),
 	}
 	for _, j := range resp.Data {
+		pagePath := ""
+		if page, ok := j.Page.Get(); ok {
+			pagePath = page.Path
+		}
 		out.Data = append(out.Data, cakeJobSummary{
 			Path:        j.Path,
+			URL:         cakeJobURL(pagePath, j.Path),
 			Title:       j.Title,
 			Description: j.Description,
 		})
@@ -167,6 +173,7 @@ func cakeHTTPToMCPResponse(resp *cake.JobSearchResponse) *cakeSearchOutput {
 type cakeDetailOutput struct {
 	ID           int    `json:"id"`
 	Path         string `json:"path"`
+	URL          string `json:"url" jsonschema:"Public Cake.me job posting URL."`
 	PagePath     string `json:"page_path" jsonschema:"Company page slug; the public job page is https://www.cake.me/companies/{page_path}/jobs/{path}."`
 	Title        string `json:"title"`
 	Description  string `json:"description" jsonschema:"Full job description as an HTML string."`
@@ -177,11 +184,19 @@ func cakeHTTPToMCPDetail(detail *cake.JobDetail) *cakeDetailOutput {
 	return &cakeDetailOutput{
 		ID:           detail.ID,
 		Path:         detail.Path,
+		URL:          cakeJobURL(detail.PagePath, detail.Path),
 		PagePath:     detail.PagePath,
 		Title:        detail.Title,
 		Description:  detail.Description,
 		Requirements: detail.Requirements,
 	}
+}
+
+func cakeJobURL(pagePath, path string) string {
+	if pagePath == "" || path == "" {
+		return ""
+	}
+	return fmt.Sprintf("https://www.cake.me/companies/%s/jobs/%s", pagePath, path)
 }
 
 // RegisterCake registers the Cake.me search and job-detail tools.

@@ -1155,7 +1155,8 @@ type JobSearchItem struct {
 	Path  string `json:"path"`
 	Title string `json:"title"`
 	// Plain-text search-result description or preview.
-	Description string `json:"description"`
+	Description string           `json:"description"`
+	Page        OptJobSearchPage `json:"page"`
 }
 
 // GetPath returns the value of Path.
@@ -1173,6 +1174,11 @@ func (s *JobSearchItem) GetDescription() string {
 	return s.Description
 }
 
+// GetPage returns the value of Page.
+func (s *JobSearchItem) GetPage() OptJobSearchPage {
+	return s.Page
+}
+
 // SetPath sets the value of Path.
 func (s *JobSearchItem) SetPath(val string) {
 	s.Path = val
@@ -1186,6 +1192,28 @@ func (s *JobSearchItem) SetTitle(val string) {
 // SetDescription sets the value of Description.
 func (s *JobSearchItem) SetDescription(val string) {
 	s.Description = val
+}
+
+// SetPage sets the value of Page.
+func (s *JobSearchItem) SetPage(val OptJobSearchPage) {
+	s.Page = val
+}
+
+// Company page metadata returned with a search result.
+// Ref: #/components/schemas/JobSearchPage
+type JobSearchPage struct {
+	// Company/page slug associated with the job.
+	Path string `json:"path"`
+}
+
+// GetPath returns the value of Path.
+func (s *JobSearchPage) GetPath() string {
+	return s.Path
+}
+
+// SetPath sets the value of Path.
+func (s *JobSearchPage) SetPath(val string) {
+	s.Path = val
 }
 
 // Ref: #/components/schemas/JobSearchRequest
@@ -1584,6 +1612,52 @@ func (o OptJobSearchFiltersSalaryType) Get() (v JobSearchFiltersSalaryType, ok b
 
 // Or returns value if set, or given parameter if does not.
 func (o OptJobSearchFiltersSalaryType) Or(d JobSearchFiltersSalaryType) JobSearchFiltersSalaryType {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptJobSearchPage returns new OptJobSearchPage with value set to v.
+func NewOptJobSearchPage(v JobSearchPage) OptJobSearchPage {
+	return OptJobSearchPage{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptJobSearchPage is optional JobSearchPage.
+type OptJobSearchPage struct {
+	Value JobSearchPage
+	Set   bool
+}
+
+// IsSet returns true if OptJobSearchPage was set.
+func (o OptJobSearchPage) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptJobSearchPage) Reset() {
+	var v JobSearchPage
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptJobSearchPage) SetTo(v JobSearchPage) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptJobSearchPage) Get() (v JobSearchPage, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptJobSearchPage) Or(d JobSearchPage) JobSearchPage {
 	if v, ok := o.Get(); ok {
 		return v
 	}

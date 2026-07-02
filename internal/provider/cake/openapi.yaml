@@ -414,6 +414,18 @@ components:
           type: string
           description: Plain-text search-result description or preview.
           example: "【職務內容】\n維護現有系統與功能、新專案開發..."
+        page:
+          $ref: "#/components/schemas/JobSearchPage"
+
+    JobSearchPage:
+      type: object
+      description: Company page metadata returned with a search result.
+      required: [path]
+      properties:
+        path:
+          type: string
+          description: Company/page slug associated with the job.
+          example: "lctech_"
 
     JobDetail:
       type: object
