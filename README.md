@@ -18,7 +18,7 @@ your PATH.
 
 ## Add the MCP server to your tool
 
-With `jobmcp` on your PATH (`$(go env GOPATH)/bin`):
+With `jobmcp` on your PATH:
 
 **Claude Code**
 
@@ -37,10 +37,6 @@ codex mcp add job-mcp -- jobmcp
 ```
 gemini mcp add job-mcp jobmcp
 ```
-
-## Supported platforms
-
-macOS and Linux.
 
 ## Disclaimer
 
