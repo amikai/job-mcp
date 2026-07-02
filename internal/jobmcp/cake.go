@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/amikai/job-mcp/internal/provider/cake"
+	"github.com/jaytaylor/html2text"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
@@ -176,19 +177,27 @@ type cakeDetailOutput struct {
 	URL          string `json:"url" jsonschema:"Public Cake.me job posting URL."`
 	PagePath     string `json:"page_path" jsonschema:"Company page slug; the public job page is https://www.cake.me/companies/{page_path}/jobs/{path}."`
 	Title        string `json:"title"`
-	Description  string `json:"description" jsonschema:"Full job description as an HTML string."`
-	Requirements string `json:"requirements" jsonschema:"Job requirements as an HTML string; may be empty."`
+	Description  string `json:"description" jsonschema:"Full job description as plain text/markdown."`
+	Requirements string `json:"requirements" jsonschema:"Job requirements as plain text/markdown; may be empty."`
 }
 
 func cakeHTTPToMCPDetail(detail *cake.JobDetail) *cakeDetailOutput {
+	descText, err := html2text.FromString(detail.Description, html2text.Options{})
+	if err != nil {
+		descText = detail.Description
+	}
+	reqsText, err := html2text.FromString(detail.Requirements, html2text.Options{})
+	if err != nil {
+		reqsText = detail.Requirements
+	}
 	return &cakeDetailOutput{
 		ID:           detail.ID,
 		Path:         detail.Path,
 		URL:          cakeJobURL(detail.PagePath, detail.Path),
 		PagePath:     detail.PagePath,
 		Title:        detail.Title,
-		Description:  detail.Description,
-		Requirements: detail.Requirements,
+		Description:  descText,
+		Requirements: reqsText,
 	}
 }
 

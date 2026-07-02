@@ -562,45 +562,78 @@ func TestCakeGetJobDetailE2E(t *testing.T) {
 		URL:      "https://www.cake.me/companies/lctech_/jobs/senior-golang-web-backend-engineer-taoyuan",
 		PagePath: "lctech_",
 		Title:    "資深 Golang 網頁後端工程師(桃園)",
-		Description: `<p>【職務內容】</p>
-<p>維護現有系統與功能、新專案開發、跨部門團隊需求</p>
-<p>標配MAC電腦</p>
-<p>(本職務辦公室位於桃園，遠端工作需求面議)<br></p>
-<p>【上班時間】</p>
-<p>早上 9 點至下午 6 點並且有 30 分鐘彈性上下班</p>
-<p></p>
-<p>【公司福利】</p>
-<p>勞健保、三節、尾牙、生日禮金。</p>
-<p>我們公司設有咖啡休息區，免費零食、飲料、餐點，飲品，備有微波爐。</p>
-<p>不定時員工聚餐與每年都有員工旅遊。</p>`,
-		Requirements: `<p><strong></strong><strong>【基本條件】</strong></p>
-<p>※ 應徵者務必附上作品或相關連結</p>
-<p>※ 溝通上有耐心、邏輯思路清晰、團隊合作</p>
-<p>※ 有耐心 troubleshooting<br></p>
-<p>※ 理解通達 Go 1.23 以上<br></p>
-<p>※ 理解通達 Protocol Buffers, Proto Validation, gRPC</p>
-<p>※ 理解通達 HTTP/1.1, HTTP/2, HTTP/3<br></p>
-<p>※ 理解通達 SA / SD, Event Sourcing, Hexagonal Architecture, Saga Pattern<br></p>
-<p>※ 理解通達 PostgreSQL, Redis, Transaction processing</p>
-<p>※ 理解通達 Github, Gitflow, Trunk-based workflow<br></p>
-<p>※ 理解通達 Unit Testing, Integration Testing, Mock Testing, Load Testing<br></p>
-<p>※ 有耐心與商務團隊協作以及提供支援</p>
-<p>※ 理解通達產品研發迭代的工作模式<br></p>
-<p>※ 有耐心參與團隊事務互動以推動整體團隊工作<br></p>
-<p>※ 能夠依據商業需求驅動開發工作</p>
-<p>※ 理解通達職場禮節(workplace etiquette)</p>
-<p>※ 能提出有效系統設計方案</p>
-<p>※ 能提升開發小組整體品質與效率且降低開發成本</p>
-<p>※ 能最佳化整體系統資源利用率</p>
-<p>※ 完成主管交辦事項</p>
-<p><br></p><p><br></p>
-<p><strong>【加分條件】</strong></p>
-<p>※ 對 DDD、BDD、TDD、Gherkin 有一定程度認知</p>
-<p>※ 對主流市場、產品、設計具有強烈方向感</p>
-<p>※ 對專業技術具高度敏感與高度自主學習力</p>
-<p><strong>【什麼人適合我們】</strong></p>
-<p>為人誠信、態度認真負責、充滿熱情與理想、擁有毅力與耐力，出眾的專業能力，歡迎來公司聊聊，期待你的加入！</p>
-<p>(年薪固定或變動薪資因個人資歷或績效而異)<br></p>`,
+		Description: `【職務內容】
+
+維護現有系統與功能、新專案開發、跨部門團隊需求
+
+標配MAC電腦
+
+(本職務辦公室位於桃園，遠端工作需求面議)
+
+【上班時間】
+
+早上 9 點至下午 6 點並且有 30 分鐘彈性上下班
+
+【公司福利】
+
+勞健保、三節、尾牙、生日禮金。
+
+我們公司設有咖啡休息區，免費零食、飲料、餐點，飲品，備有微波爐。
+
+不定時員工聚餐與每年都有員工旅遊。`,
+		Requirements: `** *【基本條件】*
+
+※ 應徵者務必附上作品或相關連結
+
+※ 溝通上有耐心、邏輯思路清晰、團隊合作
+
+※ 有耐心 troubleshooting
+
+※ 理解通達 Go 1.23 以上
+
+※ 理解通達 Protocol Buffers, Proto Validation, gRPC
+
+※ 理解通達 HTTP/1.1, HTTP/2, HTTP/3
+
+※ 理解通達 SA / SD, Event Sourcing, Hexagonal Architecture, Saga Pattern
+
+※ 理解通達 PostgreSQL, Redis, Transaction processing
+
+※ 理解通達 Github, Gitflow, Trunk-based workflow
+
+※ 理解通達 Unit Testing, Integration Testing, Mock Testing, Load Testing
+
+※ 有耐心與商務團隊協作以及提供支援
+
+※ 理解通達產品研發迭代的工作模式
+
+※ 有耐心參與團隊事務互動以推動整體團隊工作
+
+※ 能夠依據商業需求驅動開發工作
+
+※ 理解通達職場禮節(workplace etiquette)
+
+※ 能提出有效系統設計方案
+
+※ 能提升開發小組整體品質與效率且降低開發成本
+
+※ 能最佳化整體系統資源利用率
+
+※ 完成主管交辦事項
+
+*【加分條件】*
+
+※ 對 DDD、BDD、TDD、Gherkin 有一定程度認知
+
+※ 對主流市場、產品、設計具有強烈方向感
+
+※ 對專業技術具高度敏感與高度自主學習力
+
+*【什麼人適合我們】*
+
+為人誠信、態度認真負責、充滿熱情與理想、擁有毅力與耐力，出眾的專業能力，歡迎來公司聊聊，期待你的加入！
+
+(年薪固定或變動薪資因個人資歷或績效而異)`,
 	}
 	assert.Equal(t, want, &got)
 }
@@ -648,8 +681,8 @@ func TestCakeHTTPToMCPDetail(t *testing.T) {
 		URL:          "https://www.cake.me/companies/pp/jobs/p",
 		PagePath:     "pp",
 		Title:        "t",
-		Description:  "<p>d</p>",
-		Requirements: "<p>r</p>",
+		Description:  "d",
+		Requirements: "r",
 	}
 	assert.Equal(t, want, got)
 }
