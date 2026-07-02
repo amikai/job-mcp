@@ -1,24 +1,88 @@
 package jobmcp
 
 import (
-	"cmp"
 	"context"
+	"encoding/json"
 	"fmt"
-	"slices"
 
 	"github.com/amikai/job-mcp/internal/provider/job104"
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
+var job104SearchInputRawSchema = []byte(`{
+	"type": "object",
+	"properties": {
+		"keyword": {
+			"type": "string",
+			"description": "Free-text keyword search."
+		},
+		"area": {
+			"type": "string",
+			"description": "City/region filter.",
+			"enum": [
+				"Taipei", "NewTaipei", "Yilan", "Keelung", "Taoyuan",
+				"Hsinchu", "Miaoli", "Taichung", "Changhua", "Nantou",
+				"Yunlin", "Chiayi", "Tainan", "Kaohsiung", "Pingtung",
+				"Taitung", "Hualien", "Penghu", "Kinmen", "Lienchiang",
+				"Beijing", "Tianjin", "Shanghai", "Chongqing", "Guangdong",
+				"Fujian", "Hainan", "Zhejiang", "Jiangsu", "Shandong",
+				"Hebei", "Liaoning", "Jilin", "Heilongjiang", "Hunan",
+				"Hubei", "Jiangxi", "Anhui", "Henan", "Shanxi",
+				"Shaanxi", "Gansu", "Qinghai", "Sichuan", "Guizhou",
+				"Yunnan", "InnerMongolia", "Tibet", "Ningxia", "Xinjiang",
+				"Guangxi", "HongKong", "Macao",
+				"NortheastAsia", "SoutheastAsia", "OtherAsia",
+				"AustraliaNZ", "OtherOceania",
+				"Canada", "EasternUS", "WesternUS", "MidwesternUS",
+				"CentralAmerica", "SouthAmerica",
+				"NorthernEurope", "SouthernEurope", "EasternEurope",
+				"WesternEurope", "CentralEurope",
+				"NorthAfrica", "CentralAfrica", "SouthAfrica",
+				"EastAfrica", "WestAfrica"
+			]
+		},
+		"job_type": {
+			"type": "string",
+			"description": "Employment basis. Soft filter — verify each result's jobRo.",
+			"enum": ["Full-time", "Part-time", "Senior", "Dispatch"]
+		},
+		"sort": {
+			"type": "string",
+			"description": "Result order.",
+			"enum": ["Relevance", "Newest"]
+		},
+		"remote": {
+			"type": "string",
+			"description": "Remote work. Soft filter — verify each result's remoteWorkType. Omit for on-site.",
+			"enum": ["Full", "Partial"]
+		},
+		"edu": {
+			"type": "array",
+			"description": "Education levels, OR'd together.",
+			"uniqueItems": true,
+			"items": {
+				"type": "string",
+				"enum": ["HighSchoolBelow", "HighSchool", "College", "University", "Master", "Doctorate"]
+			}
+		},
+		"page": {
+			"type": "integer",
+			"description": "1-based page number.",
+			"minimum": 1
+		}
+	},
+	"required": ["keyword", "area"],
+	"additionalProperties": false
+}`)
+
 type job104SearchInput struct {
 	Keyword string   `json:"keyword"` // required
-	Area    string   `json:"area,omitempty"`
+	Area    string   `json:"area"`    // required
 	JobType string   `json:"job_type,omitempty"`
 	Sort    string   `json:"sort,omitempty"`
 	Remote  string   `json:"remote,omitempty"`
 	Edu     []string `json:"edu,omitempty"`
-	Shift   []string `json:"shift,omitempty"`
 	Page    int      `json:"page,omitempty"`
 }
 
@@ -26,165 +90,89 @@ type job104DetailInput struct {
 	JobCode string `json:"job_code" jsonschema:"104 job code (jobNo), required"`
 }
 
-// labelEnum lists m's labels ordered by their underlying code, so the
-// generated schema is deterministic and follows 104's id order.
-func labelEnum[T cmp.Ordered](m map[string]T) []any {
-	labels := make([]string, 0, len(m))
-	for label := range m {
-		labels = append(labels, label)
+// job104SearchInputSchema is hand-written JSON kept aligned with openapi.yaml's
+// searchJobs parameters: friendly property names, human labels instead of 104
+// codes (the ids.go maps translate labels back to codes — enum labels here
+// must match those map keys). Descriptions carry semantics only, never
+// id=label tables.
+var job104SearchInputSchema = mustSchema(job104SearchInputRawSchema)
+
+// mustSchema unmarshals a raw JSON schema, panicking on malformed JSON —
+// a programmer error, same failure mode as jsonschema.For before it.
+func mustSchema(rawSchema []byte) *jsonschema.Schema {
+	var s jsonschema.Schema
+	if err := json.Unmarshal(rawSchema, &s); err != nil {
+		panic(fmt.Sprintf("job104 search schema: %v", err))
 	}
-	slices.SortFunc(labels, func(a, b string) int { return cmp.Compare(m[a], m[b]) })
-	out := make([]any, len(labels))
-	for i, label := range labels {
-		out[i] = label
-	}
-	return out
+	return &s
 }
 
-// job104SearchInputSchema is derived from job104SearchInput (field names and
-// types single-sourced from the struct), with enum labels patched in from the
-// canonical ids.go maps — descriptions carry semantics only, never id=label
-// tables (hand-copied tables are how the RO/RemoteWork codes once went wrong).
-var job104SearchInputSchema = job104SearchSchema()
-
-func job104SearchSchema() *jsonschema.Schema {
-	schema, err := jsonschema.For[job104SearchInput](nil)
-	if err != nil {
-		panic(err)
-	}
-	prop := func(name string) *jsonschema.Schema {
-		p, ok := schema.Properties[name]
-		if !ok {
-			panic(fmt.Sprintf("job104 search schema: no property %q", name))
-		}
-		return p
-	}
-	// jsonschema.For already infers this from keyword's missing omitempty;
-	// stated explicitly so the contract doesn't hide in a json tag.
-	schema.Required = []string{"keyword"}
-
-	prop("keyword").Description = "Free-text keyword search."
-
-	area := prop("area")
-	area.Description = "City/region filter."
-	area.Enum = labelEnum(job104.AreaIDs)
-
-	jobType := prop("job_type")
-	jobType.Description = "Employment basis. Soft filter — verify each result's jobRo."
-	jobType.Enum = labelEnum(job104.RoIDs)
-
-	order := prop("sort")
-	order.Description = "Result order."
-	order.Enum = labelEnum(job104.OrderIDs)
-
-	remote := prop("remote")
-	remote.Description = "Remote work. Soft filter — verify each result's remoteWorkType. Omit for on-site."
-	remote.Enum = labelEnum(job104.RemoteWorkIDs)
-
-	edu := prop("edu")
-	edu.Description = "Education levels, OR'd together."
-	edu.UniqueItems = true
-	edu.Items.Enum = labelEnum(job104.EduIDs)
-
-	shift := prop("shift")
-	shift.Description = "Shift types, OR'd together."
-	shift.UniqueItems = true
-	shift.Items.Enum = labelEnum(job104.S9IDs)
-
-	page := prop("page")
-	page.Description = "1-based page number."
-	page.Minimum = new(1.0)
-	return schema
-}
-
-// lookupCode translates one human label to its typed code, erroring with the
-// field name on unknown labels.
-func lookupCode[T any](field, label string, m map[string]T) (T, error) {
-	code, ok := m[label]
-	if !ok {
-		var zero T
-		return zero, fmt.Errorf("invalid %s %q", field, label)
-	}
-	return code, nil
-}
-
-// lookupCodes is lookupCode over a multi-select field.
-func lookupCodes[T any](field string, labels []string, m map[string]T) ([]T, error) {
-	if len(labels) == 0 {
-		return nil, nil
-	}
-	out := make([]T, 0, len(labels))
-	for _, label := range labels {
-		code, err := lookupCode(field, label, m)
-		if err != nil {
-			return nil, err
-		}
-		out = append(out, code)
-	}
-	return out, nil
-}
-
-func job104ToRequest(in job104SearchInput) (job104.SearchJobsParams, error) {
+func job104MCPToHTTPRequest(in *job104SearchInput) (*job104.SearchJobsParams, error) {
 	var params job104.SearchJobsParams
-	// The schema already marks keyword required (keyword has no omitempty);
-	// this guards direct callers and clients that skip schema validation.
+	// The schema already marks keyword and area required; this guards direct
+	// callers and clients that skip schema validation — a missing area fails
+	// its enum Validate below (empty label maps to the zero value).
 	if in.Keyword == "" {
-		return params, fmt.Errorf("keyword is required")
+		return nil, fmt.Errorf("keyword is required")
 	}
 	params.Keyword = job104.NewOptString(in.Keyword)
-	if in.Area != "" {
-		code, err := lookupCode("area", in.Area, job104.AreaIDs)
-		if err != nil {
-			return params, err
-		}
-		params.Area = job104.NewOptSearchJobsArea(code)
+
+	area := job104.AreaIDs[in.Area]
+	if err := area.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid area %q: %w", in.Area, err)
 	}
+	params.Area = job104.NewOptSearchJobsArea(area)
+
 	if in.JobType != "" {
-		code, err := lookupCode("job_type", in.JobType, job104.RoIDs)
-		if err != nil {
-			return params, err
+		jobType := job104.RoIDs[in.JobType]
+		if err := jobType.Validate(); err != nil {
+			return nil, fmt.Errorf("invalid job_type %q: %w", in.JobType, err)
 		}
-		params.Ro = job104.NewOptSearchJobsRo(code)
+		params.Ro = job104.NewOptSearchJobsRo(jobType)
 	}
+
 	if in.Sort != "" {
-		code, err := lookupCode("sort", in.Sort, job104.OrderIDs)
-		if err != nil {
-			return params, err
+		sort := job104.OrderIDs[in.Sort]
+		if err := sort.Validate(); err != nil {
+			return nil, fmt.Errorf("invalid sort %q: %w", in.Sort, err)
 		}
-		params.Order = job104.NewOptSearchJobsOrder(code)
+		params.Order = job104.NewOptSearchJobsOrder(sort)
 	}
+
 	if in.Remote != "" {
-		code, err := lookupCode("remote", in.Remote, job104.RemoteWorkIDs)
-		if err != nil {
-			return params, err
+		remote := job104.RemoteWorkIDs[in.Remote]
+		if err := remote.Validate(); err != nil {
+			return nil, fmt.Errorf("invalid remote %q: %w", in.Remote, err)
 		}
-		params.RemoteWork = job104.NewOptSearchJobsRemoteWork(code)
+		params.RemoteWork = job104.NewOptSearchJobsRemoteWork(remote)
 	}
-	var err error
-	if params.Edu, err = lookupCodes("edu", in.Edu, job104.EduIDs); err != nil {
-		return params, err
+
+	for _, label := range in.Edu {
+		edu := job104.EduIDs[label]
+		if err := edu.Validate(); err != nil {
+			return nil, fmt.Errorf("invalid edu %q: %w", label, err)
+		}
+		params.Edu = append(params.Edu, edu)
 	}
-	if params.S9, err = lookupCodes("shift", in.Shift, job104.S9IDs); err != nil {
-		return params, err
-	}
+
 	if in.Page > 0 {
 		params.Page = job104.NewOptInt(in.Page)
 	}
-	return params, nil
+	return &params, nil
 }
 
 // RegisterJob104 registers the 104 search and job-detail tools.
 func RegisterJob104(s *mcp.Server, c *job104.Client) {
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "104_search_jobs",
-		Description: "Search jobs on 104 (Taiwan's largest job board) by keyword, with optional area/job-type/remote/education/shift/sort filters.",
+		Description: "Search jobs on 104 (Taiwan's largest job board) by keyword and area, with optional job-type/remote/education/sort filters.",
 		InputSchema: job104SearchInputSchema,
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, in job104SearchInput) (*mcp.CallToolResult, any, error) {
-		params, err := job104ToRequest(in)
+		params, err := job104MCPToHTTPRequest(&in)
 		if err != nil {
 			return errorResult(err), nil, nil
 		}
-		resp, err := c.SearchJobs(ctx, params)
+		resp, err := c.SearchJobs(ctx, *params)
 		if err != nil {
 			return errorResult(err), nil, nil
 		}

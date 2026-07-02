@@ -52,10 +52,17 @@ func TestJob104SearchJobsSchema(t *testing.T) {
 	schema, ok := searchTool.InputSchema.(map[string]any)
 	require.True(t, ok)
 
+	// area's 74-label enum is impractical to hand-type; spot-check the ends
+	// of the list, then strip it so the golden compare below stays a single
+	// hand-typed whole-value assertion.
+	area, ok := schema["properties"].(map[string]any)["area"].(map[string]any)
+	require.True(t, ok)
+	assert.Contains(t, area["enum"], "Taipei")
+	assert.Contains(t, area["enum"], "WestAfrica")
+	delete(area, "enum")
+
 	// Full golden schema: LLM-facing names only (no ro/order/remoteWork/s9),
-	// label enums instead of raw codes, keyword the only required field. The
-	// enums are hand-typed as an independent oracle, except area, whose ~74
-	// labels are impractical to inline.
+	// label enums instead of raw codes, keyword and area required.
 	want := map[string]any{
 		"type": "object",
 		"properties": map[string]any{
@@ -66,7 +73,6 @@ func TestJob104SearchJobsSchema(t *testing.T) {
 			"area": map[string]any{
 				"type":        "string",
 				"description": "City/region filter.",
-				"enum":        labelEnum(job104.AreaIDs),
 			},
 			"job_type": map[string]any{
 				"type":        "string",
@@ -84,21 +90,12 @@ func TestJob104SearchJobsSchema(t *testing.T) {
 				"enum":        []any{"Full", "Partial"},
 			},
 			"edu": map[string]any{
-				"type":        []any{"null", "array"},
+				"type":        "array",
 				"description": "Education levels, OR'd together.",
 				"uniqueItems": true,
 				"items": map[string]any{
 					"type": "string",
 					"enum": []any{"HighSchoolBelow", "HighSchool", "College", "University", "Master", "Doctorate"},
-				},
-			},
-			"shift": map[string]any{
-				"type":        []any{"null", "array"},
-				"description": "Shift types, OR'd together.",
-				"uniqueItems": true,
-				"items": map[string]any{
-					"type": "string",
-					"enum": []any{"Day", "Night", "Graveyard", "Holiday"},
 				},
 			},
 			"page": map[string]any{
@@ -107,13 +104,13 @@ func TestJob104SearchJobsSchema(t *testing.T) {
 				"minimum":     float64(1),
 			},
 		},
-		"required":             []any{"keyword"},
+		"required":             []any{"keyword", "area"},
 		"additionalProperties": false,
 	}
 	assert.Equal(t, want, schema)
 }
 
-func TestJob104ToRequest(t *testing.T) {
+func TestJob104MCPToHTTPRequest(t *testing.T) {
 	in := job104SearchInput{
 		Keyword: "golang",
 		Area:    "Taipei",
@@ -121,10 +118,9 @@ func TestJob104ToRequest(t *testing.T) {
 		Sort:    "Newest",
 		Remote:  "Full",
 		Edu:     []string{"University", "Master"},
-		Shift:   []string{"Day", "Holiday"},
 		Page:    2,
 	}
-	got, err := job104ToRequest(in)
+	got, err := job104MCPToHTTPRequest(&in)
 	require.NoError(t, err)
 
 	want := job104.SearchJobsParams{
@@ -135,46 +131,54 @@ func TestJob104ToRequest(t *testing.T) {
 		RemoteWork: job104.NewOptSearchJobsRemoteWork(job104.SearchJobsRemoteWork1),
 		Page:       job104.NewOptInt(2),
 		Edu:        []job104.SearchJobsEduItem{job104.SearchJobsEduItem4, job104.SearchJobsEduItem5},
-		S9:         []job104.SearchJobsS9Item{job104.SearchJobsS9Item1, job104.SearchJobsS9Item8},
 	}
-	assert.Equal(t, want, got)
+	assert.Equal(t, want, *got)
 }
 
-func TestJob104ToRequestMissingKeyword(t *testing.T) {
-	for name, in := range map[string]job104SearchInput{
-		"all empty":    {},
-		"filters only": {Area: "Taipei", Sort: "Newest", Page: 2},
-	} {
-		t.Run(name, func(t *testing.T) {
-			_, err := job104ToRequest(in)
+func TestJob104MCPToHTTPRequestMissingRequired(t *testing.T) {
+	cases := []struct {
+		name string
+		in   job104SearchInput
+		want string
+	}{
+		{"all empty", job104SearchInput{}, "keyword is required"},
+		{"filters only", job104SearchInput{Area: "Taipei", Sort: "Newest", Page: 2}, "keyword is required"},
+		{"keyword only", job104SearchInput{Keyword: "golang"}, `invalid area ""`},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			_, err := job104MCPToHTTPRequest(&tc.in)
 			require.Error(t, err)
-			assert.Contains(t, err.Error(), "keyword is required")
+			assert.Contains(t, err.Error(), tc.want)
 		})
 	}
 }
 
-func TestJob104ToRequestKeywordOnly(t *testing.T) {
-	got, err := job104ToRequest(job104SearchInput{Keyword: "golang"})
+func TestJob104MCPToHTTPRequestMinimal(t *testing.T) {
+	got, err := job104MCPToHTTPRequest(&job104SearchInput{Keyword: "golang", Area: "Taipei"})
 	require.NoError(t, err)
-	assert.Equal(t, job104.SearchJobsParams{Keyword: job104.NewOptString("golang")}, got)
+	want := job104.SearchJobsParams{
+		Keyword: job104.NewOptString("golang"),
+		Area:    job104.NewOptSearchJobsArea(job104.AreaIDs["Taipei"]),
+	}
+	assert.Equal(t, want, *got)
 }
 
-func TestJob104ToRequestInvalidLabels(t *testing.T) {
+func TestJob104MCPToHTTPRequestInvalidLabels(t *testing.T) {
 	cases := []struct {
 		name string
 		in   job104SearchInput
 		want string
 	}{
 		{"area", job104SearchInput{Keyword: "x", Area: "Mars"}, `invalid area "Mars"`},
-		{"job_type", job104SearchInput{Keyword: "x", JobType: "full"}, `invalid job_type "full"`},
-		{"sort", job104SearchInput{Keyword: "x", Sort: "newest"}, `invalid sort "newest"`},
-		{"remote", job104SearchInput{Keyword: "x", Remote: "hybrid"}, `invalid remote "hybrid"`},
-		{"edu", job104SearchInput{Keyword: "x", Edu: []string{"University", "PhD"}}, `invalid edu "PhD"`},
-		{"shift", job104SearchInput{Keyword: "x", Shift: []string{"Midnight"}}, `invalid shift "Midnight"`},
+		{"job_type", job104SearchInput{Keyword: "x", Area: "Taipei", JobType: "full"}, `invalid job_type "full"`},
+		{"sort", job104SearchInput{Keyword: "x", Area: "Taipei", Sort: "newest"}, `invalid sort "newest"`},
+		{"remote", job104SearchInput{Keyword: "x", Area: "Taipei", Remote: "hybrid"}, `invalid remote "hybrid"`},
+		{"edu", job104SearchInput{Keyword: "x", Area: "Taipei", Edu: []string{"University", "PhD"}}, `invalid edu "PhD"`},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			_, err := job104ToRequest(tc.in)
+			_, err := job104MCPToHTTPRequest(&tc.in)
 			require.Error(t, err)
 			assert.Contains(t, err.Error(), tc.want)
 		})
