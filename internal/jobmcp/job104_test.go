@@ -51,39 +51,66 @@ func TestJob104SearchJobsSchema(t *testing.T) {
 
 	schema, ok := searchTool.InputSchema.(map[string]any)
 	require.True(t, ok)
-	props, ok := schema["properties"].(map[string]any)
-	require.True(t, ok)
 
-	// LLM-facing names only — no 104 API names.
-	for _, field := range []string{"keyword", "area", "job_type", "sort", "remote", "edu", "shift", "page"} {
-		assert.Contains(t, props, field)
+	// Full golden schema: LLM-facing names only (no ro/order/remoteWork/s9),
+	// label enums instead of raw codes, keyword the only required field. The
+	// enums are hand-typed as an independent oracle, except area, whose ~74
+	// labels are impractical to inline.
+	want := map[string]any{
+		"type": "object",
+		"properties": map[string]any{
+			"keyword": map[string]any{
+				"type":        "string",
+				"description": "Free-text keyword search.",
+			},
+			"area": map[string]any{
+				"type":        "string",
+				"description": "City/region filter.",
+				"enum":        labelEnum(job104.AreaIDs),
+			},
+			"job_type": map[string]any{
+				"type":        "string",
+				"description": "Employment basis. Soft filter — verify each result's jobRo.",
+				"enum":        []any{"Full-time", "Part-time", "Senior", "Dispatch"},
+			},
+			"sort": map[string]any{
+				"type":        "string",
+				"description": "Result order.",
+				"enum":        []any{"Relevance", "Newest"},
+			},
+			"remote": map[string]any{
+				"type":        "string",
+				"description": "Remote work. Soft filter — verify each result's remoteWorkType. Omit for on-site.",
+				"enum":        []any{"Full", "Partial"},
+			},
+			"edu": map[string]any{
+				"type":        []any{"null", "array"},
+				"description": "Education levels, OR'd together.",
+				"uniqueItems": true,
+				"items": map[string]any{
+					"type": "string",
+					"enum": []any{"HighSchoolBelow", "HighSchool", "College", "University", "Master", "Doctorate"},
+				},
+			},
+			"shift": map[string]any{
+				"type":        []any{"null", "array"},
+				"description": "Shift types, OR'd together.",
+				"uniqueItems": true,
+				"items": map[string]any{
+					"type": "string",
+					"enum": []any{"Day", "Night", "Graveyard", "Holiday"},
+				},
+			},
+			"page": map[string]any{
+				"type":        "integer",
+				"description": "1-based page number.",
+				"minimum":     float64(1),
+			},
+		},
+		"required":             []any{"keyword"},
+		"additionalProperties": false,
 	}
-	for _, field := range []string{"ro", "order", "remoteWork", "s9"} {
-		assert.NotContains(t, props, field)
-	}
-
-	// Label enums, not raw codes.
-	area := props["area"].(map[string]any)
-	assert.Contains(t, area["enum"], "Taipei")
-	assert.NotContains(t, area["enum"], "6001001000")
-	assert.Len(t, area["enum"], len(job104.AreaIDs))
-
-	jobType := props["job_type"].(map[string]any)
-	assert.Equal(t, []any{"Full-time", "Part-time", "Senior", "Dispatch"}, jobType["enum"])
-
-	sort := props["sort"].(map[string]any)
-	assert.Equal(t, []any{"Relevance", "Newest"}, sort["enum"])
-
-	remote := props["remote"].(map[string]any)
-	assert.Equal(t, []any{"Full", "Partial"}, remote["enum"])
-
-	edu := props["edu"].(map[string]any)
-	eduItems := edu["items"].(map[string]any)
-	assert.Equal(t, []any{"HighSchoolBelow", "HighSchool", "College", "University", "Master", "Doctorate"}, eduItems["enum"])
-
-	shift := props["shift"].(map[string]any)
-	shiftItems := shift["items"].(map[string]any)
-	assert.Equal(t, []any{"Day", "Night", "Graveyard", "Holiday"}, shiftItems["enum"])
+	assert.Equal(t, want, schema)
 }
 
 func TestJob104ToRequest(t *testing.T) {
@@ -113,10 +140,23 @@ func TestJob104ToRequest(t *testing.T) {
 	assert.Equal(t, want, got)
 }
 
-func TestJob104ToRequestEmpty(t *testing.T) {
-	got, err := job104ToRequest(job104SearchInput{})
+func TestJob104ToRequestMissingKeyword(t *testing.T) {
+	for name, in := range map[string]job104SearchInput{
+		"all empty":    {},
+		"filters only": {Area: "Taipei", Sort: "Newest", Page: 2},
+	} {
+		t.Run(name, func(t *testing.T) {
+			_, err := job104ToRequest(in)
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), "keyword is required")
+		})
+	}
+}
+
+func TestJob104ToRequestKeywordOnly(t *testing.T) {
+	got, err := job104ToRequest(job104SearchInput{Keyword: "golang"})
 	require.NoError(t, err)
-	assert.Equal(t, job104.SearchJobsParams{}, got)
+	assert.Equal(t, job104.SearchJobsParams{Keyword: job104.NewOptString("golang")}, got)
 }
 
 func TestJob104ToRequestInvalidLabels(t *testing.T) {
@@ -125,12 +165,12 @@ func TestJob104ToRequestInvalidLabels(t *testing.T) {
 		in   job104SearchInput
 		want string
 	}{
-		{"area", job104SearchInput{Area: "Mars"}, `invalid area "Mars"`},
-		{"job_type", job104SearchInput{JobType: "full"}, `invalid job_type "full"`},
-		{"sort", job104SearchInput{Sort: "newest"}, `invalid sort "newest"`},
-		{"remote", job104SearchInput{Remote: "hybrid"}, `invalid remote "hybrid"`},
-		{"edu", job104SearchInput{Edu: []string{"University", "PhD"}}, `invalid edu "PhD"`},
-		{"shift", job104SearchInput{Shift: []string{"Midnight"}}, `invalid shift "Midnight"`},
+		{"area", job104SearchInput{Keyword: "x", Area: "Mars"}, `invalid area "Mars"`},
+		{"job_type", job104SearchInput{Keyword: "x", JobType: "full"}, `invalid job_type "full"`},
+		{"sort", job104SearchInput{Keyword: "x", Sort: "newest"}, `invalid sort "newest"`},
+		{"remote", job104SearchInput{Keyword: "x", Remote: "hybrid"}, `invalid remote "hybrid"`},
+		{"edu", job104SearchInput{Keyword: "x", Edu: []string{"University", "PhD"}}, `invalid edu "PhD"`},
+		{"shift", job104SearchInput{Keyword: "x", Shift: []string{"Midnight"}}, `invalid shift "Midnight"`},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

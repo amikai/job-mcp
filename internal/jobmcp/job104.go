@@ -12,7 +12,7 @@ import (
 )
 
 type job104SearchInput struct {
-	Keyword string   `json:"keyword,omitempty"`
+	Keyword string   `json:"keyword"` // required
 	Area    string   `json:"area,omitempty"`
 	JobType string   `json:"job_type,omitempty"`
 	Sort    string   `json:"sort,omitempty"`
@@ -52,22 +52,48 @@ func job104SearchSchema() *jsonschema.Schema {
 	if err != nil {
 		panic(err)
 	}
-	p := schema.Properties
-	p["keyword"].Description = "Free-text keyword search."
-	p["area"].Description = "City/region filter."
-	p["area"].Enum = labelEnum(job104.AreaIDs)
-	p["job_type"].Description = "Employment basis. Soft filter — verify each result's jobRo."
-	p["job_type"].Enum = labelEnum(job104.RoIDs)
-	p["sort"].Description = "Result order."
-	p["sort"].Enum = labelEnum(job104.OrderIDs)
-	p["remote"].Description = "Remote work. Soft filter — verify each result's remoteWorkType. Omit for on-site."
-	p["remote"].Enum = labelEnum(job104.RemoteWorkIDs)
-	p["edu"].Description = "Education levels, OR'd together."
-	p["edu"].Items.Enum = labelEnum(job104.EduIDs)
-	p["shift"].Description = "Shift types, OR'd together."
-	p["shift"].Items.Enum = labelEnum(job104.S9IDs)
-	p["page"].Description = "1-based page number."
-	p["page"].Minimum = new(1.0)
+	prop := func(name string) *jsonschema.Schema {
+		p, ok := schema.Properties[name]
+		if !ok {
+			panic(fmt.Sprintf("job104 search schema: no property %q", name))
+		}
+		return p
+	}
+	// jsonschema.For already infers this from keyword's missing omitempty;
+	// stated explicitly so the contract doesn't hide in a json tag.
+	schema.Required = []string{"keyword"}
+
+	prop("keyword").Description = "Free-text keyword search."
+
+	area := prop("area")
+	area.Description = "City/region filter."
+	area.Enum = labelEnum(job104.AreaIDs)
+
+	jobType := prop("job_type")
+	jobType.Description = "Employment basis. Soft filter — verify each result's jobRo."
+	jobType.Enum = labelEnum(job104.RoIDs)
+
+	order := prop("sort")
+	order.Description = "Result order."
+	order.Enum = labelEnum(job104.OrderIDs)
+
+	remote := prop("remote")
+	remote.Description = "Remote work. Soft filter — verify each result's remoteWorkType. Omit for on-site."
+	remote.Enum = labelEnum(job104.RemoteWorkIDs)
+
+	edu := prop("edu")
+	edu.Description = "Education levels, OR'd together."
+	edu.UniqueItems = true
+	edu.Items.Enum = labelEnum(job104.EduIDs)
+
+	shift := prop("shift")
+	shift.Description = "Shift types, OR'd together."
+	shift.UniqueItems = true
+	shift.Items.Enum = labelEnum(job104.S9IDs)
+
+	page := prop("page")
+	page.Description = "1-based page number."
+	page.Minimum = new(1.0)
 	return schema
 }
 
@@ -100,9 +126,12 @@ func lookupCodes[T any](field string, labels []string, m map[string]T) ([]T, err
 
 func job104ToRequest(in job104SearchInput) (job104.SearchJobsParams, error) {
 	var params job104.SearchJobsParams
-	if in.Keyword != "" {
-		params.Keyword = job104.NewOptString(in.Keyword)
+	// The schema already marks keyword required (keyword has no omitempty);
+	// this guards direct callers and clients that skip schema validation.
+	if in.Keyword == "" {
+		return params, fmt.Errorf("keyword is required")
 	}
+	params.Keyword = job104.NewOptString(in.Keyword)
 	if in.Area != "" {
 		code, err := lookupCode("area", in.Area, job104.AreaIDs)
 		if err != nil {

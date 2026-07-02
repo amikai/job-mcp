@@ -2,7 +2,6 @@ package jobmcp
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/amikai/job-mcp/internal/provider/tsmc"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -79,35 +78,19 @@ var (
 	}
 )
 
-// mapCodes translates human enum labels to tsmc facet codes, erroring on any unknown label.
-func mapCodes(field string, labels []string, m map[string]string) ([]string, error) {
-	if len(labels) == 0 {
-		return nil, nil
-	}
-	out := make([]string, 0, len(labels))
-	for _, l := range labels {
-		code, ok := m[l]
-		if !ok {
-			return nil, fmt.Errorf("invalid %s %q", field, l)
-		}
-		out = append(out, code)
-	}
-	return out, nil
-}
-
 func tsmcToRequest(in tsmcSearchInput) (*tsmc.JobsRequest, error) {
 	r := &tsmc.JobsRequest{Keyword: in.Keyword, Page: in.Page}
 	var err error
-	if r.Locations, err = mapCodes("location", in.Locations, tsmcLocations); err != nil {
+	if r.Locations, err = lookupCodes("location", in.Locations, tsmcLocations); err != nil {
 		return nil, err
 	}
-	if r.Categories, err = mapCodes("category", in.Categories, tsmcCategories); err != nil {
+	if r.Categories, err = lookupCodes("category", in.Categories, tsmcCategories); err != nil {
 		return nil, err
 	}
-	if r.JobTypes, err = mapCodes("job_type", in.JobTypes, tsmcJobTypes); err != nil {
+	if r.JobTypes, err = lookupCodes("job_type", in.JobTypes, tsmcJobTypes); err != nil {
 		return nil, err
 	}
-	if r.EmploymentTypes, err = mapCodes("employment_type", in.EmploymentTypes, tsmcEmploymentTypes); err != nil {
+	if r.EmploymentTypes, err = lookupCodes("employment_type", in.EmploymentTypes, tsmcEmploymentTypes); err != nil {
 		return nil, err
 	}
 	return r, nil
