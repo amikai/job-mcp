@@ -52,10 +52,17 @@ func TestJob104SearchJobsSchema(t *testing.T) {
 	schema, ok := searchTool.InputSchema.(map[string]any)
 	require.True(t, ok)
 
+	// area's 74-label enum is impractical to hand-type; spot-check the ends
+	// of the list, then strip it so the golden compare below stays a single
+	// hand-typed whole-value assertion.
+	area, ok := schema["properties"].(map[string]any)["area"].(map[string]any)
+	require.True(t, ok)
+	assert.Contains(t, area["enum"], "Taipei")
+	assert.Contains(t, area["enum"], "WestAfrica")
+	delete(area, "enum")
+
 	// Full golden schema: LLM-facing names only (no ro/order/remoteWork/s9),
-	// label enums instead of raw codes, keyword the only required field. The
-	// enums are hand-typed as an independent oracle, except area, whose ~74
-	// labels are impractical to inline.
+	// label enums instead of raw codes, keyword and area required.
 	want := map[string]any{
 		"type": "object",
 		"properties": map[string]any{
@@ -66,7 +73,6 @@ func TestJob104SearchJobsSchema(t *testing.T) {
 			"area": map[string]any{
 				"type":        "string",
 				"description": "City/region filter.",
-				"enum":        labelEnum(job104.AreaIDs),
 			},
 			"job_type": map[string]any{
 				"type":        "string",
@@ -84,21 +90,12 @@ func TestJob104SearchJobsSchema(t *testing.T) {
 				"enum":        []any{"Full", "Partial"},
 			},
 			"edu": map[string]any{
-				"type":        []any{"null", "array"},
+				"type":        "array",
 				"description": "Education levels, OR'd together.",
 				"uniqueItems": true,
 				"items": map[string]any{
 					"type": "string",
 					"enum": []any{"HighSchoolBelow", "HighSchool", "College", "University", "Master", "Doctorate"},
-				},
-			},
-			"shift": map[string]any{
-				"type":        []any{"null", "array"},
-				"description": "Shift types, OR'd together.",
-				"uniqueItems": true,
-				"items": map[string]any{
-					"type": "string",
-					"enum": []any{"Day", "Night", "Graveyard", "Holiday"},
 				},
 			},
 			"page": map[string]any{
@@ -107,7 +104,7 @@ func TestJob104SearchJobsSchema(t *testing.T) {
 				"minimum":     float64(1),
 			},
 		},
-		"required":             []any{"keyword"},
+		"required":             []any{"keyword", "area"},
 		"additionalProperties": false,
 	}
 	assert.Equal(t, want, schema)

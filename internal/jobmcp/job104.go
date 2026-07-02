@@ -1,10 +1,9 @@
 package jobmcp
 
 import (
-	"cmp"
 	"context"
+	"encoding/json"
 	"fmt"
-	"slices"
 
 	"github.com/amikai/job-mcp/internal/provider/job104"
 	"github.com/google/jsonschema-go/jsonschema"
@@ -26,76 +25,88 @@ type job104DetailInput struct {
 	JobCode string `json:"job_code" jsonschema:"104 job code (jobNo), required"`
 }
 
-// labelEnum lists m's labels ordered by their underlying code, so the
-// generated schema is deterministic and follows 104's id order.
-func labelEnum[T cmp.Ordered](m map[string]T) []any {
-	labels := make([]string, 0, len(m))
-	for label := range m {
-		labels = append(labels, label)
+// job104SearchInputSchema is hand-written JSON kept aligned with openapi.yaml's
+// searchJobs parameters: friendly property names, human labels instead of 104
+// codes (the ids.go maps translate labels back to codes — enum labels here
+// must match those map keys). Descriptions carry semantics only, never
+// id=label tables.
+var job104SearchInputSchema = mustSchema(job104SearchSchemaJSON)
+
+// mustSchema unmarshals a raw JSON schema, panicking on malformed JSON —
+// a programmer error, same failure mode as jsonschema.For before it.
+func mustSchema(raw string) *jsonschema.Schema {
+	var s jsonschema.Schema
+	if err := json.Unmarshal([]byte(raw), &s); err != nil {
+		panic(fmt.Sprintf("job104 search schema: %v", err))
 	}
-	slices.SortFunc(labels, func(a, b string) int { return cmp.Compare(m[a], m[b]) })
-	out := make([]any, len(labels))
-	for i, label := range labels {
-		out[i] = label
-	}
-	return out
+	return &s
 }
 
-// job104SearchInputSchema is derived from job104SearchInput (field names and
-// types single-sourced from the struct), with enum labels patched in from the
-// canonical ids.go maps — descriptions carry semantics only, never id=label
-// tables (hand-copied tables are how the RO/RemoteWork codes once went wrong).
-var job104SearchInputSchema = job104SearchSchema()
-
-func job104SearchSchema() *jsonschema.Schema {
-	schema, err := jsonschema.For[job104SearchInput](nil)
-	if err != nil {
-		panic(err)
-	}
-	prop := func(name string) *jsonschema.Schema {
-		p, ok := schema.Properties[name]
-		if !ok {
-			panic(fmt.Sprintf("job104 search schema: no property %q", name))
+const job104SearchSchemaJSON = `{
+	"type": "object",
+	"properties": {
+		"keyword": {
+			"type": "string",
+			"description": "Free-text keyword search."
+		},
+		"area": {
+			"type": "string",
+			"description": "City/region filter.",
+			"enum": [
+				"Taipei", "NewTaipei", "Yilan", "Keelung", "Taoyuan",
+				"Hsinchu", "Miaoli", "Taichung", "Changhua", "Nantou",
+				"Yunlin", "Chiayi", "Tainan", "Kaohsiung", "Pingtung",
+				"Taitung", "Hualien", "Penghu", "Kinmen", "Lienchiang",
+				"Beijing", "Tianjin", "Shanghai", "Chongqing", "Guangdong",
+				"Fujian", "Hainan", "Zhejiang", "Jiangsu", "Shandong",
+				"Hebei", "Liaoning", "Jilin", "Heilongjiang", "Hunan",
+				"Hubei", "Jiangxi", "Anhui", "Henan", "Shanxi",
+				"Shaanxi", "Gansu", "Qinghai", "Sichuan", "Guizhou",
+				"Yunnan", "InnerMongolia", "Tibet", "Ningxia", "Xinjiang",
+				"Guangxi", "HongKong", "Macao",
+				"NortheastAsia", "SoutheastAsia", "OtherAsia",
+				"AustraliaNZ", "OtherOceania",
+				"Canada", "EasternUS", "WesternUS", "MidwesternUS",
+				"CentralAmerica", "SouthAmerica",
+				"NorthernEurope", "SouthernEurope", "EasternEurope",
+				"WesternEurope", "CentralEurope",
+				"NorthAfrica", "CentralAfrica", "SouthAfrica",
+				"EastAfrica", "WestAfrica"
+			]
+		},
+		"job_type": {
+			"type": "string",
+			"description": "Employment basis. Soft filter — verify each result's jobRo.",
+			"enum": ["Full-time", "Part-time", "Senior", "Dispatch"]
+		},
+		"sort": {
+			"type": "string",
+			"description": "Result order.",
+			"enum": ["Relevance", "Newest"]
+		},
+		"remote": {
+			"type": "string",
+			"description": "Remote work. Soft filter — verify each result's remoteWorkType. Omit for on-site.",
+			"enum": ["Full", "Partial"]
+		},
+		"edu": {
+			"type": "array",
+			"description": "Education levels, OR'd together.",
+			"uniqueItems": true,
+			"items": {
+				"type": "string",
+				"enum": ["HighSchoolBelow", "HighSchool", "College", "University", "Master", "Doctorate"]
+			}
+		},
+		"page": {
+			"type": "integer",
+			"description": "1-based page number.",
+			"minimum": 1
 		}
-		return p
-	}
-	// jsonschema.For already infers this from keyword's missing omitempty;
-	// stated explicitly so the contract doesn't hide in a json tag.
-	schema.Required = []string{"keyword"}
-
-	prop("keyword").Description = "Free-text keyword search."
-
-	area := prop("area")
-	area.Description = "City/region filter."
-	area.Enum = labelEnum(job104.AreaIDs)
-
-	jobType := prop("job_type")
-	jobType.Description = "Employment basis. Soft filter — verify each result's jobRo."
-	jobType.Enum = labelEnum(job104.RoIDs)
-
-	order := prop("sort")
-	order.Description = "Result order."
-	order.Enum = labelEnum(job104.OrderIDs)
-
-	remote := prop("remote")
-	remote.Description = "Remote work. Soft filter — verify each result's remoteWorkType. Omit for on-site."
-	remote.Enum = labelEnum(job104.RemoteWorkIDs)
-
-	edu := prop("edu")
-	edu.Description = "Education levels, OR'd together."
-	edu.UniqueItems = true
-	edu.Items.Enum = labelEnum(job104.EduIDs)
-
-	shift := prop("shift")
-	shift.Description = "Shift types, OR'd together."
-	shift.UniqueItems = true
-	shift.Items.Enum = labelEnum(job104.S9IDs)
-
-	page := prop("page")
-	page.Description = "1-based page number."
-	page.Minimum = new(1.0)
-	return schema
-}
+	},
+	"required": ["keyword", "area"],
+	"additionalProperties": false
+}`
 
 // lookupCode translates one human label to its typed code, erroring with the
 // field name on unknown labels.
