@@ -215,6 +215,108 @@ func TestJob104HTTPToMCPResponse(t *testing.T) {
 	assert.Equal(t, want, got)
 }
 
+func TestJob104HTTPToMCPDetail(t *testing.T) {
+	in := job104.JobDetailResponse{
+		Data: job104.JobDetail{
+			Header: job104.JobDetailHeader{JobName: "j", CustName: "c", CustUrl: "u", AppearDate: "2026/01/01", IsSaved: true, IsApplied: false},
+			Contact: job104.JobDetailContact{
+				HrName: job104.NewOptString("hr"),
+				Email:  job104.NewOptString("e@x"),
+				Reply:  job104.NewOptString(""),
+			},
+			Condition: job104.JobDetailCondition{
+				WorkExp: job104.NewOptString("exp"),
+				Edu:     job104.NewOptString("edu"),
+				Major:   []string{"m1"},
+				Specialty: []job104.CodeDescription{
+					{Code: job104.NewOptString("s1"), Description: job104.NewOptString("d1")},
+				},
+			},
+			Welfare: job104.JobDetailWelfare{Welfare: job104.NewOptString("w")},
+			JobDetail: job104.JobDetailJobDetail{
+				JobDescription: job104.NewOptString("desc"),
+				JobCategory: []job104.CodeDescription{
+					{Code: job104.NewOptString("k1"), Description: job104.NewOptString("kd1")},
+				},
+				Salary:        job104.NewOptString("sal"),
+				SalaryMin:     job104.NewOptInt(10),
+				SalaryMax:     job104.NewOptInt(20),
+				JobType:       job104.NewOptInt(1),
+				AddressRegion: job104.NewOptString("region"),
+				AddressDetail: job104.NewOptString("detail"),
+				ManageResp:    job104.NewOptString("mr"),
+				NeedEmp:       job104.NewOptString("ne"),
+				RemoteWork: job104.OptNilJobDetailJobDetailRemoteWork{
+					Set:   true,
+					Value: job104.JobDetailJobDetailRemoteWork{Type: job104.NewOptInt(1), Description: job104.NewOptString("遠端")},
+				},
+			},
+			Industry:  "ind",
+			Employees: "9人",
+			CustNo:    "cn",
+		},
+	}
+	got := job104HTTPToMCPDetail(&in)
+
+	want := &job104DetailOutput{
+		Data: job104JobDetail{
+			Header:  job104DetailHeader{JobName: "j", CustName: "c", CustUrl: "u", AppearDate: "2026/01/01", IsSaved: true, IsApplied: false},
+			Contact: job104DetailContact{HrName: "hr", Email: "e@x", Reply: ""},
+			Condition: job104DetailCondition{
+				WorkExp:   "exp",
+				Edu:       "edu",
+				Major:     []string{"m1"},
+				Specialty: []job104CodeDescription{{Code: "s1", Description: "d1"}},
+			},
+			Welfare: job104DetailWelfare{Welfare: "w"},
+			JobDetail: job104DetailJobDetail{
+				JobDescription: "desc",
+				JobCategory:    []job104CodeDescription{{Code: "k1", Description: "kd1"}},
+				Salary:         "sal",
+				SalaryMin:      10,
+				SalaryMax:      20,
+				JobType:        "Full-time",
+				AddressRegion:  "region",
+				AddressDetail:  "detail",
+				ManageResp:     "mr",
+				NeedEmp:        "ne",
+				Remote:         "Full",
+			},
+			Industry:  "ind",
+			Employees: "9人",
+			CustNo:    "cn",
+		},
+	}
+	assert.Equal(t, want, got)
+}
+
+func TestJob104HTTPToMCPDetailNullRemoteUnknownJobType(t *testing.T) {
+	in := job104.JobDetailResponse{
+		Data: job104.JobDetail{
+			Header: job104.JobDetailHeader{JobName: "j", CustName: "c", CustUrl: "u", AppearDate: "2026/01/01"},
+			JobDetail: job104.JobDetailJobDetail{
+				JobType:    job104.NewOptInt(9),
+				RemoteWork: job104.OptNilJobDetailJobDetailRemoteWork{Set: true, Null: true},
+			},
+			Industry:  "ind",
+			Employees: "9人",
+			CustNo:    "cn",
+		},
+	}
+	got := job104HTTPToMCPDetail(&in)
+
+	// Null remoteWork and unknown jobType code both drop their labels.
+	want := &job104DetailOutput{
+		Data: job104JobDetail{
+			Header:    job104DetailHeader{JobName: "j", CustName: "c", CustUrl: "u", AppearDate: "2026/01/01"},
+			Industry:  "ind",
+			Employees: "9人",
+			CustNo:    "cn",
+		},
+	}
+	assert.Equal(t, want, got)
+}
+
 func TestJob104MCPToHTTPRequest(t *testing.T) {
 	in := job104SearchInput{
 		Keyword: "golang",
