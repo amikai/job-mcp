@@ -19,7 +19,7 @@ func findTool(tools []*mcp.Tool, toolName string) *mcp.Tool {
 	return nil
 }
 
-func testClientServer(t *testing.T) (*mcp.ClientSession, *mcp.ServerSession) {
+func testJob104MCPClientServer(t *testing.T) (*mcp.ClientSession, *mcp.ServerSession) {
 	server := mcp.NewServer(&mcp.Implementation{Name: "test", Version: "v0"}, nil)
 	srv := job104.NewMockServer()
 	t.Cleanup(srv.Close)
@@ -54,7 +54,7 @@ func TestRegisterJob104(t *testing.T) {
 }
 
 func TestJob104SearchJobE2E(t *testing.T) {
-	clientSession, _ := testClientServer(t)
+	clientSession, _ := testJob104MCPClientServer(t)
 
 	res, err := clientSession.ListTools(t.Context(), nil)
 	require.NoError(t, err)
@@ -186,8 +186,37 @@ func TestJob104SearchJobE2E(t *testing.T) {
 	assert.Equal(t, wantResp, &got)
 }
 
+func TestJob104SearchJobsMissingRequiredE2E(t *testing.T) {
+	clientSession, _ := testJob104MCPClientServer(t)
+
+	// Missing required params are rejected by the SDK's input-schema
+	// validation before the handler runs, as an IsError tool result.
+	cases := []struct {
+		name string
+		args map[string]any
+		want string
+	}{
+		{"no keyword", map[string]any{"area": "Taipei"}, `validating "arguments": validating root: required: missing properties: ["keyword"]`},
+		{"no area", map[string]any{"keyword": "Golang"}, `validating "arguments": validating root: required: missing properties: ["area"]`},
+		{"empty args", map[string]any{}, `validating "arguments": validating root: required: missing properties: ["keyword" "area"]`},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			callRes, err := clientSession.CallTool(t.Context(), &mcp.CallToolParams{
+				Name:      "104_search_jobs",
+				Arguments: tc.args,
+			})
+			require.NoError(t, err)
+			require.True(t, callRes.IsError)
+			text, ok := callRes.Content[0].(*mcp.TextContent)
+			require.True(t, ok)
+			assert.Equal(t, tc.want, text.Text)
+		})
+	}
+}
+
 func TestJob104GetJobDetailE2E(t *testing.T) {
-	clientSession, _ := testClientServer(t)
+	clientSession, _ := testJob104MCPClientServer(t)
 
 	callRes, err := clientSession.CallTool(t.Context(), &mcp.CallToolParams{
 		Name:      "104_get_job_detail",
