@@ -41,3 +41,22 @@ gemini mcp add job-mcp jobmcp
 ## Supported platforms
 
 macOS and Linux.
+
+## Disclaimer
+
+This is an unofficial tool. It is not affiliated with, endorsed by, or
+supported by 104 Corporation, TSMC, or any other job board or company whose
+listings it searches.
+
+Some providers rely on undocumented APIs that may change or stop working at
+any time without notice. Job listing data belongs to the respective sites and
+is fetched on your behalf when you invoke a tool — nothing is stored or
+redistributed by this project.
+
+Use this tool for personal job searching at a human pace. You are responsible
+for complying with the terms of service of each site you query; do not use it
+for bulk scraping or data harvesting.
+
+## License
+
+[MIT](LICENSE)
