@@ -179,14 +179,14 @@ type job104JobSummary struct {
 	SalaryHigh    int                  `json:"salaryHigh"`
 	SalaryLow     int                  `json:"salaryLow"`
 	JobAddrNoDesc string               `json:"jobAddrNoDesc"`
-	AppearDate    string               `json:"appearDate"`
+	AppearDate    string               `json:"appearDate" jsonschema:"Posting date, YYYYMMDD."`
 	ApplyCnt      int                  `json:"applyCnt"`
-	Remote        string               `json:"remote,omitempty"`
-	JobType       string               `json:"job_type,omitempty"`
+	Remote        string               `json:"remote,omitempty" jsonschema:"Remote-work label; matches the remote input values. Absent for on-site."`
+	JobType       string               `json:"job_type,omitempty" jsonschema:"Employment-basis label; matches the job_type input values."`
 }
 
 type job104JobSummaryLink struct {
-	Job  string `json:"job"`
+	Job  string `json:"job" jsonschema:"Public job posting URL; the trailing path segment is the job code for 104_get_job_detail."`
 	Cust string `json:"cust"`
 }
 
@@ -299,12 +299,12 @@ type job104DetailJobDetail struct {
 	Salary         string                  `json:"salary,omitempty"`
 	SalaryMin      int                     `json:"salaryMin,omitempty"`
 	SalaryMax      int                     `json:"salaryMax,omitempty"`
-	JobType        string                  `json:"job_type,omitempty"`
+	JobType        string                  `json:"job_type,omitempty" jsonschema:"Employment-basis label; matches the job_type input values."`
 	AddressRegion  string                  `json:"addressRegion,omitempty"`
 	AddressDetail  string                  `json:"addressDetail,omitempty"`
 	ManageResp     string                  `json:"manageResp,omitempty"`
 	NeedEmp        string                  `json:"needEmp,omitempty"`
-	Remote         string                  `json:"remote,omitempty"`
+	Remote         string                  `json:"remote,omitempty" jsonschema:"Remote-work label; matches the remote input values. Absent for on-site."`
 }
 
 type job104CodeDescription struct {
