@@ -1,4 +1,4 @@
-.PHONY: ut validate-openapi
+.PHONY: validate-openapi
 
 OPENAPI_SPECS := \
 	internal/provider/cake/openapi.yaml \
@@ -7,9 +7,6 @@ OPENAPI_SPECS := \
 	internal/provider/nvidia/openapi.yaml \
 	internal/provider/synopsys/openapi.yaml \
 	internal/provider/tsmc/openapi.yaml
-
-ut:
-	go test -race -vet=all $(shell go list ./... | grep -vE '/cmd($|/)')
 
 validate-openapi: $(OPENAPI_SPECS)
 	@for spec in $^; do \
