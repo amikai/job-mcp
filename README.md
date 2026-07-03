@@ -5,8 +5,9 @@
 </p>
 
 **job-mcp** searches job listings across job boards and company career sites —
-currently **[104](https://www.104.com.tw)**, **[Cake](https://www.cake.me)**, and
-**[NVIDIA careers](https://nvidia.wd5.myworkdayjobs.com/NVIDIAExternalCareerSite)** —
+currently **[104](https://www.104.com.tw)**, **[Cake](https://www.cake.me)**,
+**[NVIDIA careers](https://nvidia.wd5.myworkdayjobs.com/NVIDIAExternalCareerSite)**, and
+**[TSMC careers](https://careers.tsmc.com)** —
 from any MCP client: Claude Code, Codex, Gemini CLI, and others.
 
 ## Install

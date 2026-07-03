@@ -1,7 +1,6 @@
 package tsmc
 
 import (
-	"cmp"
 	"context"
 	"fmt"
 	"net/http"
@@ -10,8 +9,6 @@ import (
 
 	"golang.org/x/net/html"
 )
-
-const defaultBaseURL = "https://careers.tsmc.com"
 
 const (
 	defaultPerPage = 10
@@ -142,11 +139,27 @@ type JobDetailResponse struct {
 	Qualifications   string
 }
 
-func NewClient(httpClient *http.Client) *Client {
-	return &Client{
-		httpClient: cmp.Or(httpClient, http.DefaultClient),
-		baseURL:    defaultBaseURL,
+type Option func(*Client)
+
+// WithClient sets the HTTP client used for requests.
+func WithClient(httpClient *http.Client) Option {
+	return func(c *Client) {
+		c.httpClient = httpClient
 	}
+}
+
+func NewClient(baseURL string, opts ...Option) (*Client, error) {
+	if _, err := url.Parse(baseURL); err != nil {
+		return nil, err
+	}
+	c := &Client{
+		httpClient: http.DefaultClient,
+		baseURL:    baseURL,
+	}
+	for _, opt := range opts {
+		opt(c)
+	}
+	return c, nil
 }
 
 func (c *Client) jobsURL(p *JobsRequest) (string, error) {

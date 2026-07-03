@@ -10,6 +10,7 @@ import (
 	"github.com/amikai/job-mcp/internal/provider/cake"
 	"github.com/amikai/job-mcp/internal/provider/job104"
 	"github.com/amikai/job-mcp/internal/provider/nvidia"
+	"github.com/amikai/job-mcp/internal/provider/tsmc"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
@@ -33,7 +34,11 @@ func TestServerListsJobTools(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	server := newServer(c104, cCake, cNvidia)
+	cTsmc, err := tsmc.NewClient("https://careers.tsmc.com", tsmc.WithClient(http.DefaultClient))
+	if err != nil {
+		t.Fatal(err)
+	}
+	server := newServer(c104, cCake, cNvidia, cTsmc)
 	client := mcp.NewClient(&mcp.Implementation{Name: "smoke", Version: "v0"}, nil)
 	serverTransport, clientTransport := mcp.NewInMemoryTransports()
 	serverSession, err := server.Connect(ctx, serverTransport, nil)
@@ -62,6 +67,8 @@ func TestServerListsJobTools(t *testing.T) {
 		"cake_get_job_detail",
 		"nvidia_search_jobs",
 		"nvidia_get_job_detail",
+		"tsmc_search_jobs",
+		"tsmc_get_job_detail",
 	} {
 		if !got[name] {
 			t.Fatalf("missing tool %q in %v", name, got)
