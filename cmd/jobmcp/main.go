@@ -31,8 +31,13 @@ func main() {
 		enableCommandLogging = fs.BoolLong("enable-command-logging", "log raw JSON-RPC traffic to the log output")
 		versionFlag          = fs.BoolLong("version", "print version information and exit")
 	)
-	if err := ff.Parse(fs, os.Args[1:]); err != nil {
-		fmt.Fprintln(os.Stderr, ffhelp.Flags(fs))
+	cmd := &ff.Command{
+		Name:      "jobmcp",
+		ShortHelp: "MCP server exposing job-search tools for job boards and company careers sites",
+		Flags:     fs,
+	}
+	if err := cmd.Parse(os.Args[1:]); err != nil {
+		fmt.Fprintln(os.Stderr, ffhelp.Command(cmd))
 		if errors.Is(err, ff.ErrHelp) {
 			os.Exit(0)
 		}
@@ -133,4 +138,3 @@ func newServer(c104 *job104.Client, cCake *cake.Client, cNvidia *nvidia.Client, 
 	jobmcp.RegisterGoogle(server, cGoogle)
 	return server
 }
-
