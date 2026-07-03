@@ -214,6 +214,7 @@ func RegisterCake(s *mcp.Server, c *cake.Client) {
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "cake_search_jobs",
 		Description: "Search jobs on Cake.me (formerly CakeResume) by keyword and location, with optional job-type/seniority/remote/sort filters.",
+		Annotations: &mcp.ToolAnnotations{Title: "Search Cake.me jobs", ReadOnlyHint: true},
 		InputSchema: cakeSearchInputSchema,
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, in *cakeSearchInput) (*mcp.CallToolResult, *cakeSearchOutput, error) {
 		req, err := cakeMCPToHTTPRequest(in)
@@ -233,6 +234,7 @@ func RegisterCake(s *mcp.Server, c *cake.Client) {
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "cake_get_job_detail",
 		Description: "Get the full job description and requirements for a Cake.me job path (path from search results).",
+		Annotations: &mcp.ToolAnnotations{Title: "Get Cake.me job details", ReadOnlyHint: true},
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, in *cakeDetailInput) (*mcp.CallToolResult, *cakeDetailOutput, error) {
 		res, err := c.GetJobDetail(ctx, cake.GetJobDetailParams{Path: in.Path})
 		if err != nil {

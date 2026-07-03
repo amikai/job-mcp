@@ -192,6 +192,7 @@ func RegisterGoogle(s *mcp.Server, c *google.Client) {
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "google_search_jobs",
 		Description: "Search jobs on the Google Careers site by keyword and location, with optional remote/experience-level/skills/degree/employment-type/company/sort filters.",
+		Annotations: &mcp.ToolAnnotations{Title: "Search Google Careers jobs", ReadOnlyHint: true},
 		InputSchema: googleSearchInputSchema,
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, in *googleSearchInput) (*mcp.CallToolResult, *googleSearchOutput, error) {
 		req, err := googleMCPToHTTPRequest(in)
@@ -208,6 +209,7 @@ func RegisterGoogle(s *mcp.Server, c *google.Client) {
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "google_get_job_detail",
 		Description: "Get the full job description and requirements for a Google Careers job by job ID.",
+		Annotations: &mcp.ToolAnnotations{Title: "Get Google Careers job details", ReadOnlyHint: true},
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, in *googleDetailInput) (*mcp.CallToolResult, *googleDetailOutput, error) {
 		res, err := c.JobDetail(ctx, in.JobID)
 		if err != nil {

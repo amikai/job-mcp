@@ -203,6 +203,7 @@ func RegisterTsmc(s *mcp.Server, c *tsmc.Client) {
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "tsmc_search_jobs",
 		Description: "Search jobs on the TSMC careers site by keyword and location, with optional category/job-type/employment-type filters.",
+		Annotations: &mcp.ToolAnnotations{Title: "Search TSMC jobs", ReadOnlyHint: true},
 		InputSchema: tsmcSearchInputSchema,
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, in *tsmcSearchInput) (*mcp.CallToolResult, *tsmcSearchOutput, error) {
 		req, err := tsmcMCPToHTTPRequest(in)
@@ -219,6 +220,7 @@ func RegisterTsmc(s *mcp.Server, c *tsmc.Client) {
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "tsmc_get_job_detail",
 		Description: "Get the full job description and requirements for a TSMC job by job ID.",
+		Annotations: &mcp.ToolAnnotations{Title: "Get TSMC job details", ReadOnlyHint: true},
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, in *tsmcDetailInput) (*mcp.CallToolResult, *tsmcDetailOutput, error) {
 		res, err := c.JobDetail(ctx, in.JobID)
 		if err != nil {

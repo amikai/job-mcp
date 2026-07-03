@@ -59,8 +59,21 @@ func runWithTransport(transport mcp.Transport) error {
 	return nil
 }
 
+// serverInstructions carries the cross-tool guidance for host LLMs: provider
+// routing and the shared search→detail flow. Per-tool behavior stays in each
+// tool's description.
+const serverInstructions = `job-mcp exposes job-search tools for five job boards: 104 and Cake.me (both Taiwan-centric), plus the official careers sites of Google, NVIDIA, and TSMC.
+
+Tool selection:
+- When the user names a site or company, use that provider's tools. Otherwise search 104 and Cake.me for jobs in Taiwan, and the company careers tools for roles at Google, NVIDIA, or TSMC.
+- Every provider follows the same two-step flow: <provider>_search_jobs returns summaries carrying an identifier (job code, ID, or path), and <provider>_get_job_detail exchanges that identifier for the full posting. Identifiers are provider-specific and not interchangeable.
+
+Context management:
+- Search results are paginated; fetch additional pages rather than broadening the query.
+- Fetch job details only for postings you intend to present.`
+
 func newServer(c104 *job104.Client, cCake *cake.Client, cNvidia *nvidia.Client, cTsmc *tsmc.Client, cGoogle *google.Client) *mcp.Server {
-	server := mcp.NewServer(&mcp.Implementation{Name: "job-mcp"}, nil)
+	server := mcp.NewServer(&mcp.Implementation{Name: "job-mcp"}, &mcp.ServerOptions{Instructions: serverInstructions})
 	jobmcp.RegisterJob104(server, c104)
 	jobmcp.RegisterCake(server, cCake)
 	jobmcp.RegisterNvidia(server, cNvidia)
