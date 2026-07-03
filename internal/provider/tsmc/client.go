@@ -11,8 +11,6 @@ import (
 	"golang.org/x/net/html"
 )
 
-const defaultBaseURL = "https://careers.tsmc.com"
-
 const (
 	defaultPerPage = 10
 	jobsPath       = "/zh_TW/careers/SearchJobs/"
@@ -142,10 +140,10 @@ type JobDetailResponse struct {
 	Qualifications   string
 }
 
-func NewClient(httpClient *http.Client) *Client {
+func NewClient(baseURL string, httpClient *http.Client) *Client {
 	return &Client{
 		httpClient: cmp.Or(httpClient, http.DefaultClient),
-		baseURL:    defaultBaseURL,
+		baseURL:    baseURL,
 	}
 }
 

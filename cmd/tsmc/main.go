@@ -1,84 +1,139 @@
 package main
 
 import (
-	"bufio"
 	"context"
+	"errors"
 	"fmt"
-	"io"
-	"net/http"
 	"os"
+	"sort"
 	"strings"
 	"time"
+
+	"github.com/peterbourgon/ff/v4"
+	"github.com/peterbourgon/ff/v4/ffhelp"
 
 	"github.com/amikai/job-mcp/internal/provider/tsmc"
 )
 
+// main issues a single JobsRequest built entirely from flags, then fetches
+// JobDetail for every job the search returned.
 func main() {
-	scanner := bufio.NewScanner(os.Stdin)
-	scanner.Scan()
-	keyword := strings.TrimSpace(scanner.Text())
-	if keyword == "" {
-		fmt.Fprintln(os.Stderr, "keyword is required")
+	fs := ff.NewFlagSet("tsmc")
+	var (
+		baseURL        = fs.StringLong("base-url", "https://careers.tsmc.com", "TSMC careers site base URL")
+		timeout        = fs.DurationLong("timeout", 60*time.Second, "request timeout")
+		keyword        = fs.StringLong("keyword", "", "free-text keyword search")
+		page           = fs.IntLong("page", 1, "1-based page number")
+		perPage        = fs.IntLong("per-page", 10, "page size")
+		location       = fs.StringEnumLong("location", usageWithChoices("Location", tsmc.LocationIDs), labels(tsmc.LocationIDs)...)
+		category       = fs.StringEnumLong("category", usageWithChoices("Job Category", tsmc.CategoryIDs), labels(tsmc.CategoryIDs)...)
+		jobType        = fs.StringEnumLong("job-type", usageWithChoices("Job Type", tsmc.JobTypeIDs), labels(tsmc.JobTypeIDs)...)
+		employmentType = fs.StringEnumLong("employment-type", usageWithChoices("Employment Type", tsmc.EmploymentTypeIDs), labels(tsmc.EmploymentTypeIDs)...)
+	)
+	if err := ff.Parse(fs, os.Args[1:]); err != nil {
+		fmt.Fprintln(os.Stderr, ffhelp.Flags(fs))
+		if errors.Is(err, ff.ErrHelp) {
+			os.Exit(0)
+		}
+		fmt.Fprintln(os.Stderr, "err:", err)
 		os.Exit(1)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	req := buildJobsRequest(*keyword, *location, *category, *jobType, *employmentType, *page, *perPage)
+
+	ctx, cancel := context.WithTimeout(context.Background(), *timeout)
 	defer cancel()
 
-	client := tsmc.NewClient(http.DefaultClient)
-	search, err := client.Jobs(ctx, &tsmc.JobsRequest{
-		Keyword:         keyword,
-		Locations:       []string{tsmc.LocTaiwan},
-		EmploymentTypes: []string{tsmc.EmployRegular},
-	})
+	client := tsmc.NewClient(*baseURL, nil)
+
+	search, err := client.Jobs(ctx, req)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 
-	jobs := search.Jobs
-	if len(jobs) > 10 {
-		jobs = jobs[:10]
-	}
-	details := make(map[string]*tsmc.JobDetailResponse, len(jobs))
-	for _, job := range jobs {
-		detail, err := client.JobDetail(ctx, job.ID)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			os.Exit(1)
+	fmt.Printf("TSMC Jobs Report\n")
+	fmt.Printf("Found %d jobs; showing %d\n\n", search.Total, len(search.Jobs))
+
+	for i, job := range search.Jobs {
+		fmt.Printf("%d. [%s] %s\n", i+1, job.ID, job.Title)
+		if job.Slug != "" {
+			fmt.Printf("URL: %s/zh_TW/careers/JobDetail/%s/%s\n", *baseURL, job.Slug, job.ID)
 		}
-		details[job.ID] = detail
-	}
-
-	writeReport(os.Stdout, keyword, search, jobs, details)
-}
-
-func writeReport(w io.Writer, keyword string, search *tsmc.JobsResponse, jobs []tsmc.Job, details map[string]*tsmc.JobDetailResponse) {
-	fmt.Fprintf(w, "TSMC Jobs Report\n")
-	fmt.Fprintf(w, "Keyword: %s\n", keyword)
-	fmt.Fprintf(w, "Filters: Taiwan, regular\n")
-	fmt.Fprintf(w, "Found %d jobs; showing %d\n\n", search.Total, len(jobs))
-
-	for i, job := range jobs {
-		fmt.Fprintf(w, "%d. [%s] %s\n", i+1, job.ID, job.Title)
-		fmt.Fprintf(w, "URL: https://careers.tsmc.com/zh_TW/careers/JobDetail/%s/%s\n", job.Slug, job.ID)
 		if job.Location != "" {
-			fmt.Fprintf(w, "Location: %s\n", job.Location)
+			fmt.Printf("Location: %s\n", job.Location)
 		}
 		if job.CareerArea != "" {
-			fmt.Fprintf(w, "Career Area: %s\n", job.CareerArea)
+			fmt.Printf("Career Area: %s\n", job.CareerArea)
+		}
+		if job.EmploymentType != "" {
+			fmt.Printf("Employment Type: %s\n", job.EmploymentType)
 		}
 		if job.Posted != "" {
-			fmt.Fprintf(w, "Posted: %s\n", job.Posted)
+			fmt.Printf("Posted: %s\n", job.Posted)
 		}
-		if detail := details[job.ID]; detail != nil {
-			if detail.Responsibilities != "" {
-				fmt.Fprintf(w, "Responsibilities: %s\n", detail.Responsibilities)
-			}
-			if detail.Qualifications != "" {
-				fmt.Fprintf(w, "Qualifications: %s\n", detail.Qualifications)
-			}
+
+		detail, err := client.JobDetail(ctx, job.ID)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "job detail %s: %v\n", job.ID, err)
+			fmt.Println()
+			continue
 		}
-		fmt.Fprintln(w)
+		if detail.Responsibilities != "" {
+			fmt.Printf("Responsibilities:\n%s\n", detail.Responsibilities)
+		}
+		if detail.Qualifications != "" {
+			fmt.Printf("Qualifications:\n%s\n", detail.Qualifications)
+		}
+		fmt.Println()
 	}
+}
+
+// buildJobsRequest resolves each flag's human label to a form-field id via
+// the ids.go lookup tables. Labels are already validated against the flag's
+// enum at parse time, so a lookup miss here can't happen for a non-empty
+// label. An empty label (flag not set) leaves that filter unset.
+func buildJobsRequest(keyword, location, category, jobType, employmentType string, page, perPage int) *tsmc.JobsRequest {
+	req := &tsmc.JobsRequest{
+		Keyword: keyword,
+		Page:    page,
+		PerPage: perPage,
+	}
+	if location != "" {
+		req.Locations = []string{tsmc.LocationIDs[location]}
+	}
+	if category != "" {
+		req.Categories = []string{tsmc.CategoryIDs[category]}
+	}
+	if jobType != "" {
+		req.JobTypes = []string{tsmc.JobTypeIDs[jobType]}
+	}
+	if employmentType != "" {
+		req.EmploymentTypes = []string{tsmc.EmploymentTypeIDs[employmentType]}
+	}
+	return req
+}
+
+// labels returns the sorted keys of an ids.go lookup table, prefixed with
+// "" so an ff.StringEnumLong flag can default to unset (no filter) instead
+// of silently falling back to the first real label — ffval.Enum's zero
+// Default only survives initialize() if it's itself in the Valid list.
+func labels[V any](table map[string]V) []string {
+	l := make([]string, 0, len(table)+1)
+	l = append(l, "")
+	for label := range table {
+		l = append(l, label)
+	}
+	sort.Strings(l)
+	return l
+}
+
+// usageWithChoices appends a "one of: ..." list to base. ffhelp never
+// introspects an ff.StringEnumLong's valid values on its own, so small
+// enough choice sets are spelled out here to make -h self-documenting.
+func usageWithChoices[V any](base string, table map[string]V) string {
+	choices := labels(table)[1:] // drop the leading "" no-filter sentinel
+	// " | " (not ", ") because some labels (e.g. "USA-Washington, D.C.")
+	// contain commas themselves.
+	return fmt.Sprintf("%s, one of: %s", base, strings.Join(choices, " | "))
 }
