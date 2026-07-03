@@ -51,20 +51,10 @@ func runWithTransport(transport mcp.Transport) error {
 	hcGoogle := &http.Client{Timeout: 30 * time.Second}
 	cGoogle := google.NewClient("https://www.google.com/about/careers/applications", hcGoogle)
 
-	server := newServer(c104, cCake, cNvidia, cTsmc, cGoogle)
+	server := jobmcp.NewServer(c104, cCake, cNvidia, cTsmc, cGoogle)
 
 	if err := server.Run(context.Background(), transport); err != nil && !errors.Is(err, io.EOF) {
 		return err
 	}
 	return nil
-}
-
-func newServer(c104 *job104.Client, cCake *cake.Client, cNvidia *nvidia.Client, cTsmc *tsmc.Client, cGoogle *google.Client) *mcp.Server {
-	server := mcp.NewServer(&mcp.Implementation{Name: "job-mcp"}, nil)
-	jobmcp.RegisterJob104(server, c104)
-	jobmcp.RegisterCake(server, cCake)
-	jobmcp.RegisterNvidia(server, cNvidia)
-	jobmcp.RegisterTsmc(server, cTsmc)
-	jobmcp.RegisterGoogle(server, cGoogle)
-	return server
 }

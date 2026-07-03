@@ -322,6 +322,7 @@ func RegisterJob104(s *mcp.Server, c *job104.Client) {
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "104_search_jobs",
 		Description: "Search jobs on 104 (Taiwan's largest job board) by keyword and area, with optional job-type/remote/education/sort filters.",
+		Annotations: &mcp.ToolAnnotations{Title: "Search 104 jobs", ReadOnlyHint: true},
 		InputSchema: job104SearchInputSchema,
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, in *job104SearchInput) (*mcp.CallToolResult, *job104SearchOutput, error) {
 		params, err := job104MCPToHTTPRequest(in)
@@ -341,6 +342,7 @@ func RegisterJob104(s *mcp.Server, c *job104.Client) {
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "104_get_job_detail",
 		Description: "Get the full job description for a 104 job code (jobCode from 104_search_jobs results, not jobNo).",
+		Annotations: &mcp.ToolAnnotations{Title: "Get 104 job details", ReadOnlyHint: true},
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, in *job104DetailInput) (*mcp.CallToolResult, *job104DetailOutput, error) {
 		resp, err := c.GetJobDetail(ctx, job104.GetJobDetailParams{JobCode: in.JobCode})
 		if err != nil {

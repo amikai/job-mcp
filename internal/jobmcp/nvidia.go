@@ -255,6 +255,7 @@ func RegisterNvidia(s *mcp.Server, c *nvidia.Client) {
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "nvidia_search_jobs",
 		Description: "Search jobs on NVIDIA careers site by keyword and country, with optional job-category/job-type/time-type/location-type/site filters.",
+		Annotations: &mcp.ToolAnnotations{Title: "Search NVIDIA jobs", ReadOnlyHint: true},
 		InputSchema: nvidiaSearchInputSchema,
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, in *nvidiaSearchInput) (*mcp.CallToolResult, *nvidiaSearchOutput, error) {
 		req, err := nvidiaMCPToHTTPRequest(in)
@@ -274,6 +275,7 @@ func RegisterNvidia(s *mcp.Server, c *nvidia.Client) {
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "nvidia_get_job_detail",
 		Description: "Get the full job description and requirements for an NVIDIA job by external path.",
+		Annotations: &mcp.ToolAnnotations{Title: "Get NVIDIA job details", ReadOnlyHint: true},
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, in *nvidiaDetailInput) (*mcp.CallToolResult, *nvidiaDetailOutput, error) {
 		location, titleSlug, ok := strings.Cut(strings.TrimPrefix(in.ExternalPath, "/job/"), "/")
 		if !ok {
