@@ -2,11 +2,9 @@ package jobmcp
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/amikai/job-mcp/internal/provider/job104"
-	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
@@ -76,6 +74,13 @@ var job104SearchInputRawSchema = []byte(`{
 	"additionalProperties": false
 }`)
 
+// job104SearchInputSchema is hand-written JSON kept aligned with openapi.yaml's
+// searchJobs parameters: friendly property names, human labels instead of 104
+// codes (the ids.go maps translate labels back to codes — enum labels here
+// must match those map keys). Descriptions carry semantics only, never
+// id=label tables.
+var job104SearchInputSchema = mustSchema(job104SearchInputRawSchema)
+
 type job104SearchInput struct {
 	Keyword string   `json:"keyword"` // required
 	Area    string   `json:"area"`    // required
@@ -86,25 +91,25 @@ type job104SearchInput struct {
 	Page    int      `json:"page,omitempty"`
 }
 
+// job104SearchOutput mirrors job104.JobsResponse for the LLM: identical
+// fields and JSON names, except the coded jobRo/remoteWorkType become the
+// job_type/remote labels used by the search input params. Unknown codes
+// leave the label empty and omitempty drops the field.
+type job104SearchOutput struct {
+	Data     []job104JobSummary   `json:"data"`
+	Metadata job104SearchMetadata `json:"metadata"`
+}
+
 type job104DetailInput struct {
 	JobCode string `json:"job_code" jsonschema:"104 job code (jobNo)"`
 }
 
-// job104SearchInputSchema is hand-written JSON kept aligned with openapi.yaml's
-// searchJobs parameters: friendly property names, human labels instead of 104
-// codes (the ids.go maps translate labels back to codes — enum labels here
-// must match those map keys). Descriptions carry semantics only, never
-// id=label tables.
-var job104SearchInputSchema = mustSchema(job104SearchInputRawSchema)
-
-// mustSchema unmarshals a raw JSON schema, panicking on malformed JSON —
-// a programmer error, same failure mode as jsonschema.For before it.
-func mustSchema(rawSchema []byte) *jsonschema.Schema {
-	var s jsonschema.Schema
-	if err := json.Unmarshal(rawSchema, &s); err != nil {
-		panic(fmt.Sprintf("jobmcp tool schema: %v", err))
-	}
-	return &s
+// job104DetailOutput mirrors job104.JobDetailResponse for the LLM: Opt
+// fields flatten to plain values with omitempty, and the coded
+// jobType/remoteWork become the job_type/remote labels used by the search
+// input params. Unknown codes and null remoteWork drop the label.
+type job104DetailOutput struct {
+	Data job104JobDetail `json:"data"`
 }
 
 func job104MCPToHTTPRequest(in *job104SearchInput) (*job104.SearchJobsParams, error) {
@@ -159,15 +164,6 @@ func job104MCPToHTTPRequest(in *job104SearchInput) (*job104.SearchJobsParams, er
 		params.Page = job104.NewOptInt(in.Page)
 	}
 	return &params, nil
-}
-
-// job104SearchOutput mirrors job104.JobsResponse for the LLM: identical
-// fields and JSON names, except the coded jobRo/remoteWorkType become the
-// job_type/remote labels used by the search input params. Unknown codes
-// leave the label empty and omitempty drops the field.
-type job104SearchOutput struct {
-	Data     []job104JobSummary   `json:"data"`
-	Metadata job104SearchMetadata `json:"metadata"`
 }
 
 type job104JobSummary struct {
@@ -246,14 +242,6 @@ func job104HTTPToMCPResponse(resp *job104.JobsResponse) *job104SearchOutput {
 		})
 	}
 	return out
-}
-
-// job104DetailOutput mirrors job104.JobDetailResponse for the LLM: Opt
-// fields flatten to plain values with omitempty, and the coded
-// jobType/remoteWork become the job_type/remote labels used by the search
-// input params. Unknown codes and null remoteWork drop the label.
-type job104DetailOutput struct {
-	Data job104JobDetail `json:"data"`
 }
 
 type job104JobDetail struct {
