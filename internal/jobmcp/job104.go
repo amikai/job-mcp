@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/url"
+	"strings"
 
 	"github.com/amikai/job-mcp/internal/provider/job104"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -102,7 +104,7 @@ type job104SearchOutput struct {
 }
 
 type job104DetailInput struct {
-	JobCode string `json:"job_code" jsonschema:"104 job code (jobNo)"`
+	JobCode string `json:"job_code" jsonschema:"104 job code, from a search result's jobCode field (not jobNo)."`
 }
 
 // job104DetailOutput mirrors job104.JobDetailResponse for the LLM: Opt
@@ -168,7 +170,8 @@ func job104MCPToHTTPRequest(in *job104SearchInput) (*job104.SearchJobsParams, er
 }
 
 type job104JobSummary struct {
-	JobNo         string               `json:"jobNo"`
+	JobCode       string               `json:"jobCode" jsonschema:"104 job code — pass this to 104_get_job_detail's job_code param."`
+	JobNo         string               `json:"jobNo" jsonschema:"104's internal listing id. Not usable as job_code."`
 	JobName       string               `json:"jobName"`
 	CustName      string               `json:"custName"`
 	CustNo        string               `json:"custNo"`
@@ -183,8 +186,22 @@ type job104JobSummary struct {
 }
 
 type job104JobSummaryLink struct {
-	Job  string `json:"job" jsonschema:"Public job posting URL; the trailing path segment is the job code for 104_get_job_detail."`
+	Job  string `json:"job" jsonschema:"Public job posting URL."`
 	Cust string `json:"cust"`
+}
+
+// job104JobCodeFromURL extracts the job code from a 104 job posting URL's
+// trailing path segment (e.g. https://www.104.com.tw/job/8zsac -> 8zsac).
+// jobNo, by contrast, is 104's internal listing id and 404s if passed to
+// GetJobDetail.
+func job104JobCodeFromURL(raw string) string {
+	path := raw
+	if u, err := url.Parse(raw); err == nil {
+		path = u.Path
+	}
+	path = strings.TrimRight(path, "/")
+	parts := strings.Split(path, "/")
+	return parts[len(parts)-1]
 }
 
 type job104SearchMetadata struct {
@@ -228,6 +245,7 @@ func job104HTTPToMCPResponse(resp *job104.JobsResponse) *job104SearchOutput {
 	}
 	for _, j := range resp.Data {
 		out.Data = append(out.Data, job104JobSummary{
+			JobCode:       job104JobCodeFromURL(j.Link.Job),
 			JobNo:         j.JobNo,
 			JobName:       j.JobName,
 			CustName:      j.CustName,
@@ -382,7 +400,7 @@ func RegisterJob104(s *mcp.Server, c *job104.Client) {
 
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "104_get_job_detail",
-		Description: "Get the full job description for a 104 job code (jobNo from search results).",
+		Description: "Get the full job description for a 104 job code (jobCode from 104_search_jobs results, not jobNo).",
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, in *job104DetailInput) (*mcp.CallToolResult, *job104DetailOutput, error) {
 		resp, err := c.GetJobDetail(ctx, job104.GetJobDetailParams{JobCode: in.JobCode})
 		if err != nil {
