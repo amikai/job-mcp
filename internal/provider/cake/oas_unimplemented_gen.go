@@ -19,7 +19,7 @@ var _ Handler = UnimplementedHandler{}
 // needed for the full job description: `description` and `requirements` are returned as HTML strings.
 //
 // GET /api/client/v1/jobs/{path}
-func (UnimplementedHandler) GetJobDetail(ctx context.Context, params GetJobDetailParams) (r GetJobDetailRes, _ error) {
+func (UnimplementedHandler) GetJobDetail(ctx context.Context, params GetJobDetailParams) (r *JobDetail, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -32,7 +32,7 @@ func (UnimplementedHandler) GetJobDetail(ctx context.Context, params GetJobDetai
 // page. Use `filters: {}` when no filters are needed.
 //
 // POST /api/client/v1/jobs/search
-func (UnimplementedHandler) SearchJobs(ctx context.Context, req *JobSearchRequest) (r SearchJobsRes, _ error) {
+func (UnimplementedHandler) SearchJobs(ctx context.Context, req *JobSearchRequest) (r *JobSearchResponse, _ error) {
 	return r, ht.ErrNotImplemented
 }
 

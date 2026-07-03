@@ -98,11 +98,8 @@ func TestGetJobDetail(t *testing.T) {
 	c, err := NewClient(srv.URL, WithClient(srv.Client()))
 	require.NoError(t, err)
 
-	res, err := c.GetJobDetail(t.Context(), GetJobDetailParams{JobCode: "624o1"})
+	got, err := c.GetJobDetail(t.Context(), GetJobDetailParams{JobCode: "624o1"})
 	require.NoError(t, err)
-
-	got, ok := res.(*JobDetailResponse)
-	require.True(t, ok, "expected *JobDetailResponse, got %T", res)
 
 	want := &JobDetailResponse{
 		Data: JobDetail{

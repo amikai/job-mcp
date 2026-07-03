@@ -91,27 +91,17 @@ func main() {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
-	searchRes, err := client.SearchJobs(ctx, &req)
+	search, err := client.SearchJobs(ctx, &req)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
-	search, ok := searchRes.(*cake.JobSearchResponse)
-	if !ok {
-		fmt.Fprintf(os.Stderr, "search returned %T\n", searchRes)
 		os.Exit(1)
 	}
 
 	details := make(map[string]*cake.JobDetail, len(search.Data))
 	for _, job := range search.Data {
-		detailRes, err := client.GetJobDetail(ctx, cake.GetJobDetailParams{Path: job.Path})
+		detail, err := client.GetJobDetail(ctx, cake.GetJobDetailParams{Path: job.Path})
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "job detail %s: %v\n", job.Path, err)
-			os.Exit(1)
-		}
-		detail, ok := detailRes.(*cake.JobDetail)
-		if !ok {
-			fmt.Fprintf(os.Stderr, "job detail %s returned %T\n", job.Path, detailRes)
 			os.Exit(1)
 		}
 		details[job.Path] = detail

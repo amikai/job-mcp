@@ -123,7 +123,7 @@ func (s *Server) handleGetJobDetailRequest(args [1]string, argsEscaped bool, w h
 
 	var rawBody []byte
 
-	var response GetJobDetailRes
+	var response *JobDetailResponse
 	if m := s.cfg.Middleware; m != nil {
 		mreq := middleware.Request{
 			Context:          ctx,
@@ -144,7 +144,7 @@ func (s *Server) handleGetJobDetailRequest(args [1]string, argsEscaped bool, w h
 		type (
 			Request  = struct{}
 			Params   = GetJobDetailParams
-			Response = GetJobDetailRes
+			Response = *JobDetailResponse
 		)
 		response, err = middleware.HookMiddleware[
 			Request,

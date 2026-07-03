@@ -87,16 +87,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/JobsResponse"
-        "400":
-          description: >
-            Malformed request — e.g. `limit` above 20, or an unknown facet
-            parameter/value id.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
         default:
-          description: Unexpected error.
+          description: >
+            Any non-200 status. The API is reverse-engineered, so error codes
+            are not exhaustively known; a 400 has been observed for malformed
+            requests — e.g. `limit` above 20, or an unknown facet
+            parameter/value id.
           content:
             application/json:
               schema:
@@ -136,14 +132,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/JobDetailResponse"
-        "404":
-          description: Job posting not found or no longer active.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
         default:
-          description: Unexpected error.
+          description: >
+            Any non-200 status. The API is reverse-engineered, so error codes
+            are not exhaustively known; a 404 has been observed when the job
+            posting is gone or no longer active.
           content:
             application/json:
               schema:

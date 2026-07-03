@@ -34,7 +34,7 @@ type Invoker interface {
 	// `https://www.104.com.tw/job/624o1` → `624o1`).
 	//
 	// GET /job/ajax/content/{jobCode}
-	GetJobDetail(ctx context.Context, params GetJobDetailParams) (GetJobDetailRes, error)
+	GetJobDetail(ctx context.Context, params GetJobDetailParams) (*JobDetailResponse, error)
 	// SearchJobs invokes searchJobs operation.
 	//
 	// Searches jobs by keyword and/or filters. All parameters are optional; omit a parameter to leave that
@@ -89,12 +89,12 @@ func (c *Client) requestURL(ctx context.Context) *url.URL {
 // `https://www.104.com.tw/job/624o1` → `624o1`).
 //
 // GET /job/ajax/content/{jobCode}
-func (c *Client) GetJobDetail(ctx context.Context, params GetJobDetailParams) (GetJobDetailRes, error) {
+func (c *Client) GetJobDetail(ctx context.Context, params GetJobDetailParams) (*JobDetailResponse, error) {
 	res, err := c.sendGetJobDetail(ctx, params)
 	return res, err
 }
 
-func (c *Client) sendGetJobDetail(ctx context.Context, params GetJobDetailParams) (res GetJobDetailRes, err error) {
+func (c *Client) sendGetJobDetail(ctx context.Context, params GetJobDetailParams) (res *JobDetailResponse, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("getJobDetail"),
 		semconv.HTTPRequestMethodKey.String("GET"),

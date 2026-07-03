@@ -65,8 +65,6 @@ func (s *ErrorResponse) SetAdditionalProps(val ErrorResponseAdditional) {
 	s.AdditionalProps = val
 }
 
-func (*ErrorResponse) getJobDetailRes() {}
-
 type ErrorResponseAdditional map[string]jx.Raw
 
 func (s *ErrorResponseAdditional) init() ErrorResponseAdditional {
@@ -515,8 +513,6 @@ func (s *JobDetailResponse) GetData() JobDetail {
 func (s *JobDetailResponse) SetData(val JobDetail) {
 	s.Data = val
 }
-
-func (*JobDetailResponse) getJobDetailRes() {}
 
 type JobDetailWelfare struct {
 	Welfare OptString `json:"welfare"`

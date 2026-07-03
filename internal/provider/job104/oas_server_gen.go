@@ -14,7 +14,7 @@ type Handler interface {
 	// `https://www.104.com.tw/job/624o1` → `624o1`).
 	//
 	// GET /job/ajax/content/{jobCode}
-	GetJobDetail(ctx context.Context, params GetJobDetailParams) (GetJobDetailRes, error)
+	GetJobDetail(ctx context.Context, params GetJobDetailParams) (*JobDetailResponse, error)
 	// SearchJobs implements searchJobs operation.
 	//
 	// Searches jobs by keyword and/or filters. All parameters are optional; omit a parameter to leave that

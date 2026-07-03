@@ -62,16 +62,13 @@ func TestSearchJobs(t *testing.T) {
 	c, err := NewClient(srv.URL, WithClient(srv.Client()))
 	require.NoError(t, err)
 
-	res, err := c.SearchJobs(t.Context(), &JobsRequest{
+	got, err := c.SearchJobs(t.Context(), &JobsRequest{
 		AppliedFacets: AppliedFacets{},
 		Limit:         20,
 		Offset:        0,
 		SearchText:    "golang",
 	})
 	require.NoError(t, err)
-
-	got, ok := res.(*JobsResponse)
-	require.True(t, ok, "expected *JobsResponse, got %T", res)
 
 	want := &JobsResponse{
 		Total: 27,
@@ -209,14 +206,11 @@ func TestGetJobDetail(t *testing.T) {
 	c, err := NewClient(srv.URL, WithClient(srv.Client()))
 	require.NoError(t, err)
 
-	res, err := c.GetJobDetail(t.Context(), GetJobDetailParams{
+	got, err := c.GetJobDetail(t.Context(), GetJobDetailParams{
 		Location:  "Israel-Yokneam",
 		TitleSlug: "Senior-Software-Golang-Kubernetes-Engineer_JR2015916",
 	})
 	require.NoError(t, err)
-
-	got, ok := res.(*JobDetailResponse)
-	require.True(t, ok, "expected *JobDetailResponse, got %T", res)
 
 	want := &JobDetailResponse{
 		JobPostingInfo: JobPostingInfo{

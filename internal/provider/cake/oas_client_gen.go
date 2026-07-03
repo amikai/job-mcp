@@ -34,7 +34,7 @@ type Invoker interface {
 	// needed for the full job description: `description` and `requirements` are returned as HTML strings.
 	//
 	// GET /api/client/v1/jobs/{path}
-	GetJobDetail(ctx context.Context, params GetJobDetailParams) (GetJobDetailRes, error)
+	GetJobDetail(ctx context.Context, params GetJobDetailParams) (*JobDetail, error)
 	// SearchJobs invokes searchJobs operation.
 	//
 	// Searches jobs by keyword and returns paginated results. For the minimal job-description workflow,
@@ -44,7 +44,7 @@ type Invoker interface {
 	// page. Use `filters: {}` when no filters are needed.
 	//
 	// POST /api/client/v1/jobs/search
-	SearchJobs(ctx context.Context, request *JobSearchRequest) (SearchJobsRes, error)
+	SearchJobs(ctx context.Context, request *JobSearchRequest) (*JobSearchResponse, error)
 }
 
 // Client implements OAS client.
@@ -92,12 +92,12 @@ func (c *Client) requestURL(ctx context.Context) *url.URL {
 // needed for the full job description: `description` and `requirements` are returned as HTML strings.
 //
 // GET /api/client/v1/jobs/{path}
-func (c *Client) GetJobDetail(ctx context.Context, params GetJobDetailParams) (GetJobDetailRes, error) {
+func (c *Client) GetJobDetail(ctx context.Context, params GetJobDetailParams) (*JobDetail, error) {
 	res, err := c.sendGetJobDetail(ctx, params)
 	return res, err
 }
 
-func (c *Client) sendGetJobDetail(ctx context.Context, params GetJobDetailParams) (res GetJobDetailRes, err error) {
+func (c *Client) sendGetJobDetail(ctx context.Context, params GetJobDetailParams) (res *JobDetail, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("getJobDetail"),
 		semconv.HTTPRequestMethodKey.String("GET"),
@@ -194,12 +194,12 @@ func (c *Client) sendGetJobDetail(ctx context.Context, params GetJobDetailParams
 // page. Use `filters: {}` when no filters are needed.
 //
 // POST /api/client/v1/jobs/search
-func (c *Client) SearchJobs(ctx context.Context, request *JobSearchRequest) (SearchJobsRes, error) {
+func (c *Client) SearchJobs(ctx context.Context, request *JobSearchRequest) (*JobSearchResponse, error) {
 	res, err := c.sendSearchJobs(ctx, request)
 	return res, err
 }
 
-func (c *Client) sendSearchJobs(ctx context.Context, request *JobSearchRequest) (res SearchJobsRes, err error) {
+func (c *Client) sendSearchJobs(ctx context.Context, request *JobSearchRequest) (res *JobSearchResponse, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("searchJobs"),
 		semconv.HTTPRequestMethodKey.String("POST"),

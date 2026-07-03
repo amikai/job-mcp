@@ -83,15 +83,9 @@ func main() {
 			fmt.Println()
 			continue
 		}
-		detailRes, err := client.GetJobDetail(ctx, job104.GetJobDetailParams{JobCode: code})
+		detail, err := client.GetJobDetail(ctx, job104.GetJobDetailParams{JobCode: code})
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "job detail %s: %v\n", code, err)
-			fmt.Println()
-			continue
-		}
-		detail, ok := detailRes.(*job104.JobDetailResponse)
-		if !ok {
-			fmt.Fprintf(os.Stderr, "job detail %s returned %T\n", code, detailRes)
 			fmt.Println()
 			continue
 		}

@@ -77,14 +77,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/JobSearchResponse"
-        "422":
-          description: Required search fields are missing or invalid.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ValidationError"
         default:
-          description: Unexpected error.
+          description: >
+            Any non-200 status. The API is reverse-engineered, so error codes
+            are not exhaustively known; a 422 has been observed when required
+            search fields are missing or invalid.
           content:
             application/json:
               schema:
@@ -114,14 +111,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/JobDetail"
-        "404":
-          description: Job path was not found.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
         default:
-          description: Unexpected error.
+          description: >
+            Any non-200 status. The API is reverse-engineered, so error codes
+            are not exhaustively known; a 404 has been observed when the job
+            path was not found.
           content:
             application/json:
               schema:
@@ -458,16 +452,6 @@ components:
           type: string
           description: Job requirements as an HTML string. May be an empty string.
           example: "<p><strong>【基本條件】</strong></p>"
-
-    ValidationError:
-      allOf:
-        - $ref: "#/components/schemas/ErrorResponse"
-      example:
-        error_code: null
-        msg: "Unprocessable entity"
-        error: "Unprocessable entity"
-        detail:
-          filters: "Field required"
 
     ErrorResponse:
       type: object

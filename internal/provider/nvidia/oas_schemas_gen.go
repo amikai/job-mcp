@@ -1560,9 +1560,6 @@ func (s *ErrorResponse) SetAdditionalProps(val ErrorResponseAdditional) {
 	s.AdditionalProps = val
 }
 
-func (*ErrorResponse) getJobDetailRes() {}
-func (*ErrorResponse) searchJobsRes()   {}
-
 type ErrorResponseAdditional map[string]jx.Raw
 
 func (s *ErrorResponseAdditional) init() ErrorResponseAdditional {
@@ -1614,8 +1611,6 @@ func (s *JobDetailResponse) GetJobPostingInfo() JobPostingInfo {
 func (s *JobDetailResponse) SetJobPostingInfo(val JobPostingInfo) {
 	s.JobPostingInfo = val
 }
-
-func (*JobDetailResponse) getJobDetailRes() {}
 
 // Ref: #/components/schemas/JobPostingInfo
 type JobPostingInfo struct {
@@ -1846,8 +1841,6 @@ func (s *JobsResponse) SetTotal(val int) {
 func (s *JobsResponse) SetJobPostings(val []JobSummary) {
 	s.JobPostings = val
 }
-
-func (*JobsResponse) searchJobsRes() {}
 
 // NewOptInt returns new OptInt with value set to v.
 func NewOptInt(v int) OptInt {
