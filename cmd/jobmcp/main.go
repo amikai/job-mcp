@@ -24,14 +24,44 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
+var (
+	version = "version"
+	commit  = "commit"
+	date    = "date"
+)
+
+// serverInstructions carries the cross-tool guidance for host LLMs: provider
+// routing and the shared search→detail flow. Per-tool behavior stays in each
+// tool's description.
+const serverInstructions = `job-mcp exposes job-search tools for five job boards: 104 and Cake.me (both Taiwan-centric), plus the official careers sites of Google, NVIDIA, and TSMC.
+
+Tool selection:
+- When the user names a site or company, use that provider's tools.
+- When the user has no target in mind, offer them the provider choices; if they don't pick one, start with the job boards (104 and Cake.me) rather than a single company's careers site.
+
+Query construction:
+- Listen carefully to the user's stated criteria and map each one onto a search parameter when a matching parameter exists; enforce criteria the parameters cannot express by filtering the results yourself.
+- Keep the keyword parameter to role titles, skills, or technologies. Location, job type, seniority, and other constraints go in their dedicated parameters, never embedded in the keyword string.
+- Every provider follows the same search-then-detail flow: <provider>_search_jobs returns summaries carrying an identifier (job code, ID, or path), and <provider>_get_job_detail exchanges that identifier for the full posting. Identifiers are provider-specific and not interchangeable. The detail step is conditional, not automatic: when a summary from the search step fails the user's criteria, drop it and never call get_job_detail for it.
+
+Context management:
+- Search results are paginated; fetch additional pages rather than broadening the query.
+- After filtering, fetch details when both hold: the user's criteria include something summaries can't answer (tech stack, remote policy, overtime culture, education requirements written in the posting body, etc.), and the filtered set is small enough to fetch economically (roughly 5-10 postings). If either condition fails, present summaries and let the user decide whether to go deeper.`
+
 func main() {
 	fs := ff.NewFlagSet("jobmcp")
 	var (
 		logFile              = fs.StringLong("log-file", "", "path to the log file (defaults to empty, outputs to stderr)")
 		enableCommandLogging = fs.BoolLong("enable-command-logging", "log raw JSON-RPC traffic to the log output")
+		versionFlag          = fs.BoolLong("version", "print version information and exit")
 	)
-	if err := ff.Parse(fs, os.Args[1:]); err != nil {
-		fmt.Fprintln(os.Stderr, ffhelp.Flags(fs))
+	cmd := &ff.Command{
+		Name:      "jobmcp",
+		ShortHelp: "MCP server exposing job-search tools for job boards and company careers sites",
+		Flags:     fs,
+	}
+	if err := cmd.Parse(os.Args[1:]); err != nil {
+		fmt.Fprintln(os.Stderr, ffhelp.Command(cmd))
 		if errors.Is(err, ff.ErrHelp) {
 			os.Exit(0)
 		}
@@ -39,9 +69,14 @@ func main() {
 		os.Exit(1)
 	}
 
+	if *versionFlag {
+		fmt.Printf("Version: %s\nCommit: %s\nBuild Date: %s\n", version, commit, date)
+		os.Exit(0)
+	}
+
 	logOutput := io.Writer(os.Stderr)
 	if *logFile != "" {
-		file, err := os.OpenFile(*logFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0600)
+		file, err := os.OpenFile(*logFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o600)
 		if err != nil {
 			log.Fatalf("failed to open log file: %v", err)
 		}
@@ -94,26 +129,8 @@ func runWithTransport(transport mcp.Transport, logger *slog.Logger) error {
 	return nil
 }
 
-// serverInstructions carries the cross-tool guidance for host LLMs: provider
-// routing and the shared search→detail flow. Per-tool behavior stays in each
-// tool's description.
-const serverInstructions = `job-mcp exposes job-search tools for five job boards: 104 and Cake.me (both Taiwan-centric), plus the official careers sites of Google, NVIDIA, and TSMC.
-
-Tool selection:
-- When the user names a site or company, use that provider's tools.
-- When the user has no target in mind, offer them the provider choices; if they don't pick one, start with the job boards (104 and Cake.me) rather than a single company's careers site.
-
-Query construction:
-- Listen carefully to the user's stated criteria and map each one onto a search parameter when a matching parameter exists; enforce criteria the parameters cannot express by filtering the results yourself.
-- Keep the keyword parameter to role titles, skills, or technologies. Location, job type, seniority, and other constraints go in their dedicated parameters, never embedded in the keyword string.
-- Every provider follows the same search-then-detail flow: <provider>_search_jobs returns summaries carrying an identifier (job code, ID, or path), and <provider>_get_job_detail exchanges that identifier for the full posting. Identifiers are provider-specific and not interchangeable. The detail step is conditional, not automatic: when a summary from the search step fails the user's criteria, drop it and never call get_job_detail for it.
-
-Context management:
-- Search results are paginated; fetch additional pages rather than broadening the query.
-- After filtering, fetch details when both hold: the user's criteria include something summaries can't answer (tech stack, remote policy, overtime culture, education requirements written in the posting body, etc.), and the filtered set is small enough to fetch economically (roughly 5-10 postings). If either condition fails, present summaries and let the user decide whether to go deeper.`
-
 func newServer(c104 *job104.Client, cCake *cake.Client, cNvidia *nvidia.Client, cTsmc *tsmc.Client, cGoogle *google.Client, logger *slog.Logger) *mcp.Server {
-	server := mcp.NewServer(&mcp.Implementation{Name: "job-mcp"}, &mcp.ServerOptions{Instructions: serverInstructions, Logger: logger})
+	server := mcp.NewServer(&mcp.Implementation{Name: "job-mcp", Version: version}, &mcp.ServerOptions{Instructions: serverInstructions, Logger: logger})
 	server.AddReceivingMiddleware(logging.ErrorLoggingMiddleware(logger))
 	jobmcp.RegisterJob104(server, c104)
 	jobmcp.RegisterCake(server, cCake)
