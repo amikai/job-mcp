@@ -18,7 +18,6 @@ var mockJobDetailRsp []byte
 func NewMockServer() *httptest.Server {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/zh_TW/careers/SearchJobs/", serveMockHTML(mockJobsRsp))
-	mux.HandleFunc("/zh_TW/careers/SearchJobs", serveMockHTML(mockJobsRsp))
 	mux.HandleFunc("/zh_TW/careers/JobDetail", serveMockHTML(mockJobDetailRsp))
 	return httptest.NewServer(mux)
 }

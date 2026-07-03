@@ -70,23 +70,21 @@ func runWithTransport(transport mcp.Transport, logger *slog.Logger) error {
 		return err
 	}
 
-	hcCake := &http.Client{Timeout: 30 * time.Second}
-	cCake, err := cake.NewClient("https://api.cake.me", cake.WithClient(hcCake))
+	hc := &http.Client{Timeout: 30 * time.Second}
+
+	cCake, err := cake.NewClient("https://api.cake.me", cake.WithClient(hc))
 	if err != nil {
 		return err
 	}
 
-	hcNvidia := &http.Client{Timeout: 30 * time.Second}
-	cNvidia, err := nvidia.NewClient("https://nvidia.wd5.myworkdayjobs.com/wday/cxs/nvidia/NVIDIAExternalCareerSite", nvidia.WithClient(hcNvidia))
+	cNvidia, err := nvidia.NewClient("https://nvidia.wd5.myworkdayjobs.com/wday/cxs/nvidia/NVIDIAExternalCareerSite", nvidia.WithClient(hc))
 	if err != nil {
 		return err
 	}
 
-	hcTsmc := &http.Client{Timeout: 30 * time.Second}
-	cTsmc := tsmc.NewClient("https://careers.tsmc.com", hcTsmc)
+	cTsmc := tsmc.NewClient("https://careers.tsmc.com", hc)
 
-	hcGoogle := &http.Client{Timeout: 30 * time.Second}
-	cGoogle := google.NewClient("https://www.google.com/about/careers/applications", hcGoogle)
+	cGoogle := google.NewClient("https://www.google.com/about/careers/applications", hc)
 
 	server := newServer(c104, cCake, cNvidia, cTsmc, cGoogle, logger)
 

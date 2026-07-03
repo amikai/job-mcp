@@ -10,13 +10,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestJobCodeFromURL(t *testing.T) {
-	got := jobCodeFromURL("https://www.104.com.tw/job/abc123?jobsource=foo")
-	if got != "abc123" {
-		t.Fatalf("jobCodeFromURL() = %q", got)
-	}
-}
-
 func TestBuildSearchParamsUnfilteredByDefault(t *testing.T) {
 	got, err := buildSearchParams("Golang", "", "", "", nil, "", nil, 0)
 	require.NoError(t, err)

@@ -1,6 +1,7 @@
 package synopsys
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -148,7 +149,7 @@ func parseJobDetail(r io.Reader) (*JobDetailResponse, error) {
 }
 
 func parseAtsDesc(body []byte) (category, hireType, remoteEligible, description string) {
-	doc, err := html.Parse(strings.NewReader(string(body)))
+	doc, err := html.Parse(bytes.NewReader(body))
 	if err != nil {
 		return
 	}

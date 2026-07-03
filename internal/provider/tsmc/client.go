@@ -19,18 +19,10 @@ const (
 
 // Query parameter field IDs
 const (
-	ParamOrganization   = "4177"
 	ParamLocation       = "1277"
 	ParamCategory       = "558"
 	ParamJobType        = "147"
 	ParamEmploymentType = "542"
-)
-
-// Organization (field 4177)
-const (
-	OrgTSMCGroup = "5410262"
-	OrgESMC      = "5410263"
-	OrgJASM      = "5410264"
 )
 
 // Location (field 1277)

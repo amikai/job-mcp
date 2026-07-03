@@ -12,10 +12,7 @@ import (
 	"golang.org/x/net/html"
 )
 
-const (
-	jobsPath      = "/jobs/results"
-	jobDetailPath = "/jobs/results/%s" // id
-)
+const jobsPath = "/jobs/results"
 
 type Client struct {
 	httpClient *http.Client
@@ -68,15 +65,11 @@ func NewClient(baseURL string, httpClient *http.Client) *Client {
 }
 
 func (c *Client) jobsRawURL(req *JobsRequest) (string, error) {
-	ru, err := url.JoinPath(c.baseURL, jobsPath)
+	u, err := url.Parse(c.baseURL)
 	if err != nil {
-		return "", fmt.Errorf("join path %s, %s: %w", c.baseURL, jobsPath, err)
+		return "", fmt.Errorf("parse url %s: %w", c.baseURL, err)
 	}
-
-	u, err := url.Parse(ru)
-	if err != nil {
-		return "", fmt.Errorf("parse url %s: %w", ru, err)
-	}
+	u = u.JoinPath(jobsPath)
 
 	q := u.Query()
 	if req.Query != "" {
@@ -115,21 +108,11 @@ func (c *Client) Jobs(ctx context.Context, req *JobsRequest) (*JobsResponse, err
 	return &JobsResponse{Jobs: parseJobsHTML(doc)}, nil
 }
 
-func (c *Client) jobsDetailRawURL(jobID string) (string, error) {
-	if jobID == "" {
-		return "", errors.New("empty job id")
-	}
-
-	u, err := url.JoinPath(c.baseURL, fmt.Sprintf(jobDetailPath, jobID))
-	if err != nil {
-		return "", fmt.Errorf("join path: %w", err)
-	}
-
-	return u, nil
-}
-
 func (c *Client) JobDetail(ctx context.Context, jobID string) (*JobDetailResponse, error) {
-	u, err := c.jobsDetailRawURL(jobID)
+	if jobID == "" {
+		return nil, errors.New("empty job id")
+	}
+	u, err := url.JoinPath(c.baseURL, jobsPath, jobID)
 	if err != nil {
 		return nil, fmt.Errorf("build job detail url: %w", err)
 	}

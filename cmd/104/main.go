@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
 	"os"
 	"sort"
 	"strings"
@@ -68,7 +67,7 @@ func main() {
 	fmt.Printf("Found %d jobs (page %d/%d); showing %d\n\n", p.Total, p.CurrentPage, p.LastPage, len(search.Data))
 
 	for i, job := range search.Data {
-		code := jobCodeFromURL(job.Link.Job)
+		code := job104.JobCodeFromURL(job.Link.Job)
 		fmt.Printf("%d. [%s] %s\n", i+1, code, job.JobName)
 		fmt.Printf("Company: %s\n", job.CustName)
 		if job.JobAddrNoDesc != "" {
@@ -161,16 +160,6 @@ func writeDetail(w io.Writer, detail *job104.JobDetailResponse) {
 	if jd.JobDescription.Set && jd.JobDescription.Value != "" {
 		fmt.Fprintf(w, "Description:\n%s\n", strings.TrimSpace(jd.JobDescription.Value))
 	}
-}
-
-func jobCodeFromURL(raw string) string {
-	u, err := url.Parse(raw)
-	if err == nil {
-		raw = u.Path
-	}
-	raw = strings.TrimRight(raw, "/")
-	parts := strings.Split(raw, "/")
-	return parts[len(parts)-1]
 }
 
 // labels returns the sorted keys of a generic lookup table.

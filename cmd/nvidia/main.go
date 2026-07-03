@@ -4,20 +4,17 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"html"
 	"os"
-	"regexp"
 	"sort"
 	"strings"
 	"time"
 
+	"github.com/jaytaylor/html2text"
 	"github.com/peterbourgon/ff/v4"
 	"github.com/peterbourgon/ff/v4/ffhelp"
 
 	nvidia "github.com/amikai/job-mcp/internal/provider/nvidia"
 )
-
-var tagRE = regexp.MustCompile(`<[^>]+>`)
 
 // nvidiaSiteURL is the public careers site origin, distinct from --base-url
 // (the wday/cxs API origin). ExternalPath values (e.g.
@@ -86,7 +83,7 @@ func main() {
 			fmt.Printf("Posted: %s\n", job.PostedOn.Value)
 		}
 
-		location, titleSlug, split := splitExternalPath(job.ExternalPath.Value)
+		location, titleSlug, split := nvidia.SplitExternalPath(job.ExternalPath.Value)
 		if !split {
 			fmt.Fprintf(os.Stderr, "could not split externalPath %q\n", job.ExternalPath.Value)
 			fmt.Println()
@@ -114,7 +111,11 @@ func main() {
 			fmt.Printf("URL: %s\n", detail.JobPostingInfo.ExternalUrl.Value)
 		}
 		printLocations(detail.JobPostingInfo)
-		if description := plainText(detail.JobPostingInfo.JobDescription); description != "" {
+		description, err := html2text.FromString(detail.JobPostingInfo.JobDescription, html2text.Options{})
+		if err != nil {
+			description = detail.JobPostingInfo.JobDescription
+		}
+		if description != "" {
 			fmt.Printf("Description:\n%s\n", description)
 		}
 		fmt.Println()
@@ -172,16 +173,6 @@ func usageWithChoices[V any](base string, table map[string]V) string {
 	return fmt.Sprintf("%s, one of: %s", base, strings.Join(choices, " | "))
 }
 
-// splitExternalPath splits a JobSummary.ExternalPath (e.g.
-// "/job/US-CA-Remote/Software-Engineer--CUDA-Q_JR2011649") into the two path
-// segments GetJobDetail expects. The API rejects a single combined path
-// parameter because standard URI encoders escape the "/" between them.
-func splitExternalPath(externalPath string) (location, titleSlug string, ok bool) {
-	trimmed := strings.TrimPrefix(externalPath, "/job/")
-	location, titleSlug, ok = strings.Cut(trimmed, "/")
-	return location, titleSlug, ok
-}
-
 // printLocations prints the itemized location(s) from a job detail response.
 // Unlike JobSummary.LocationsText (which collapses multi-site postings into
 // an aggregate string like "2 Locations"), JobPostingInfo carries the actual
@@ -203,14 +194,4 @@ func printLocations(info nvidia.JobPostingInfo) {
 	for _, l := range locations {
 		fmt.Printf("  - %s\n", l)
 	}
-}
-
-func plainText(s string) string {
-	s = strings.ReplaceAll(s, "<br>", "\n")
-	s = strings.ReplaceAll(s, "<br/>", "\n")
-	s = strings.ReplaceAll(s, "<br />", "\n")
-	s = tagRE.ReplaceAllString(s, "")
-	s = html.UnescapeString(s)
-	lines := strings.Fields(s)
-	return strings.Join(lines, " ")
 }

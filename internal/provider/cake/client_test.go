@@ -4,7 +4,6 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -24,27 +23,15 @@ func newMockServer(t *testing.T) *httptest.Server {
 		require.NoError(t, err)
 		assert.JSONEq(t, `{"query":"Golang","sort_by":"popularity","filters":{}}`, string(body))
 
-		serveTestdata("testdata/jobs_rsp.json")(w, r)
+		serveMockJSON(mockJobsRsp)(w, r)
 	})
 
 	mux.HandleFunc("/api/client/v1/jobs/senior-golang-web-backend-engineer-taoyuan", func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodGet, r.Method)
-		serveTestdata("testdata/job_detail_rsp.json")(w, r)
+		serveMockJSON(mockJobDetailRsp)(w, r)
 	})
 
 	return httptest.NewServer(mux)
-}
-
-func serveTestdata(path string) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		data, err := os.ReadFile(path)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.Write(data)
-	}
 }
 
 func TestSearchJobs(t *testing.T) {

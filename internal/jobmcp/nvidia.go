@@ -1,10 +1,10 @@
 package jobmcp
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/amikai/job-mcp/internal/provider/nvidia"
 	"github.com/jaytaylor/html2text"
@@ -208,10 +208,7 @@ func nvidiaMCPToHTTPRequest(in *nvidiaSearchInput) (*nvidia.JobsRequest, error) 
 		req.AppliedFacets.Locations = []nvidia.AppliedFacetsLocationsItem{id}
 	}
 
-	req.Limit = in.Limit
-	if req.Limit == 0 {
-		req.Limit = 20
-	}
+	req.Limit = cmp.Or(in.Limit, 20)
 	req.Offset = in.Offset
 	return &req, nil
 }
@@ -277,7 +274,7 @@ func RegisterNvidia(s *mcp.Server, c *nvidia.Client) {
 		Description: "Get the full job description and requirements for an NVIDIA job by external path.",
 		Annotations: &mcp.ToolAnnotations{Title: "Get NVIDIA job details", ReadOnlyHint: true},
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, in *nvidiaDetailInput) (*mcp.CallToolResult, *nvidiaDetailOutput, error) {
-		location, titleSlug, ok := strings.Cut(strings.TrimPrefix(in.ExternalPath, "/job/"), "/")
+		location, titleSlug, ok := nvidia.SplitExternalPath(in.ExternalPath)
 		if !ok {
 			return errorResult(fmt.Errorf("invalid external_path %q; must be in format '/job/{location}/{titleSlug}'", in.ExternalPath)), nil, nil
 		}
