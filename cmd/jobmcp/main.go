@@ -3,12 +3,16 @@ package main
 import (
 	"context"
 	"errors"
+	"flag"
 	"io"
 	"log"
+	"log/slog"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/amikai/job-mcp/internal/jobmcp"
+	"github.com/amikai/job-mcp/internal/logging"
 	"github.com/amikai/job-mcp/internal/provider/cake"
 	"github.com/amikai/job-mcp/internal/provider/google"
 	"github.com/amikai/job-mcp/internal/provider/job104"
@@ -18,12 +22,43 @@ import (
 )
 
 func main() {
-	if err := runWithTransport(&mcp.StdioTransport{}); err != nil {
+	logFile := flag.String("log-file", "", "path to the log file (defaults to empty, outputs to stderr)")
+	enableCommandLogging := flag.Bool("enable-command-logging", false, "enable raw JSON-RPC command logging to the log file")
+	flag.Parse()
+
+	var slogHandler slog.Handler
+	var logOutput io.Writer
+	if *logFile != "" {
+		file, err := os.OpenFile(*logFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0600)
+		if err != nil {
+			log.Fatalf("failed to open log file: %v", err)
+		}
+		defer file.Close()
+		logOutput = file
+		slogHandler = slog.NewTextHandler(logOutput, &slog.HandlerOptions{Level: slog.LevelDebug})
+	} else {
+		logOutput = os.Stderr
+		slogHandler = slog.NewTextHandler(logOutput, &slog.HandlerOptions{Level: slog.LevelInfo})
+	}
+	logger := slog.New(slogHandler)
+
+	var transport mcp.Transport
+	if *enableCommandLogging {
+		ioLogger := logging.NewIOLogger(os.Stdin, os.Stdout, logger)
+		transport = &mcp.IOTransport{
+			Reader: ioLogger,
+			Writer: ioLogger,
+		}
+	} else {
+		transport = &mcp.StdioTransport{}
+	}
+
+	if err := runWithTransport(transport, logger); err != nil {
 		log.Fatal(err)
 	}
 }
 
-func runWithTransport(transport mcp.Transport) error {
+func runWithTransport(transport mcp.Transport, logger *slog.Logger) error {
 	// One connection pool, with a ceiling so a hung upstream fails that call
 	// instead of stalling the MCP session.
 	hc104 := &http.Client{Timeout: 30 * time.Second, Transport: job104.BrowserTransport{}}
@@ -51,7 +86,7 @@ func runWithTransport(transport mcp.Transport) error {
 	hcGoogle := &http.Client{Timeout: 30 * time.Second}
 	cGoogle := google.NewClient("https://www.google.com/about/careers/applications", hcGoogle)
 
-	server := newServer(c104, cCake, cNvidia, cTsmc, cGoogle)
+	server := newServer(c104, cCake, cNvidia, cTsmc, cGoogle, logger)
 
 	if err := server.Run(context.Background(), transport); err != nil && !errors.Is(err, io.EOF) {
 		return err
@@ -72,8 +107,9 @@ Context management:
 - Search results are paginated; fetch additional pages rather than broadening the query.
 - Fetch job details only for postings you intend to present.`
 
-func newServer(c104 *job104.Client, cCake *cake.Client, cNvidia *nvidia.Client, cTsmc *tsmc.Client, cGoogle *google.Client) *mcp.Server {
+func newServer(c104 *job104.Client, cCake *cake.Client, cNvidia *nvidia.Client, cTsmc *tsmc.Client, cGoogle *google.Client, logger *slog.Logger) *mcp.Server {
 	server := mcp.NewServer(&mcp.Implementation{Name: "job-mcp"}, &mcp.ServerOptions{Instructions: serverInstructions})
+	server.AddReceivingMiddleware(logging.ErrorLoggingMiddleware(logger))
 	jobmcp.RegisterJob104(server, c104)
 	jobmcp.RegisterCake(server, cCake)
 	jobmcp.RegisterNvidia(server, cNvidia)

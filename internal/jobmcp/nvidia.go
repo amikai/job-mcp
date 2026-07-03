@@ -260,14 +260,14 @@ func RegisterNvidia(s *mcp.Server, c *nvidia.Client) {
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, in *nvidiaSearchInput) (*mcp.CallToolResult, *nvidiaSearchOutput, error) {
 		req, err := nvidiaMCPToHTTPRequest(in)
 		if err != nil {
-			return errorResult(err), nil, nil
+			return errorResult(ctx, err), nil, nil
 		}
 		res, err := c.SearchJobs(ctx, req)
 		if err != nil {
 			if ue, ok := errors.AsType[*nvidia.ErrorResponseStatusCode](err); ok {
-				return errorResult(fmt.Errorf("upstream error: %d", ue.StatusCode)), nil, nil
+				return errorResult(ctx, fmt.Errorf("upstream error: %d", ue.StatusCode)), nil, nil
 			}
-			return errorResult(err), nil, nil
+			return errorResult(ctx, err), nil, nil
 		}
 		return nil, nvidiaHTTPToMCPResponse(res), nil
 	})
@@ -279,7 +279,7 @@ func RegisterNvidia(s *mcp.Server, c *nvidia.Client) {
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, in *nvidiaDetailInput) (*mcp.CallToolResult, *nvidiaDetailOutput, error) {
 		location, titleSlug, ok := strings.Cut(strings.TrimPrefix(in.ExternalPath, "/job/"), "/")
 		if !ok {
-			return errorResult(fmt.Errorf("invalid external_path %q; must be in format '/job/{location}/{titleSlug}'", in.ExternalPath)), nil, nil
+			return errorResult(ctx, fmt.Errorf("invalid external_path %q; must be in format '/job/{location}/{titleSlug}'", in.ExternalPath)), nil, nil
 		}
 		res, err := c.GetJobDetail(ctx, nvidia.GetJobDetailParams{
 			Location:  location,
@@ -287,9 +287,9 @@ func RegisterNvidia(s *mcp.Server, c *nvidia.Client) {
 		})
 		if err != nil {
 			if ue, ok := errors.AsType[*nvidia.ErrorResponseStatusCode](err); ok {
-				return errorResult(fmt.Errorf("upstream error: %d", ue.StatusCode)), nil, nil
+				return errorResult(ctx, fmt.Errorf("upstream error: %d", ue.StatusCode)), nil, nil
 			}
-			return errorResult(err), nil, nil
+			return errorResult(ctx, err), nil, nil
 		}
 		return nil, nvidiaHTTPToMCPDetail(res), nil
 	})

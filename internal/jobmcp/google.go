@@ -197,11 +197,11 @@ func RegisterGoogle(s *mcp.Server, c *google.Client) {
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, in *googleSearchInput) (*mcp.CallToolResult, *googleSearchOutput, error) {
 		req, err := googleMCPToHTTPRequest(in)
 		if err != nil {
-			return errorResult(err), nil, nil
+			return errorResult(ctx, err), nil, nil
 		}
 		res, err := c.Jobs(ctx, req)
 		if err != nil {
-			return errorResult(err), nil, nil
+			return errorResult(ctx, err), nil, nil
 		}
 		return nil, googleHTTPToMCPResponse(res), nil
 	})
@@ -213,7 +213,7 @@ func RegisterGoogle(s *mcp.Server, c *google.Client) {
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, in *googleDetailInput) (*mcp.CallToolResult, *googleDetailOutput, error) {
 		res, err := c.JobDetail(ctx, in.JobID)
 		if err != nil {
-			return errorResult(err), nil, nil
+			return errorResult(ctx, err), nil, nil
 		}
 		return nil, googleHTTPToMCPDetail(res), nil
 	})

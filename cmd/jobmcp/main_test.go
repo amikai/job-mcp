@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"io"
+	"log/slog"
 	"net/http"
 	"strings"
 	"testing"
@@ -37,7 +38,7 @@ func TestServerListsJobTools(t *testing.T) {
 	}
 	cTsmc := tsmc.NewClient("https://careers.tsmc.com", http.DefaultClient)
 	cGoogle := google.NewClient("https://www.google.com/about/careers/applications", http.DefaultClient)
-	server := newServer(c104, cCake, cNvidia, cTsmc, cGoogle)
+	server := newServer(c104, cCake, cNvidia, cTsmc, cGoogle, slog.New(slog.NewTextHandler(io.Discard, nil)))
 	client := mcp.NewClient(&mcp.Implementation{Name: "smoke", Version: "v0"}, nil)
 	serverTransport, clientTransport := mcp.NewInMemoryTransports()
 	serverSession, err := server.Connect(ctx, serverTransport, nil)
@@ -82,7 +83,7 @@ func TestRunWithTransportTreatsStdinEOFAsCleanExit(t *testing.T) {
 		Reader: io.NopCloser(strings.NewReader("")),
 		Writer: writeCloser{Writer: io.Discard},
 	}
-	if err := runWithTransport(transport); err != nil {
+	if err := runWithTransport(transport, slog.New(slog.NewTextHandler(io.Discard, nil))); err != nil {
 		t.Fatalf("runWithTransport() error = %v, want nil", err)
 	}
 }
