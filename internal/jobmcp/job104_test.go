@@ -250,6 +250,7 @@ func TestJob104GetJobDetailE2E(t *testing.T) {
 	want := &job104DetailOutput{
 		JobName:        "軟體工程師 (數位工程發展部)",
 		CompanyName:    "亞新工程顧問股份有限公司",
+		URL:            "https://www.104.com.tw/job/624o1",
 		CompanyURL:     "https://www.104.com.tw/company/264c9zc",
 		AppearDate:     "2026/06/22",
 		JobDescription: "無相關經驗可，大學以上資訊工程、資訊管理等相關科系畢業\n\n【工作內容】\n- 參與智慧工程數位平台的設計、開發與維運\n- 開發與維護 GIS、BIM 系統，並支援無人機地形數據應用\n- 參與 AI 工具與文件管理系統之開發 \n- 與跨領域團隊合作（工程、IoT、BIM、AI），推動數位轉型與自動化流程\n\n【希望條件】\n- 熟悉現代軟體系統研發流程與版本控制\n- 熟悉至少一種指令式程式設計語言（C#、JavaScript、Python、PHP 尤佳）\n- 具 ASP.NET、SQL、Vue.js、Laravel、Unity、GIS、IoT、Revit等開發經驗\n- 具軟體設計、開發、運營、開發、機器學習、AI 模型訓練 (Finetuning)、 AI 應用設計（OCR、RAG、LLM、Agentic 等）開發、導入經驗\n- 具 Azure DevOps、Docker、Kubernetes 經驗者優先\n\n＊我們期待具備高度邏輯思維、善於溝通系統需求與設計選擇，並能獨立完成軟體開發的夥伴加入，一起參與系統規劃與優化。",
@@ -267,8 +268,6 @@ func TestJob104GetJobDetailE2E(t *testing.T) {
 		Welfare:        "在亞新，我們重視同仁的職涯成長與友善職場，透過全方位的福利與支持，推動以人為本、永續發展的職場環境，實現工作與生活的和諧平衡。\n\n【薪酬與獎金】\n  •  具市場競爭力的薪資水準\n  •  年節獎金與專案獎金，共享成果回饋\n\n【健康與保障】\n  •  勞健保及完整團體保險(意外、醫療、重大疾病、職災保障)\n  •  定期健康檢查、健康講座與員工關懷方案\n\n【休假與彈性】\n  •  彈性上下班、育兒友善措施，兼顧生活平衡\n\n【教育訓練與發展】\n  •  完善新人培訓與師徒制\n  •  E-learning 線上學習資源\n  •  專業證照補助（如 PMP、專業技師等）\n  •  外部訓練與國際研討會，拓展國際視野\n  •  參與國家級重大工程，累積獨特專業經驗\n\n【生活與休閒】\n  •  福委會關懷：生日禮金、節慶禮品或禮券、婚喪喜慶、傷病住院慰問與生育補助\n  •  部門聚餐、咖啡分享日、社團活動、Happy Hour，促進交流與凝聚力\n  •  舒適職場環境：明亮開放空間、零食吧、茶包與自助研磨咖啡機\n\n【招募流程】\n  1. 投遞履歷\n  2. HR初審履歷 → 部門主管面試\n  3. Final面談（含專案介紹與Q&A）\n  4. 錄取通知\n （流程清楚透明，讓你安心應徵!)",
 		Industry:       "建築及工程技術服務業",
 		Employees:      "1200人",
-		HrName:         "Rachel Chiu 邱小姐",
-		HrEmail:        "personnel@maaconsultants.com,cj.yu@maaconsultants.com,eugene.shen@maaconsultants.com,fred.chou@maaconsultants.com",
 	}
 	assert.Equal(t, want, &got)
 }
@@ -371,13 +370,14 @@ func TestJob104HTTPToMCPDetail(t *testing.T) {
 			CustNo:    "cn",
 		},
 	}
-	got := job104HTTPToMCPDetail(&in)
+	got := job104HTTPToMCPDetail(&in, "jc1")
 
-	// isSaved/isApplied/custNo are dropped, specialty/jobCategory keep only
-	// descriptions, and everything else flattens to one level.
+	// isSaved/isApplied/custNo/contact are dropped, specialty/jobCategory
+	// keep only descriptions, and everything else flattens to one level.
 	want := &job104DetailOutput{
 		JobName:        "j",
 		CompanyName:    "c",
+		URL:            "https://www.104.com.tw/job/jc1",
 		CompanyURL:     "u",
 		AppearDate:     "2026/01/01",
 		JobDescription: "desc",
@@ -398,9 +398,6 @@ func TestJob104HTTPToMCPDetail(t *testing.T) {
 		Welfare:        "w",
 		Industry:       "ind",
 		Employees:      "9人",
-		HrName:         "hr",
-		HrEmail:        "e@x",
-		HrReply:        "",
 	}
 	assert.Equal(t, want, got)
 }
@@ -418,12 +415,13 @@ func TestJob104HTTPToMCPDetailNullRemoteUnknownJobType(t *testing.T) {
 			CustNo:    "cn",
 		},
 	}
-	got := job104HTTPToMCPDetail(&in)
+	got := job104HTTPToMCPDetail(&in, "jc1")
 
 	// Null remoteWork and unknown jobType code both drop their labels.
 	want := &job104DetailOutput{
 		JobName:     "j",
 		CompanyName: "c",
+		URL:         "https://www.104.com.tw/job/jc1",
 		CompanyURL:  "u",
 		AppearDate:  "2026/01/01",
 		Industry:    "ind",

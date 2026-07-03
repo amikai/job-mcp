@@ -94,12 +94,8 @@ type job104SearchInput struct {
 	Page    int      `json:"page,omitempty"`
 }
 
-// job104SearchOutput reshapes job104.JobsResponse for the LLM: flat,
-// job-seeker-relevant fields only. 104-internal ids (jobNo, custNo) are
-// dropped, link.job/link.cust flatten to url/companyUrl, cust* becomes
-// company*, and the coded jobRo/remoteWorkType become the job_type/remote
-// labels used by the search input params. Unknown codes leave the label
-// empty and omitempty drops the field.
+// job104SearchOutput reshapes job104.JobsResponse for the LLM, making it
+// easy to read.
 type job104SearchOutput struct {
 	Data     []job104JobSummary   `json:"data"`
 	Metadata job104SearchMetadata `json:"metadata"`
@@ -109,41 +105,32 @@ type job104DetailInput struct {
 	JobCode string `json:"job_code" jsonschema:"104 job code, from a search result's jobCode field (not jobNo)."`
 }
 
-// job104DetailOutput reshapes job104.JobDetailResponse for the LLM: 104's
-// header/contact/condition/welfare/jobDetail nesting mirrors its page
-// layout, so the job-seeker-relevant fields are lifted into one flat level.
-// Dropped: custNo (104-internal id) and isSaved/isApplied (account state —
-// always false on anonymous calls, so only misleading). Opt fields flatten
-// to plain values with omitempty, specialty/jobCategory keep only their
-// descriptions, and the coded jobType/remoteWork become the job_type/remote
-// labels used by the search input params. Unknown codes and null remoteWork
-// drop the label.
+// job104DetailOutput reshapes job104.JobDetailResponse for the LLM, making
+// it easy to read.
 type job104DetailOutput struct {
-	JobName        string   `json:"jobName"`
-	CompanyName    string   `json:"companyName"`
-	CompanyURL     string   `json:"companyUrl" jsonschema:"Company profile page URL."`
-	AppearDate     string   `json:"appearDate"`
-	JobDescription string   `json:"jobDescription,omitempty"`
-	JobCategory    []string `json:"jobCategory,omitempty"`
-	Salary         string   `json:"salary,omitempty"`
-	SalaryMin      int      `json:"salaryMin,omitempty"`
-	SalaryMax      int      `json:"salaryMax,omitempty"`
-	JobType        string   `json:"job_type,omitempty" jsonschema:"Employment-basis label; matches the job_type input values."`
-	Remote         string   `json:"remote,omitempty" jsonschema:"Remote-work label; matches the remote input values. Absent for on-site."`
-	AddressRegion  string   `json:"addressRegion,omitempty"`
-	AddressDetail  string   `json:"addressDetail,omitempty"`
-	WorkExp        string   `json:"workExp,omitempty"`
-	Edu            string   `json:"edu,omitempty"`
-	Major          []string `json:"major,omitempty"`
-	Specialty      []string `json:"specialty,omitempty"`
-	ManageResp     string   `json:"manageResp,omitempty"`
-	NeedEmp        string   `json:"needEmp,omitempty"`
-	Welfare        string   `json:"welfare,omitempty"`
+	JobName        string   `json:"jobName"`                                                                                               // header.jobName
+	CompanyName    string   `json:"companyName"`                                                                                           // header.custName
+	URL            string   `json:"url" jsonschema:"Public job posting URL."`                                                              // built from the job_code input; the 104 response has no posting URL
+	CompanyURL     string   `json:"companyUrl" jsonschema:"Company profile page URL."`                                                     // header.custUrl
+	AppearDate     string   `json:"appearDate"`                                                                                            // header.appearDate
+	JobDescription string   `json:"jobDescription,omitempty"`                                                                              // jobDetail.jobDescription
+	JobCategory    []string `json:"jobCategory,omitempty"`                                                                                 // jobDetail.jobCategory[].description
+	Salary         string   `json:"salary,omitempty"`                                                                                      // jobDetail.salary
+	SalaryMin      int      `json:"salaryMin,omitempty"`                                                                                   // jobDetail.salaryMin
+	SalaryMax      int      `json:"salaryMax,omitempty"`                                                                                   // jobDetail.salaryMax
+	JobType        string   `json:"job_type,omitempty" jsonschema:"Employment-basis label; matches the job_type input values."`            // jobDetail.jobType code → label; unknown code drops the field
+	Remote         string   `json:"remote,omitempty" jsonschema:"Remote-work label; matches the remote input values. Absent for on-site."` // jobDetail.remoteWork.type code → label; null/unknown drops the field
+	AddressRegion  string   `json:"addressRegion,omitempty"`                                                                               // jobDetail.addressRegion
+	AddressDetail  string   `json:"addressDetail,omitempty"`                                                                               // jobDetail.addressDetail
+	WorkExp        string   `json:"workExp,omitempty"`                                                                                     // condition.workExp
+	Edu            string   `json:"edu,omitempty"`                                                                                         // condition.edu
+	Major          []string `json:"major,omitempty"`                                                                                       // condition.major
+	Specialty      []string `json:"specialty,omitempty"`                                                                                   // condition.specialty[].description
+	ManageResp     string   `json:"manageResp,omitempty"`                                                                                  // jobDetail.manageResp
+	NeedEmp        string   `json:"needEmp,omitempty"`                                                                                     // jobDetail.needEmp
+	Welfare        string   `json:"welfare,omitempty"`                                                                                     // welfare.welfare
 	Industry       string   `json:"industry,omitempty"`
 	Employees      string   `json:"employees,omitempty"`
-	HrName         string   `json:"hrName,omitempty"`
-	HrEmail        string   `json:"hrEmail,omitempty"`
-	HrReply        string   `json:"hrReply,omitempty"`
 }
 
 func job104MCPToHTTPRequest(in *job104SearchInput) (*job104.SearchJobsParams, error) {
@@ -201,18 +188,18 @@ func job104MCPToHTTPRequest(in *job104SearchInput) (*job104.SearchJobsParams, er
 }
 
 type job104JobSummary struct {
-	JobCode       string `json:"jobCode" jsonschema:"104 job code — pass this to 104_get_job_detail's job_code param."`
+	JobCode       string `json:"jobCode" jsonschema:"104 job code — pass this to 104_get_job_detail's job_code param."` // link.job's trailing path segment
 	JobName       string `json:"jobName"`
-	CompanyName   string `json:"companyName"`
-	URL           string `json:"url" jsonschema:"Public job posting URL."`
-	CompanyURL    string `json:"companyUrl" jsonschema:"Company profile page URL."`
+	CompanyName   string `json:"companyName"`                                       // custName
+	URL           string `json:"url" jsonschema:"Public job posting URL."`          // link.job
+	CompanyURL    string `json:"companyUrl" jsonschema:"Company profile page URL."` // link.cust
 	SalaryHigh    int    `json:"salaryHigh"`
 	SalaryLow     int    `json:"salaryLow"`
 	JobAddrNoDesc string `json:"jobAddrNoDesc"`
 	AppearDate    string `json:"appearDate" jsonschema:"Posting date, YYYYMMDD."`
 	ApplyCnt      int    `json:"applyCnt"`
-	Remote        string `json:"remote,omitempty" jsonschema:"Remote-work label; matches the remote input values. Absent for on-site."`
-	JobType       string `json:"job_type,omitempty" jsonschema:"Employment-basis label; matches the job_type input values."`
+	Remote        string `json:"remote,omitempty" jsonschema:"Remote-work label; matches the remote input values. Absent for on-site."` // remoteWorkType code → label; unknown code drops the field
+	JobType       string `json:"job_type,omitempty" jsonschema:"Employment-basis label; matches the job_type input values."`            // jobRo code → label; unknown code drops the field
 }
 
 // job104JobCodeFromURL extracts the job code from a 104 job posting URL's
@@ -287,11 +274,12 @@ func job104HTTPToMCPResponse(resp *job104.JobsResponse) *job104SearchOutput {
 	return out
 }
 
-func job104HTTPToMCPDetail(resp *job104.JobDetailResponse) *job104DetailOutput {
+func job104HTTPToMCPDetail(resp *job104.JobDetailResponse, jobCode string) *job104DetailOutput {
 	d := resp.Data
 	out := &job104DetailOutput{
 		JobName:        d.Header.JobName,
 		CompanyName:    d.Header.CustName,
+		URL:            "https://www.104.com.tw/job/" + jobCode,
 		CompanyURL:     d.Header.CustUrl,
 		AppearDate:     d.Header.AppearDate,
 		JobDescription: d.JobDetail.JobDescription.Or(""),
@@ -311,9 +299,6 @@ func job104HTTPToMCPDetail(resp *job104.JobDetailResponse) *job104DetailOutput {
 		Welfare:        d.Welfare.Welfare.Or(""),
 		Industry:       d.Industry,
 		Employees:      d.Employees,
-		HrName:         d.Contact.HrName.Or(""),
-		HrEmail:        d.Contact.Email.Or(""),
-		HrReply:        d.Contact.Reply.Or(""),
 	}
 	if rw, ok := d.JobDetail.RemoteWork.Get(); ok {
 		out.Remote = job104RemoteWorkLabels[job104.SearchJobsRemoteWork(rw.Type.Or(0))]
@@ -364,6 +349,6 @@ func RegisterJob104(s *mcp.Server, c *job104.Client) {
 			}
 			return errorResult(err), nil, nil
 		}
-		return nil, job104HTTPToMCPDetail(resp), nil
+		return nil, job104HTTPToMCPDetail(resp, in.JobCode), nil
 	})
 }
