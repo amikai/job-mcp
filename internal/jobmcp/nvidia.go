@@ -105,18 +105,19 @@ var nvidiaSearchInputRawSchema = []byte(`{
 			"minimum": 0
 		}
 	},
+	"required": ["keyword", "country"],
 	"additionalProperties": false
 }`)
 
 var nvidiaSearchInputSchema = mustSchema(nvidiaSearchInputRawSchema)
 
 type nvidiaSearchInput struct {
-	Keyword      string `json:"keyword,omitempty"`
+	Keyword      string `json:"keyword"` // required
+	Country      string `json:"country"` // required
 	JobCategory  string `json:"job_category,omitempty"`
 	JobType      string `json:"job_type,omitempty"`
 	TimeType     string `json:"time_type,omitempty"`
 	LocationType string `json:"location_type,omitempty"`
-	Country      string `json:"country,omitempty"`
 	Site         string `json:"site,omitempty"`
 	Limit        int    `json:"limit,omitempty"`
 	Offset       int    `json:"offset,omitempty"`
@@ -149,57 +150,69 @@ type nvidiaDetailOutput struct {
 	ExternalURL         string   `json:"external_url,omitempty"`
 }
 
-func buildNvidiaAppliedFacets(in *nvidiaSearchInput) (nvidia.AppliedFacets, error) {
-	var af nvidia.AppliedFacets
-	if in.JobCategory != "" {
-		id, ok := nvidia.JobCategoryIDs[in.JobCategory]
-		if !ok {
-			return af, fmt.Errorf("invalid job_category %q", in.JobCategory)
-		}
-		af.JobFamilyGroup = []nvidia.AppliedFacetsJobFamilyGroupItem{id}
+func nvidiaMCPToHTTPRequest(in *nvidiaSearchInput) (*nvidia.JobsRequest, error) {
+	var req nvidia.JobsRequest
+	// The schema already marks keyword and country required; this guards
+	// direct callers and clients that skip schema validation — a missing
+	// country fails its enum Validate below (empty label maps to the zero
+	// value).
+	if in.Keyword == "" {
+		return nil, fmt.Errorf("keyword is required")
 	}
-	if in.JobType != "" {
-		id, ok := nvidia.JobTypeIDs[in.JobType]
-		if !ok {
-			return af, fmt.Errorf("invalid job_type %q", in.JobType)
-		}
-		af.WorkerSubType = []nvidia.AppliedFacetsWorkerSubTypeItem{id}
-	}
-	if in.TimeType != "" {
-		id, ok := nvidia.TimeTypeIDs[in.TimeType]
-		if !ok {
-			return af, fmt.Errorf("invalid time_type %q", in.TimeType)
-		}
-		af.TimeType = []nvidia.AppliedFacetsTimeTypeItem{id}
-	}
-	if in.LocationType != "" {
-		id, ok := nvidia.LocationTypeIDs[in.LocationType]
-		if !ok {
-			return af, fmt.Errorf("invalid location_type %q", in.LocationType)
-		}
-		af.LocationHierarchy2 = []nvidia.AppliedFacetsLocationHierarchy2Item{id}
-	}
-	if in.Country != "" {
-		id, ok := nvidia.CountryIDs[in.Country]
-		if !ok {
-			return af, fmt.Errorf("invalid country %q", in.Country)
-		}
-		af.LocationHierarchy1 = []nvidia.AppliedFacetsLocationHierarchy1Item{id}
-	}
-	if in.Site != "" {
-		id, ok := nvidia.SiteIDs[in.Site]
-		if !ok {
-			return af, fmt.Errorf("invalid site %q", in.Site)
-		}
-		af.Locations = []nvidia.AppliedFacetsLocationsItem{id}
-	}
-	return af, nil
-}
+	req.SearchText = in.Keyword
 
-func splitNvidiaExternalPath(externalPath string) (location, titleSlug string, ok bool) {
-	trimmed := strings.TrimPrefix(externalPath, "/job/")
-	location, titleSlug, ok = strings.Cut(trimmed, "/")
-	return location, titleSlug, ok
+	country := nvidia.CountryIDs[in.Country]
+	if err := country.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid country %q: %w", in.Country, err)
+	}
+	req.AppliedFacets.LocationHierarchy1 = []nvidia.AppliedFacetsLocationHierarchy1Item{country}
+
+	if in.JobCategory != "" {
+		id := nvidia.JobCategoryIDs[in.JobCategory]
+		if err := id.Validate(); err != nil {
+			return nil, fmt.Errorf("invalid job_category %q: %w", in.JobCategory, err)
+		}
+		req.AppliedFacets.JobFamilyGroup = []nvidia.AppliedFacetsJobFamilyGroupItem{id}
+	}
+
+	if in.JobType != "" {
+		id := nvidia.JobTypeIDs[in.JobType]
+		if err := id.Validate(); err != nil {
+			return nil, fmt.Errorf("invalid job_type %q: %w", in.JobType, err)
+		}
+		req.AppliedFacets.WorkerSubType = []nvidia.AppliedFacetsWorkerSubTypeItem{id}
+	}
+
+	if in.TimeType != "" {
+		id := nvidia.TimeTypeIDs[in.TimeType]
+		if err := id.Validate(); err != nil {
+			return nil, fmt.Errorf("invalid time_type %q: %w", in.TimeType, err)
+		}
+		req.AppliedFacets.TimeType = []nvidia.AppliedFacetsTimeTypeItem{id}
+	}
+
+	if in.LocationType != "" {
+		id := nvidia.LocationTypeIDs[in.LocationType]
+		if err := id.Validate(); err != nil {
+			return nil, fmt.Errorf("invalid location_type %q: %w", in.LocationType, err)
+		}
+		req.AppliedFacets.LocationHierarchy2 = []nvidia.AppliedFacetsLocationHierarchy2Item{id}
+	}
+
+	if in.Site != "" {
+		id := nvidia.SiteIDs[in.Site]
+		if err := id.Validate(); err != nil {
+			return nil, fmt.Errorf("invalid site %q: %w", in.Site, err)
+		}
+		req.AppliedFacets.Locations = []nvidia.AppliedFacetsLocationsItem{id}
+	}
+
+	req.Limit = in.Limit
+	if req.Limit == 0 {
+		req.Limit = 20
+	}
+	req.Offset = in.Offset
+	return &req, nil
 }
 
 func nvidiaHTTPToMCPResponse(resp *nvidia.JobsResponse) *nvidiaSearchOutput {
@@ -240,29 +253,14 @@ func nvidiaHTTPToMCPDetail(detail *nvidia.JobDetailResponse) *nvidiaDetailOutput
 func RegisterNvidia(s *mcp.Server, c *nvidia.Client) {
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "nvidia_search_jobs",
-		Description: "Search jobs on NVIDIA careers site by keyword and location, with optional job-category/job-type/time-type/location-type/country/site filters.",
+		Description: "Search jobs on NVIDIA careers site by keyword and country, with optional job-category/job-type/time-type/location-type/site filters.",
 		InputSchema: nvidiaSearchInputSchema,
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, in *nvidiaSearchInput) (*mcp.CallToolResult, *nvidiaSearchOutput, error) {
-		af, err := buildNvidiaAppliedFacets(in)
+		req, err := nvidiaMCPToHTTPRequest(in)
 		if err != nil {
 			return errorResult(err), nil, nil
 		}
-		limit := in.Limit
-		if limit <= 0 {
-			limit = 20
-		} else if limit > 20 {
-			limit = 20
-		}
-		offset := in.Offset
-		if offset < 0 {
-			offset = 0
-		}
-		res, err := c.SearchJobs(ctx, &nvidia.JobsRequest{
-			AppliedFacets: af,
-			Limit:         limit,
-			Offset:        offset,
-			SearchText:    in.Keyword,
-		})
+		res, err := c.SearchJobs(ctx, req)
 		if err != nil {
 			return errorResult(err), nil, nil
 		}
@@ -277,10 +275,7 @@ func RegisterNvidia(s *mcp.Server, c *nvidia.Client) {
 		Name:        "nvidia_get_job_detail",
 		Description: "Get the full job description and requirements for an NVIDIA job by external path.",
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, in *nvidiaDetailInput) (*mcp.CallToolResult, *nvidiaDetailOutput, error) {
-		if in.ExternalPath == "" {
-			return errorResult(fmt.Errorf("external_path is required")), nil, nil
-		}
-		location, titleSlug, ok := splitNvidiaExternalPath(in.ExternalPath)
+		location, titleSlug, ok := strings.Cut(strings.TrimPrefix(in.ExternalPath, "/job/"), "/")
 		if !ok {
 			return errorResult(fmt.Errorf("invalid external_path %q; must be in format '/job/{location}/{titleSlug}'", in.ExternalPath)), nil, nil
 		}
