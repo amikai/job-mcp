@@ -29,6 +29,7 @@ func main() {
 	var (
 		logFile              = fs.StringLong("log-file", "", "path to the log file (defaults to empty, outputs to stderr)")
 		enableCommandLogging = fs.BoolLong("enable-command-logging", "log raw JSON-RPC traffic to the log output")
+		versionFlag          = fs.BoolLong("version", "print version information and exit")
 	)
 	if err := ff.Parse(fs, os.Args[1:]); err != nil {
 		fmt.Fprintln(os.Stderr, ffhelp.Flags(fs))
@@ -37,6 +38,11 @@ func main() {
 		}
 		fmt.Fprintln(os.Stderr, "err:", err)
 		os.Exit(1)
+	}
+
+	if *versionFlag {
+		fmt.Printf("Version: %s\nCommit: %s\nBuild Date: %s\n", version, commit, date)
+		os.Exit(0)
 	}
 
 	logOutput := io.Writer(os.Stderr)
@@ -112,8 +118,13 @@ Context management:
 - Search results are paginated; fetch additional pages rather than broadening the query.
 - After filtering, fetch details when both hold: the user's criteria include something summaries can't answer (tech stack, remote policy, overtime culture, education requirements written in the posting body, etc.), and the filtered set is small enough to fetch economically (roughly 5-10 postings). If either condition fails, present summaries and let the user decide whether to go deeper.`
 
+// These variables are set by the build process using ldflags.
+var version = "version"
+var commit = "commit"
+var date = "date"
+
 func newServer(c104 *job104.Client, cCake *cake.Client, cNvidia *nvidia.Client, cTsmc *tsmc.Client, cGoogle *google.Client, logger *slog.Logger) *mcp.Server {
-	server := mcp.NewServer(&mcp.Implementation{Name: "job-mcp"}, &mcp.ServerOptions{Instructions: serverInstructions, Logger: logger})
+	server := mcp.NewServer(&mcp.Implementation{Name: "job-mcp", Version: version}, &mcp.ServerOptions{Instructions: serverInstructions, Logger: logger})
 	server.AddReceivingMiddleware(logging.ErrorLoggingMiddleware(logger))
 	jobmcp.RegisterJob104(server, c104)
 	jobmcp.RegisterCake(server, cCake)
@@ -122,3 +133,4 @@ func newServer(c104 *job104.Client, cCake *cake.Client, cNvidia *nvidia.Client, 
 	jobmcp.RegisterGoogle(server, cGoogle)
 	return server
 }
+

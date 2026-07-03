@@ -74,3 +74,5 @@ func TestRunWithTransportTreatsStdinEOFAsCleanExit(t *testing.T) {
 	err := runWithTransport(transport, slog.New(slog.NewTextHandler(io.Discard, nil)))
 	require.NoError(t, err)
 }
+
+
