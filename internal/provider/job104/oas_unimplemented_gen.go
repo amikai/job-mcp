@@ -19,7 +19,7 @@ var _ Handler = UnimplementedHandler{}
 // `https://www.104.com.tw/job/624o1` → `624o1`).
 //
 // GET /job/ajax/content/{jobCode}
-func (UnimplementedHandler) GetJobDetail(ctx context.Context, params GetJobDetailParams) (r GetJobDetailRes, _ error) {
+func (UnimplementedHandler) GetJobDetail(ctx context.Context, params GetJobDetailParams) (r *JobDetailResponse, _ error) {
 	return r, ht.ErrNotImplemented
 }
 

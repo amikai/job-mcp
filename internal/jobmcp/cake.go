@@ -227,16 +227,7 @@ func RegisterCake(s *mcp.Server, c *cake.Client) {
 			}
 			return errorResult(err), nil, nil
 		}
-		switch r := res.(type) {
-		case *cake.JobSearchResponse:
-			return nil, cakeHTTPToMCPResponse(r), nil
-		case *cake.ErrorResponse:
-			// 422 is the only non-200 status the spec declares, so it arrives
-			// as a value rather than an error.
-			return errorResult(fmt.Errorf("upstream error: 422")), nil, nil
-		default:
-			return errorResult(fmt.Errorf("job search returned %T", res)), nil, nil
-		}
+		return nil, cakeHTTPToMCPResponse(res), nil
 	})
 
 	mcp.AddTool(s, &mcp.Tool{
@@ -250,15 +241,6 @@ func RegisterCake(s *mcp.Server, c *cake.Client) {
 			}
 			return errorResult(err), nil, nil
 		}
-		switch r := res.(type) {
-		case *cake.JobDetail:
-			return nil, cakeHTTPToMCPDetail(r), nil
-		case *cake.ErrorResponse:
-			// 404 is the only non-200 status the spec declares, so it arrives
-			// as a value rather than an error.
-			return errorResult(fmt.Errorf("upstream error: 404")), nil, nil
-		default:
-			return errorResult(fmt.Errorf("job detail %s returned %T", in.Path, res)), nil, nil
-		}
+		return nil, cakeHTTPToMCPDetail(res), nil
 	})
 }

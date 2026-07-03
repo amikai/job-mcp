@@ -73,9 +73,6 @@ func (s *ErrorResponse) SetAdditionalProps(val ErrorResponseAdditional) {
 	s.AdditionalProps = val
 }
 
-func (*ErrorResponse) getJobDetailRes() {}
-func (*ErrorResponse) searchJobsRes()   {}
-
 type ErrorResponseAdditional map[string]jx.Raw
 
 func (s *ErrorResponseAdditional) init() ErrorResponseAdditional {
@@ -200,8 +197,6 @@ func (s *JobDetail) SetDescription(val string) {
 func (s *JobDetail) SetRequirements(val string) {
 	s.Requirements = val
 }
-
-func (*JobDetail) getJobDetailRes() {}
 
 // Search filters. Use `{}` for the minimal job-description workflow. All keys are optional. Filter
 // values are not validated server-side: unknown values are silently ignored or match nothing, so
@@ -1385,8 +1380,6 @@ func (s *JobSearchResponse) SetCurrentPage(val int) {
 func (s *JobSearchResponse) SetData(val []JobSearchItem) {
 	s.Data = val
 }
-
-func (*JobSearchResponse) searchJobsRes() {}
 
 // NewOptInt returns new OptInt with value set to v.
 func NewOptInt(v int) OptInt {

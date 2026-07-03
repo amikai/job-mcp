@@ -17,7 +17,7 @@ type Handler interface {
 	// HTTP 400.
 	//
 	// GET /job/{location}/{titleSlug}
-	GetJobDetail(ctx context.Context, params GetJobDetailParams) (GetJobDetailRes, error)
+	GetJobDetail(ctx context.Context, params GetJobDetailParams) (*JobDetailResponse, error)
 	// SearchJobs implements searchJobs operation.
 	//
 	// Searches jobs by keyword and/or facet filters, paginated via `limit`/`offset`. `limit` is capped
@@ -26,7 +26,7 @@ type Handler interface {
 	// `appliedFacets` and `""` for `searchText` when unused).
 	//
 	// POST /jobs
-	SearchJobs(ctx context.Context, req *JobsRequest) (SearchJobsRes, error)
+	SearchJobs(ctx context.Context, req *JobsRequest) (*JobsResponse, error)
 	// NewError creates *ErrorResponseStatusCode from error returned by handler.
 	//
 	// Used for common default response.

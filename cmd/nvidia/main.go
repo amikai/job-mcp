@@ -61,7 +61,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	searchRes, err := client.SearchJobs(ctx, &nvidia.JobsRequest{
+	search, err := client.SearchJobs(ctx, &nvidia.JobsRequest{
 		AppliedFacets: appliedFacets,
 		Limit:         *limit,
 		Offset:        *offset,
@@ -69,11 +69,6 @@ func main() {
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
-	search, ok := searchRes.(*nvidia.JobsResponse)
-	if !ok {
-		fmt.Fprintf(os.Stderr, "search returned %T\n", searchRes)
 		os.Exit(1)
 	}
 
@@ -97,7 +92,7 @@ func main() {
 			fmt.Println()
 			continue
 		}
-		detailRes, err := client.GetJobDetail(ctx, nvidia.GetJobDetailParams{Location: location, TitleSlug: titleSlug})
+		detail, err := client.GetJobDetail(ctx, nvidia.GetJobDetailParams{Location: location, TitleSlug: titleSlug})
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "job detail %s: %v\n", job.ExternalPath.Value, err)
 			// Fallback URL when the detail fetch (which carries the
@@ -109,12 +104,6 @@ func main() {
 			if job.LocationsText.Set {
 				fmt.Printf("Location: %s\n", job.LocationsText.Value)
 			}
-			fmt.Println()
-			continue
-		}
-		detail, ok := detailRes.(*nvidia.JobDetailResponse)
-		if !ok {
-			fmt.Fprintf(os.Stderr, "job detail %s returned %T\n", job.ExternalPath.Value, detailRes)
 			fmt.Println()
 			continue
 		}

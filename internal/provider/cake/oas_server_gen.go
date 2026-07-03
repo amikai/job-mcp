@@ -14,7 +14,7 @@ type Handler interface {
 	// needed for the full job description: `description` and `requirements` are returned as HTML strings.
 	//
 	// GET /api/client/v1/jobs/{path}
-	GetJobDetail(ctx context.Context, params GetJobDetailParams) (GetJobDetailRes, error)
+	GetJobDetail(ctx context.Context, params GetJobDetailParams) (*JobDetail, error)
 	// SearchJobs implements searchJobs operation.
 	//
 	// Searches jobs by keyword and returns paginated results. For the minimal job-description workflow,
@@ -24,7 +24,7 @@ type Handler interface {
 	// page. Use `filters: {}` when no filters are needed.
 	//
 	// POST /api/client/v1/jobs/search
-	SearchJobs(ctx context.Context, req *JobSearchRequest) (SearchJobsRes, error)
+	SearchJobs(ctx context.Context, req *JobSearchRequest) (*JobSearchResponse, error)
 	// NewError creates *ErrorResponseStatusCode from error returned by handler.
 	//
 	// Used for common default response.

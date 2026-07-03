@@ -22,7 +22,7 @@ var _ Handler = UnimplementedHandler{}
 // HTTP 400.
 //
 // GET /job/{location}/{titleSlug}
-func (UnimplementedHandler) GetJobDetail(ctx context.Context, params GetJobDetailParams) (r GetJobDetailRes, _ error) {
+func (UnimplementedHandler) GetJobDetail(ctx context.Context, params GetJobDetailParams) (r *JobDetailResponse, _ error) {
 	return r, ht.ErrNotImplemented
 }
 
@@ -34,7 +34,7 @@ func (UnimplementedHandler) GetJobDetail(ctx context.Context, params GetJobDetai
 // `appliedFacets` and `""` for `searchText` when unused).
 //
 // POST /jobs
-func (UnimplementedHandler) SearchJobs(ctx context.Context, req *JobsRequest) (r SearchJobsRes, _ error) {
+func (UnimplementedHandler) SearchJobs(ctx context.Context, req *JobsRequest) (r *JobsResponse, _ error) {
 	return r, ht.ErrNotImplemented
 }
 

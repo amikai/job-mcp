@@ -13,7 +13,7 @@ import (
 	"github.com/ogen-go/ogen/validate"
 )
 
-func decodeGetJobDetailResponse(resp *http.Response) (res GetJobDetailRes, _ error) {
+func decodeGetJobDetailResponse(resp *http.Response) (res *JobDetail, _ error) {
 	switch resp.StatusCode {
 	case 200:
 		// Code 200.
@@ -30,41 +30,6 @@ func decodeGetJobDetailResponse(resp *http.Response) (res GetJobDetailRes, _ err
 			d := jx.DecodeBytes(buf)
 
 			var response JobDetail
-			if err := func() error {
-				if err := response.Decode(d); err != nil {
-					return err
-				}
-				if err := d.Skip(); err != io.EOF {
-					return errors.New("unexpected trailing data")
-				}
-				return nil
-			}(); err != nil {
-				err = &ogenerrors.DecodeBodyError{
-					ContentType: ct,
-					Body:        buf,
-					Err:         err,
-				}
-				return res, err
-			}
-			return &response, nil
-		default:
-			return res, validate.InvalidContentType(ct)
-		}
-	case 404:
-		// Code 404.
-		ct, _, err := mime.ParseMediaType(resp.Header.Get("Content-Type"))
-		if err != nil {
-			return res, errors.Wrap(err, "parse media type")
-		}
-		switch {
-		case ct == "application/json":
-			buf, err := io.ReadAll(resp.Body)
-			if err != nil {
-				return res, err
-			}
-			d := jx.DecodeBytes(buf)
-
-			var response ErrorResponse
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err
@@ -131,7 +96,7 @@ func decodeGetJobDetailResponse(resp *http.Response) (res GetJobDetailRes, _ err
 	return res, errors.Wrap(defRes, "error")
 }
 
-func decodeSearchJobsResponse(resp *http.Response) (res SearchJobsRes, _ error) {
+func decodeSearchJobsResponse(resp *http.Response) (res *JobSearchResponse, _ error) {
 	switch resp.StatusCode {
 	case 200:
 		// Code 200.
@@ -172,41 +137,6 @@ func decodeSearchJobsResponse(resp *http.Response) (res SearchJobsRes, _ error) 
 				return nil
 			}(); err != nil {
 				return res, errors.Wrap(err, "validate")
-			}
-			return &response, nil
-		default:
-			return res, validate.InvalidContentType(ct)
-		}
-	case 422:
-		// Code 422.
-		ct, _, err := mime.ParseMediaType(resp.Header.Get("Content-Type"))
-		if err != nil {
-			return res, errors.Wrap(err, "parse media type")
-		}
-		switch {
-		case ct == "application/json":
-			buf, err := io.ReadAll(resp.Body)
-			if err != nil {
-				return res, err
-			}
-			d := jx.DecodeBytes(buf)
-
-			var response ErrorResponse
-			if err := func() error {
-				if err := response.Decode(d); err != nil {
-					return err
-				}
-				if err := d.Skip(); err != io.EOF {
-					return errors.New("unexpected trailing data")
-				}
-				return nil
-			}(); err != nil {
-				err = &ogenerrors.DecodeBodyError{
-					ContentType: ct,
-					Body:        buf,
-					Err:         err,
-				}
-				return res, err
 			}
 			return &response, nil
 		default:

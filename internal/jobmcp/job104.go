@@ -391,15 +391,6 @@ func RegisterJob104(s *mcp.Server, c *job104.Client) {
 			}
 			return errorResult(err), nil, nil
 		}
-		switch r := resp.(type) {
-		case *job104.JobDetailResponse:
-			return nil, job104HTTPToMCPDetail(r), nil
-		case *job104.ErrorResponse:
-			// 404 is the only non-200 status the spec declares, so it arrives
-			// as a value rather than an error.
-			return errorResult(fmt.Errorf("upstream error: 404")), nil, nil
-		default:
-			return errorResult(fmt.Errorf("job detail %s returned %T", in.JobCode, resp)), nil, nil
-		}
+		return nil, job104HTTPToMCPDetail(resp), nil
 	})
 }

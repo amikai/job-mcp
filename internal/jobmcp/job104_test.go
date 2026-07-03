@@ -298,6 +298,34 @@ func TestJob104GetJobDetailE2E(t *testing.T) {
 	assert.Equal(t, want, &got)
 }
 
+func TestJob104SearchJobsUpstreamErrorE2E(t *testing.T) {
+	clientSession, _ := testJob104MCPClientServer(t)
+
+	callRes, err := clientSession.CallTool(t.Context(), &mcp.CallToolParams{
+		Name:      "104_search_jobs",
+		Arguments: map[string]any{"keyword": job104.MockErrorKeyword, "area": "Taipei"},
+	})
+	require.NoError(t, err)
+	require.True(t, callRes.IsError)
+	text, ok := callRes.Content[0].(*mcp.TextContent)
+	require.True(t, ok)
+	assert.Equal(t, "upstream error: 500", text.Text)
+}
+
+func TestJob104GetJobDetailUpstreamErrorE2E(t *testing.T) {
+	clientSession, _ := testJob104MCPClientServer(t)
+
+	callRes, err := clientSession.CallTool(t.Context(), &mcp.CallToolParams{
+		Name:      "104_get_job_detail",
+		Arguments: map[string]any{"job_code": job104.MockNotFoundJobCode},
+	})
+	require.NoError(t, err)
+	require.True(t, callRes.IsError)
+	text, ok := callRes.Content[0].(*mcp.TextContent)
+	require.True(t, ok)
+	assert.Equal(t, "upstream error: 404", text.Text)
+}
+
 func TestJob104HTTPToMCPResponse(t *testing.T) {
 	in := job104.JobsResponse{
 		Data: []job104.JobSummary{

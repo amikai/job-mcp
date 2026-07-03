@@ -54,15 +54,13 @@ func TestSearchJobs(t *testing.T) {
 	c, err := NewClient(srv.URL, WithClient(srv.Client()))
 	require.NoError(t, err)
 
-	res, err := c.SearchJobs(t.Context(), &JobSearchRequest{
+	got, err := c.SearchJobs(t.Context(), &JobSearchRequest{
 		Query:   "Golang",
 		SortBy:  JobSearchRequestSortByPopularity,
 		Filters: JobSearchFilters{},
 	})
 	require.NoError(t, err)
 
-	got, ok := res.(*JobSearchResponse)
-	require.True(t, ok, "expected *JobSearchResponse, got %T", res)
 	require.NotEmpty(t, got.Data)
 	page, ok := got.Data[0].Page.Get()
 	require.True(t, ok)
@@ -81,13 +79,10 @@ func TestGetJobDetail(t *testing.T) {
 	c, err := NewClient(srv.URL, WithClient(srv.Client()))
 	require.NoError(t, err)
 
-	res, err := c.GetJobDetail(t.Context(), GetJobDetailParams{
+	got, err := c.GetJobDetail(t.Context(), GetJobDetailParams{
 		Path: "senior-golang-web-backend-engineer-taoyuan",
 	})
 	require.NoError(t, err)
-
-	got, ok := res.(*JobDetail)
-	require.True(t, ok, "expected *JobDetail, got %T", res)
 
 	assert.Equal(t, wantDetail, got)
 }
