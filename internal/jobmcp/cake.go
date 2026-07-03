@@ -70,8 +70,37 @@ type cakeSearchInput struct {
 	Page      int      `json:"page,omitempty"`
 }
 
+// cakeSearchOutput mirrors cake.JobSearchResponse for the LLM: identical
+// fields and JSON names.
+type cakeSearchOutput struct {
+	TotalEntries int              `json:"total_entries"`
+	TotalPages   int              `json:"total_pages"`
+	PerPage      int              `json:"per_page"`
+	CurrentPage  int              `json:"current_page"`
+	Data         []cakeJobSummary `json:"data"`
+}
+
 type cakeDetailInput struct {
 	Path string `json:"path" jsonschema:"Cake.me job path (path from search results)."`
+}
+
+// cakeDetailOutput mirrors cake.JobDetail for the LLM: identical fields and
+// JSON names.
+type cakeDetailOutput struct {
+	ID           int    `json:"id"`
+	Path         string `json:"path"`
+	URL          string `json:"url" jsonschema:"Public Cake.me job posting URL."`
+	PagePath     string `json:"page_path" jsonschema:"Company page slug; the public job page is https://www.cake.me/companies/{page_path}/jobs/{path}."`
+	Title        string `json:"title"`
+	Description  string `json:"description" jsonschema:"Full job description as plain text/markdown."`
+	Requirements string `json:"requirements" jsonschema:"Job requirements as plain text/markdown; may be empty."`
+}
+
+type cakeJobSummary struct {
+	Path        string `json:"path" jsonschema:"Job path; pass to cake_get_job_detail."`
+	URL         string `json:"url" jsonschema:"Public Cake.me job posting URL."`
+	Title       string `json:"title"`
+	Description string `json:"description" jsonschema:"Plain-text preview; cake_get_job_detail returns the full description."`
 }
 
 func cakeMCPToHTTPRequest(in *cakeSearchInput) (*cake.JobSearchRequest, error) {
@@ -129,23 +158,6 @@ func cakeMCPToHTTPRequest(in *cakeSearchInput) (*cake.JobSearchRequest, error) {
 	return &req, nil
 }
 
-// cakeSearchOutput mirrors cake.JobSearchResponse for the LLM: identical
-// fields and JSON names.
-type cakeSearchOutput struct {
-	TotalEntries int              `json:"total_entries"`
-	TotalPages   int              `json:"total_pages"`
-	PerPage      int              `json:"per_page"`
-	CurrentPage  int              `json:"current_page"`
-	Data         []cakeJobSummary `json:"data"`
-}
-
-type cakeJobSummary struct {
-	Path        string `json:"path" jsonschema:"Job path; pass to cake_get_job_detail."`
-	URL         string `json:"url" jsonschema:"Public Cake.me job posting URL."`
-	Title       string `json:"title"`
-	Description string `json:"description" jsonschema:"Plain-text preview; cake_get_job_detail returns the full description."`
-}
-
 func cakeHTTPToMCPResponse(resp *cake.JobSearchResponse) *cakeSearchOutput {
 	out := &cakeSearchOutput{
 		TotalEntries: resp.TotalEntries,
@@ -167,18 +179,6 @@ func cakeHTTPToMCPResponse(resp *cake.JobSearchResponse) *cakeSearchOutput {
 		})
 	}
 	return out
-}
-
-// cakeDetailOutput mirrors cake.JobDetail for the LLM: identical fields and
-// JSON names.
-type cakeDetailOutput struct {
-	ID           int    `json:"id"`
-	Path         string `json:"path"`
-	URL          string `json:"url" jsonschema:"Public Cake.me job posting URL."`
-	PagePath     string `json:"page_path" jsonschema:"Company page slug; the public job page is https://www.cake.me/companies/{page_path}/jobs/{path}."`
-	Title        string `json:"title"`
-	Description  string `json:"description" jsonschema:"Full job description as plain text/markdown."`
-	Requirements string `json:"requirements" jsonschema:"Job requirements as plain text/markdown; may be empty."`
 }
 
 func cakeHTTPToMCPDetail(detail *cake.JobDetail) *cakeDetailOutput {
