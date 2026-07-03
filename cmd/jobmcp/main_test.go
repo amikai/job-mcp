@@ -34,10 +34,7 @@ func TestServerListsJobTools(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	cTsmc, err := tsmc.NewClient("https://careers.tsmc.com", tsmc.WithClient(http.DefaultClient))
-	if err != nil {
-		t.Fatal(err)
-	}
+	cTsmc := tsmc.NewClient("https://careers.tsmc.com", http.DefaultClient)
 	server := newServer(c104, cCake, cNvidia, cTsmc)
 	client := mcp.NewClient(&mcp.Implementation{Name: "smoke", Version: "v0"}, nil)
 	serverTransport, clientTransport := mcp.NewInMemoryTransports()

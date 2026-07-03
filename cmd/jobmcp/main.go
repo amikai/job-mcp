@@ -45,10 +45,7 @@ func runWithTransport(transport mcp.Transport) error {
 	}
 
 	hcTsmc := &http.Client{Timeout: 30 * time.Second}
-	cTsmc, err := tsmc.NewClient("https://careers.tsmc.com", tsmc.WithClient(hcTsmc))
-	if err != nil {
-		return err
-	}
+	cTsmc := tsmc.NewClient("https://careers.tsmc.com", hcTsmc)
 
 	server := newServer(c104, cCake, cNvidia, cTsmc)
 

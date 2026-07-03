@@ -1,6 +1,7 @@
 package tsmc
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"net/http"
@@ -139,27 +140,11 @@ type JobDetailResponse struct {
 	Qualifications   string
 }
 
-type Option func(*Client)
-
-// WithClient sets the HTTP client used for requests.
-func WithClient(httpClient *http.Client) Option {
-	return func(c *Client) {
-		c.httpClient = httpClient
-	}
-}
-
-func NewClient(baseURL string, opts ...Option) (*Client, error) {
-	if _, err := url.Parse(baseURL); err != nil {
-		return nil, err
-	}
-	c := &Client{
-		httpClient: http.DefaultClient,
+func NewClient(baseURL string, httpClient *http.Client) *Client {
+	return &Client{
+		httpClient: cmp.Or(httpClient, http.DefaultClient),
 		baseURL:    baseURL,
 	}
-	for _, opt := range opts {
-		opt(c)
-	}
-	return c, nil
 }
 
 func (c *Client) jobsURL(p *JobsRequest) (string, error) {

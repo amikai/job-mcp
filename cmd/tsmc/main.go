@@ -25,11 +25,7 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
-	client, err := tsmc.NewClient("https://careers.tsmc.com", tsmc.WithClient(http.DefaultClient))
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
+	client := tsmc.NewClient("https://careers.tsmc.com", http.DefaultClient)
 	search, err := client.Jobs(ctx, &tsmc.JobsRequest{
 		Keyword:         keyword,
 		Locations:       []string{tsmc.LocTaiwan},

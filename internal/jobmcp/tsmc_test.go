@@ -14,8 +14,7 @@ func testTsmcMCPClientServer(t *testing.T) (*mcp.ClientSession, *mcp.ServerSessi
 	server := mcp.NewServer(&mcp.Implementation{Name: "test", Version: "v0"}, nil)
 	srv := tsmc.NewMockServer()
 	t.Cleanup(srv.Close)
-	client, err := tsmc.NewClient(srv.URL, tsmc.WithClient(srv.Client()))
-	require.NoError(t, err)
+	client := tsmc.NewClient(srv.URL, srv.Client())
 	RegisterTsmc(server, client)
 
 	serverTransport, clientTransport := mcp.NewInMemoryTransports()
@@ -37,8 +36,7 @@ func testTsmcMCPClientServer(t *testing.T) (*mcp.ClientSession, *mcp.ServerSessi
 func TestRegisterTsmc(t *testing.T) {
 	server := mcp.NewServer(&mcp.Implementation{Name: "test", Version: "v0"}, nil)
 
-	client, err := tsmc.NewClient("https://careers.tsmc.com")
-	require.NoError(t, err)
+	client := tsmc.NewClient("https://careers.tsmc.com", nil)
 	RegisterTsmc(server, client)
 
 	assertTools(t, server, "tsmc_search_jobs", "tsmc_get_job_detail")
