@@ -12,8 +12,7 @@ currently **[104](https://www.104.com.tw)**, **[Cake](https://www.cake.me)**,
 from any MCP client: Claude Code, Codex, Gemini CLI, and others.
 
 ⚠️ This server can consume a lot of tokens, especially when your client explores
-multiple postings or fetches full job details, so use `Gemini Flash` or
-`Claude Haiku`, and keep `effort` low.
+multiple postings or fetches full job details, so consider using a cheaper model.
 
 > **Disclaimer:** This is an unofficial, personal-use tool. It is not affiliated
 > with, endorsed by, or sponsored by 104 Corporation, TSMC, or any other job
