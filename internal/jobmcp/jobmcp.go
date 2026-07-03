@@ -4,6 +4,7 @@ package jobmcp
 import "github.com/modelcontextprotocol/go-sdk/mcp"
 
 // errorResult reports a failure to the model without aborting the tool call.
+// The IsError flag also marks the result for the server's error-logging middleware.
 func errorResult(err error) *mcp.CallToolResult {
 	return &mcp.CallToolResult{
 		IsError: true,
