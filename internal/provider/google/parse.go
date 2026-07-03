@@ -11,6 +11,8 @@ import (
 // xq -q "li.lLd3Je h3.QJPWVe" --html → title
 // xq -q "li.lLd3Je span.RP7SMd span" --html → company (inner span, skips icon)
 // xq -q "li.lLd3Je span.r0wTof" --html → primary location (first match)
+// xq -q "li.lLd3Je span.wVSTAb" --html → experience level badge
+// xq -q "li.lLd3Je div.Xsxa1e ul li" --html → minimum qualifications bullets
 func parseJobsHTML(doc *html.Node) []Job {
 	var jobs []Job
 	var walk func(*html.Node)
@@ -36,7 +38,9 @@ func parseJobCard(li *html.Node) (Job, bool) {
 		return Job{}, false
 	}
 
-	var title, company, location string
+	var title, company, location, experienceLevel string
+	var remote bool
+	var minimumQualifications []string
 	var walk func(*html.Node)
 	walk = func(n *html.Node) {
 		if n.Type == html.ElementNode {
@@ -46,12 +50,26 @@ func parseJobCard(li *html.Node) (Job, bool) {
 				title = strings.TrimSpace(textContent(n))
 				return
 			case n.Data == "span" && hasClass(n, "RP7SMd"):
-				// xq -q "li.lLd3Je span.RP7SMd span" --html
-				company = spanChildText(n)
+				// xq -q "li.lLd3Je span.RP7SMd span" --html; the company badge
+				// comes first, remote jobs add a second "Remote eligible" badge
+				// with the same class.
+				if t := spanChildText(n); t == "Remote eligible" {
+					remote = true
+				} else if company == "" {
+					company = t
+				}
 				return
 			case n.Data == "span" && hasClass(n, "r0wTof") && location == "":
 				// xq -q "li.lLd3Je span.r0wTof" --html (first match = primary location)
 				location = strings.TrimSpace(textContent(n))
+				return
+			case n.Data == "span" && hasClass(n, "wVSTAb"):
+				// xq -q "li.lLd3Je span.wVSTAb" --html
+				experienceLevel = strings.TrimSpace(textContent(n))
+				return
+			case n.Data == "div" && hasClass(n, "Xsxa1e"):
+				// xq -q "li.lLd3Je div.Xsxa1e ul li" --html
+				minimumQualifications = bulletTexts(n)
 				return
 			}
 		}
@@ -61,7 +79,32 @@ func parseJobCard(li *html.Node) (Job, bool) {
 	}
 	walk(li)
 
-	return Job{ID: id, Title: title, Company: company, Location: location}, title != ""
+	return Job{
+		ID:                    id,
+		Title:                 title,
+		Company:               company,
+		Location:              location,
+		Remote:                remote,
+		ExperienceLevel:       experienceLevel,
+		MinimumQualifications: minimumQualifications,
+	}, title != ""
+}
+
+// bulletTexts collects the whitespace-normalized text of every <li> under n.
+func bulletTexts(n *html.Node) []string {
+	var bullets []string
+	var walk func(*html.Node)
+	walk = func(n *html.Node) {
+		if n.Type == html.ElementNode && n.Data == "li" {
+			bullets = append(bullets, strings.Join(strings.Fields(textContent(n)), " "))
+			return
+		}
+		for c := n.FirstChild; c != nil; c = c.NextSibling {
+			walk(c)
+		}
+	}
+	walk(n)
+	return bullets
 }
 
 // parseJobDetailHTML parses a single job detail page.
@@ -91,8 +134,14 @@ func parseJobDetailHTML(doc *html.Node, id string) (*JobDetailResponse, bool) {
 				inMain = false
 				return
 			case inMain && n.Data == "span" && hasClass(n, "RP7SMd"):
-				// xq -q "main span.RP7SMd span" --html
-				detail.Company = spanChildText(n)
+				// xq -q "main span.RP7SMd span" --html; the company badge
+				// comes first, remote jobs add a second "Remote eligible"
+				// badge with the same class.
+				if t := spanChildText(n); t == "Remote eligible" {
+					detail.Remote = true
+				} else if detail.Company == "" {
+					detail.Company = t
+				}
 				return
 			case inMain && n.Data == "span" && hasClass(n, "r0wTof") && detail.Location == "":
 				// xq -q "main span.r0wTof" --html
