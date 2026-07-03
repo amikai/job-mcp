@@ -70,23 +70,21 @@ func runWithTransport(transport mcp.Transport, logger *slog.Logger) error {
 		return err
 	}
 
-	hcCake := &http.Client{Timeout: 30 * time.Second}
-	cCake, err := cake.NewClient("https://api.cake.me", cake.WithClient(hcCake))
+	hc := &http.Client{Timeout: 30 * time.Second}
+
+	cCake, err := cake.NewClient("https://api.cake.me", cake.WithClient(hc))
 	if err != nil {
 		return err
 	}
 
-	hcNvidia := &http.Client{Timeout: 30 * time.Second}
-	cNvidia, err := nvidia.NewClient("https://nvidia.wd5.myworkdayjobs.com/wday/cxs/nvidia/NVIDIAExternalCareerSite", nvidia.WithClient(hcNvidia))
+	cNvidia, err := nvidia.NewClient("https://nvidia.wd5.myworkdayjobs.com/wday/cxs/nvidia/NVIDIAExternalCareerSite", nvidia.WithClient(hc))
 	if err != nil {
 		return err
 	}
 
-	hcTsmc := &http.Client{Timeout: 30 * time.Second}
-	cTsmc := tsmc.NewClient("https://careers.tsmc.com", hcTsmc)
+	cTsmc := tsmc.NewClient("https://careers.tsmc.com", hc)
 
-	hcGoogle := &http.Client{Timeout: 30 * time.Second}
-	cGoogle := google.NewClient("https://www.google.com/about/careers/applications", hcGoogle)
+	cGoogle := google.NewClient("https://www.google.com/about/careers/applications", hc)
 
 	server := newServer(c104, cCake, cNvidia, cTsmc, cGoogle, logger)
 
@@ -112,7 +110,7 @@ Query construction:
 
 Context management:
 - Search results are paginated; fetch additional pages rather than broadening the query.
-- Fetch job details in small batches of the most promising postings (around 5-10 at a time), only for postings you intend to present.`
+- After filtering, fetch details when both hold: the user's criteria include something summaries can't answer (tech stack, remote policy, overtime culture, education requirements written in the posting body, etc.), and the filtered set is small enough to fetch economically (roughly 5-10 postings). If either condition fails, present summaries and let the user decide whether to go deeper.`
 
 func newServer(c104 *job104.Client, cCake *cake.Client, cNvidia *nvidia.Client, cTsmc *tsmc.Client, cGoogle *google.Client, logger *slog.Logger) *mcp.Server {
 	server := mcp.NewServer(&mcp.Implementation{Name: "job-mcp"}, &mcp.ServerOptions{Instructions: serverInstructions, Logger: logger})

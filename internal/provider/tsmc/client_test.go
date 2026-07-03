@@ -1,38 +1,14 @@
 package tsmc
 
 import (
-	"net/http"
-	"net/http/httptest"
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func newMockServer(t *testing.T) *httptest.Server {
-	t.Helper()
-	mux := http.NewServeMux()
-	mux.HandleFunc("/zh_TW/careers/SearchJobs/", serveTestdata("testdata/jobs_rsp.html"))
-	mux.HandleFunc("/zh_TW/careers/SearchJobs", serveTestdata("testdata/jobs_rsp.html"))
-	mux.HandleFunc("/zh_TW/careers/JobDetail", serveTestdata("testdata/job_detail_rsp.html"))
-	return httptest.NewServer(mux)
-}
-
-func serveTestdata(path string) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		data, err := os.ReadFile(path)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		w.Write(data)
-	}
-}
-
 func TestJobs(t *testing.T) {
-	srv := newMockServer(t)
+	srv := NewMockServer()
 	defer srv.Close()
 	c := &Client{httpClient: srv.Client(), baseURL: srv.URL}
 
@@ -50,7 +26,7 @@ func TestJobs(t *testing.T) {
 }
 
 func TestJobDetail(t *testing.T) {
-	srv := newMockServer(t)
+	srv := NewMockServer()
 	defer srv.Close()
 	c := &Client{httpClient: srv.Client(), baseURL: srv.URL}
 

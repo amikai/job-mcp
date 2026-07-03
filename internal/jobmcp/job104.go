@@ -4,8 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/url"
-	"strings"
 
 	"github.com/amikai/job-mcp/internal/provider/job104"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -202,20 +200,6 @@ type job104JobSummary struct {
 	JobType       string `json:"job_type,omitempty" jsonschema:"Employment-basis label; matches the job_type input values."`            // jobRo code → label; unknown code drops the field
 }
 
-// job104JobCodeFromURL extracts the job code from a 104 job posting URL's
-// trailing path segment (e.g. https://www.104.com.tw/job/8zsac -> 8zsac).
-// The response's jobNo, by contrast, is 104's internal listing id and 404s
-// if passed to GetJobDetail.
-func job104JobCodeFromURL(raw string) string {
-	path := raw
-	if u, err := url.Parse(raw); err == nil {
-		path = u.Path
-	}
-	path = strings.TrimRight(path, "/")
-	parts := strings.Split(path, "/")
-	return parts[len(parts)-1]
-}
-
 type job104SearchMetadata struct {
 	Pagination job104Pagination `json:"pagination"`
 }
@@ -257,7 +241,7 @@ func job104HTTPToMCPResponse(resp *job104.JobsResponse) *job104SearchOutput {
 	}
 	for _, j := range resp.Data {
 		out.Data = append(out.Data, job104JobSummary{
-			JobCode:       job104JobCodeFromURL(j.Link.Job),
+			JobCode:       job104.JobCodeFromURL(j.Link.Job),
 			JobName:       j.JobName,
 			CompanyName:   j.CustName,
 			URL:           j.Link.Job,

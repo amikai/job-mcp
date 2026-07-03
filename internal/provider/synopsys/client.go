@@ -33,11 +33,7 @@ func newRequest(ctx context.Context, method, rawURL string) (*http.Request, erro
 	if err != nil {
 		return nil, err
 	}
-	for key, values := range defaultHeader {
-		for _, v := range values {
-			req.Header.Add(key, v)
-		}
-	}
+	req.Header = defaultHeader.Clone()
 	return req, nil
 }
 

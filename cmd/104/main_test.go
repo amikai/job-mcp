@@ -2,20 +2,12 @@ package main
 
 import (
 	"bytes"
-	"strings"
 	"testing"
 
 	"github.com/amikai/job-mcp/internal/provider/job104"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
-
-func TestJobCodeFromURL(t *testing.T) {
-	got := jobCodeFromURL("https://www.104.com.tw/job/abc123?jobsource=foo")
-	if got != "abc123" {
-		t.Fatalf("jobCodeFromURL() = %q", got)
-	}
-}
 
 func TestBuildSearchParamsUnfilteredByDefault(t *testing.T) {
 	got, err := buildSearchParams("Golang", "", "", "", nil, "", nil, 0)
@@ -72,9 +64,7 @@ func TestWriteDetail(t *testing.T) {
 		"Experience: 3 years | Education: Bachelor",
 		"Build Go services",
 	} {
-		if !strings.Contains(got, want) {
-			t.Fatalf("writeDetail missing %q:\n%s", want, got)
-		}
+		assert.Contains(t, got, want)
 	}
 }
 

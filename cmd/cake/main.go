@@ -4,20 +4,17 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"html"
 	"io"
 	"os"
-	"regexp"
 	"strings"
 	"time"
 
+	"github.com/jaytaylor/html2text"
 	"github.com/peterbourgon/ff/v4"
 	"github.com/peterbourgon/ff/v4/ffhelp"
 
 	cake "github.com/amikai/job-mcp/internal/provider/cake"
 )
-
-var tagRE = regexp.MustCompile(`<[^>]+>`)
 
 // main issues a single SearchJobs request built entirely from flags, then
 // fetches GetJobDetail for every job the search returned.
@@ -264,22 +261,18 @@ func writeReport(w io.Writer, keyword string, search *cake.JobSearchResponse, de
 
 func writeDetail(w io.Writer, detail *cake.JobDetail) {
 	fmt.Fprintf(w, "URL: https://www.cake.me/companies/%s/jobs/%s\n", detail.PagePath, detail.Path)
-	description := plainText(detail.Description)
+	description, err := html2text.FromString(detail.Description, html2text.Options{})
+	if err != nil {
+		description = detail.Description
+	}
 	if description != "" {
 		fmt.Fprintf(w, "Description:\n%s\n", description)
 	}
-	requirements := plainText(detail.Requirements)
+	requirements, err := html2text.FromString(detail.Requirements, html2text.Options{})
+	if err != nil {
+		requirements = detail.Requirements
+	}
 	if requirements != "" {
 		fmt.Fprintf(w, "Requirements: %s\n", requirements)
 	}
-}
-
-func plainText(s string) string {
-	s = strings.ReplaceAll(s, "<br>", "\n")
-	s = strings.ReplaceAll(s, "<br/>", "\n")
-	s = strings.ReplaceAll(s, "<br />", "\n")
-	s = tagRE.ReplaceAllString(s, "")
-	s = html.UnescapeString(s)
-	lines := strings.Fields(s)
-	return strings.Join(lines, " ")
 }
