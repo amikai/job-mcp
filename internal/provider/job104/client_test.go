@@ -1,6 +1,7 @@
 package job104
 
 import (
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -154,4 +155,45 @@ func TestGetJobDetail(t *testing.T) {
 		},
 	}
 	assert.Equal(t, want, got)
+}
+
+func TestSearchJobsUpstreamError(t *testing.T) {
+	srv := NewMockServer()
+	defer srv.Close()
+
+	c, err := NewClient(srv.URL, WithClient(srv.Client()))
+	require.NoError(t, err)
+
+	_, err = c.SearchJobs(t.Context(), SearchJobsParams{
+		Keyword: NewOptString(MockErrorKeyword),
+		Area:    NewOptSearchJobsArea(AreaIDs["Taipei"]),
+	})
+	require.Error(t, err)
+
+	ue, ok := errors.AsType[*ErrorResponseStatusCode](err)
+	require.True(t, ok, "expected *ErrorResponseStatusCode in %v", err)
+	want := &ErrorResponseStatusCode{
+		StatusCode: 500,
+		Response:   ErrorResponse{Message: NewOptString("internal error"), AdditionalProps: ErrorResponseAdditional{}},
+	}
+	assert.Equal(t, want, ue)
+}
+
+func TestGetJobDetailUpstreamError(t *testing.T) {
+	srv := NewMockServer()
+	defer srv.Close()
+
+	c, err := NewClient(srv.URL, WithClient(srv.Client()))
+	require.NoError(t, err)
+
+	_, err = c.GetJobDetail(t.Context(), GetJobDetailParams{JobCode: MockNotFoundJobCode})
+	require.Error(t, err)
+
+	ue, ok := errors.AsType[*ErrorResponseStatusCode](err)
+	require.True(t, ok, "expected *ErrorResponseStatusCode in %v", err)
+	want := &ErrorResponseStatusCode{
+		StatusCode: 404,
+		Response:   ErrorResponse{Message: NewOptString("job not found"), AdditionalProps: ErrorResponseAdditional{}},
+	}
+	assert.Equal(t, want, ue)
 }
