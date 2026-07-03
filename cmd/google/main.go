@@ -12,7 +12,7 @@ import (
 	"github.com/peterbourgon/ff/v4"
 	"github.com/peterbourgon/ff/v4/ffhelp"
 
-	google "github.com/amikai/job-mcp/internal/provider/google"
+	google "github.com/amikai/openings-mcp/internal/provider/google"
 )
 
 // Enum values mirror openapi.yaml's searchJobs parameters. The site silently

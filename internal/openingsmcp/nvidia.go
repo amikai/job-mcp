@@ -1,4 +1,4 @@
-package jobmcp
+package openingsmcp
 
 import (
 	"cmp"
@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/amikai/job-mcp/internal/provider/nvidia"
+	"github.com/amikai/openings-mcp/internal/provider/nvidia"
 	"github.com/jaytaylor/html2text"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )

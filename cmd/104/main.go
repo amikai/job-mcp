@@ -14,7 +14,7 @@ import (
 	"github.com/peterbourgon/ff/v4"
 	"github.com/peterbourgon/ff/v4/ffhelp"
 
-	"github.com/amikai/job-mcp/internal/provider/job104"
+	"github.com/amikai/openings-mcp/internal/provider/job104"
 )
 
 // main issues a single SearchJobs request built entirely from flags, then

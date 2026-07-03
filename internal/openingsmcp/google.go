@@ -1,10 +1,10 @@
-package jobmcp
+package openingsmcp
 
 import (
 	"context"
 	"fmt"
 
-	"github.com/amikai/job-mcp/internal/provider/google"
+	"github.com/amikai/openings-mcp/internal/provider/google"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
@@ -116,7 +116,7 @@ type googleDetailOutput struct {
 // The google provider's client is hand-written (no ogen-generated types), so
 // unlike job104/nvidia/cake there's no generated Validate() to call; the site
 // itself silently ignores unrecognized values instead of erroring, so
-// jobmcp validates against these sets to fail fast like the other providers.
+// openingsmcp validates against these sets to fail fast like the other providers.
 var googleTargetLevels = map[string]bool{
 	"EARLY": true, "MID": true, "ADVANCED": true,
 	"INTERN_AND_APPRENTICE": true, "DIRECTOR_PLUS": true,

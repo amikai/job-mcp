@@ -1,10 +1,10 @@
 version: 2
 
-project_name: jobmcp
+project_name: openings-mcp
 
 builds:
-  - main: ./cmd/jobmcp
-    binary: jobmcp
+  - main: ./cmd/openings-mcp
+    binary: openings-mcp
     env:
       - CGO_ENABLED=0
     goos:
@@ -26,7 +26,7 @@ archives:
 
 dockers_v2:
   - images:
-      - ghcr.io/amikai/job-mcp
+      - ghcr.io/amikai/openings-mcp
     tags:
       - '{{ .Version }}'
       - latest
@@ -36,7 +36,7 @@ dockers_v2:
     labels:
       org.opencontainers.image.title: '{{ .ProjectName }}'
       org.opencontainers.image.description: 'MCP server for searching job listings across job boards and company career sites'
-      org.opencontainers.image.source: 'https://github.com/amikai/job-mcp'
+      org.opencontainers.image.source: 'https://github.com/amikai/openings-mcp'
       org.opencontainers.image.version: '{{ .Version }}'
       org.opencontainers.image.licenses: MIT
 

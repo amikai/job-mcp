@@ -1,11 +1,11 @@
-package jobmcp
+package openingsmcp
 
 import (
 	"context"
 	"errors"
 	"fmt"
 
-	"github.com/amikai/job-mcp/internal/provider/cake"
+	"github.com/amikai/openings-mcp/internal/provider/cake"
 	"github.com/jaytaylor/html2text"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )

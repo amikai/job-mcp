@@ -1,5 +1,5 @@
-// Package jobmcp adapts the internal job-board clients into MCP tools.
-package jobmcp
+// Package openingsmcp adapts the internal job-board clients into MCP tools.
+package openingsmcp
 
 import "github.com/modelcontextprotocol/go-sdk/mcp"
 

@@ -12,7 +12,7 @@ import (
 	"github.com/peterbourgon/ff/v4"
 	"github.com/peterbourgon/ff/v4/ffhelp"
 
-	"github.com/amikai/job-mcp/internal/provider/tsmc"
+	"github.com/amikai/openings-mcp/internal/provider/tsmc"
 )
 
 // main issues a single JobsRequest built entirely from flags, then fetches

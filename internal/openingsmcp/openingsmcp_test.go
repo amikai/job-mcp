@@ -1,4 +1,4 @@
-package jobmcp
+package openingsmcp
 
 import (
 	"context"

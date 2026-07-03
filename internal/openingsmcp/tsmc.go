@@ -1,10 +1,10 @@
-package jobmcp
+package openingsmcp
 
 import (
 	"context"
 	"fmt"
 
-	"github.com/amikai/job-mcp/internal/provider/tsmc"
+	"github.com/amikai/openings-mcp/internal/provider/tsmc"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 

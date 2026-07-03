@@ -13,7 +13,7 @@ import (
 	"github.com/peterbourgon/ff/v4"
 	"github.com/peterbourgon/ff/v4/ffhelp"
 
-	cake "github.com/amikai/job-mcp/internal/provider/cake"
+	cake "github.com/amikai/openings-mcp/internal/provider/cake"
 )
 
 // main issues a single SearchJobs request built entirely from flags, then

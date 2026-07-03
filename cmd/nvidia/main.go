@@ -13,7 +13,7 @@ import (
 	"github.com/peterbourgon/ff/v4"
 	"github.com/peterbourgon/ff/v4/ffhelp"
 
-	nvidia "github.com/amikai/job-mcp/internal/provider/nvidia"
+	nvidia "github.com/amikai/openings-mcp/internal/provider/nvidia"
 )
 
 // nvidiaSiteURL is the public careers site origin, distinct from --base-url
