@@ -84,6 +84,15 @@ Use this tool for personal job searching at a human pace. You are responsible
 for complying with the terms of service of each site you query; do not use it
 for bulk scraping or data harvesting.
 
+## Credits
+
+Inspired by these MCP job-search servers:
+
+- [job104-mcp](https://github.com/mozzan/job104-mcp)
+- [jobspy-mcp-server](https://github.com/borgius/jobspy-mcp-server)
+- [mcp-jobs](https://github.com/mergedao/mcp-jobs)
+- [104-mcp-server](https://github.com/bigbrainw/104-mcp-server)
+
 ## License
 
 [MIT](LICENSE)
