@@ -219,14 +219,14 @@ func RegisterCake(s *mcp.Server, c *cake.Client) {
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, in *cakeSearchInput) (*mcp.CallToolResult, *cakeSearchOutput, error) {
 		req, err := cakeMCPToHTTPRequest(in)
 		if err != nil {
-			return errorResult(ctx, err), nil, nil
+			return errorResult(err), nil, nil
 		}
 		res, err := c.SearchJobs(ctx, req)
 		if err != nil {
 			if ue, ok := errors.AsType[*cake.ErrorResponseStatusCode](err); ok {
-				return errorResult(ctx, fmt.Errorf("upstream error: %d", ue.StatusCode)), nil, nil
+				return errorResult(fmt.Errorf("upstream error: %d", ue.StatusCode)), nil, nil
 			}
-			return errorResult(ctx, err), nil, nil
+			return errorResult(err), nil, nil
 		}
 		return nil, cakeHTTPToMCPResponse(res), nil
 	})
@@ -239,9 +239,9 @@ func RegisterCake(s *mcp.Server, c *cake.Client) {
 		res, err := c.GetJobDetail(ctx, cake.GetJobDetailParams{Path: in.Path})
 		if err != nil {
 			if ue, ok := errors.AsType[*cake.ErrorResponseStatusCode](err); ok {
-				return errorResult(ctx, fmt.Errorf("upstream error: %d", ue.StatusCode)), nil, nil
+				return errorResult(fmt.Errorf("upstream error: %d", ue.StatusCode)), nil, nil
 			}
-			return errorResult(ctx, err), nil, nil
+			return errorResult(err), nil, nil
 		}
 		return nil, cakeHTTPToMCPDetail(res), nil
 	})

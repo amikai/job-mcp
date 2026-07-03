@@ -23,11 +23,10 @@ import (
 
 func main() {
 	logFile := flag.String("log-file", "", "path to the log file (defaults to empty, outputs to stderr)")
-	enableCommandLogging := flag.Bool("enable-command-logging", false, "enable raw JSON-RPC command logging to the log file")
+	enableCommandLogging := flag.Bool("enable-command-logging", false, "log raw JSON-RPC traffic to the log output")
 	flag.Parse()
 
-	var slogHandler slog.Handler
-	var logOutput io.Writer
+	logOutput := io.Writer(os.Stderr)
 	if *logFile != "" {
 		file, err := os.OpenFile(*logFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0600)
 		if err != nil {
@@ -35,22 +34,12 @@ func main() {
 		}
 		defer file.Close()
 		logOutput = file
-		slogHandler = slog.NewTextHandler(logOutput, &slog.HandlerOptions{Level: slog.LevelDebug})
-	} else {
-		logOutput = os.Stderr
-		slogHandler = slog.NewTextHandler(logOutput, &slog.HandlerOptions{Level: slog.LevelInfo})
 	}
-	logger := slog.New(slogHandler)
+	logger := slog.New(slog.NewTextHandler(logOutput, nil))
 
-	var transport mcp.Transport
+	var transport mcp.Transport = &mcp.StdioTransport{}
 	if *enableCommandLogging {
-		ioLogger := logging.NewIOLogger(os.Stdin, os.Stdout, logger)
-		transport = &mcp.IOTransport{
-			Reader: ioLogger,
-			Writer: ioLogger,
-		}
-	} else {
-		transport = &mcp.StdioTransport{}
+		transport = &mcp.LoggingTransport{Transport: transport, Writer: logOutput}
 	}
 
 	if err := runWithTransport(transport, logger); err != nil {
@@ -108,7 +97,7 @@ Context management:
 - Fetch job details only for postings you intend to present.`
 
 func newServer(c104 *job104.Client, cCake *cake.Client, cNvidia *nvidia.Client, cTsmc *tsmc.Client, cGoogle *google.Client, logger *slog.Logger) *mcp.Server {
-	server := mcp.NewServer(&mcp.Implementation{Name: "job-mcp"}, &mcp.ServerOptions{Instructions: serverInstructions})
+	server := mcp.NewServer(&mcp.Implementation{Name: "job-mcp"}, &mcp.ServerOptions{Instructions: serverInstructions, Logger: logger})
 	server.AddReceivingMiddleware(logging.ErrorLoggingMiddleware(logger))
 	jobmcp.RegisterJob104(server, c104)
 	jobmcp.RegisterCake(server, cCake)
