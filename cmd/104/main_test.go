@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/amikai/job-mcp/internal/provider/job104"
+	"github.com/amikai/openings-mcp/internal/provider/job104"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

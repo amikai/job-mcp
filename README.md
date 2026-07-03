@@ -1,10 +1,10 @@
-<h1 align="center">job-mcp</h1>
+<h1 align="center">openings-mcp</h1>
 
 <p align="center">
   <strong>Search job listings from any MCP client — job boards and company career sites, one server.</strong>
 </p>
 
-**job-mcp** searches job listings across job boards and company career sites —
+**openings-mcp** searches job listings across job boards and company career sites —
 currently **[104](https://www.104.com.tw)**, **[Cake](https://www.cake.me)**,
 **[Google Careers](https://www.google.com/about/careers/applications/jobs)**,
 **[NVIDIA careers](https://nvidia.wd5.myworkdayjobs.com/NVIDIAExternalCareerSite)**, and
@@ -16,47 +16,47 @@ from any MCP client: Claude Code, Codex, Gemini CLI, and others.
 With Go:
 
 ```
-go install github.com/amikai/job-mcp/cmd/jobmcp@latest
+go install github.com/amikai/openings-mcp/cmd/openings-mcp@latest
 ```
 
 Upgrade by rerunning the same command; pin a version with `@vX.Y.Z`.
 
 Without Go: download the archive for your platform from
-[Releases](https://github.com/amikai/job-mcp/releases) and put `jobmcp` on
-your PATH.
+[Releases](https://github.com/amikai/openings-mcp/releases) and put
+`openings-mcp` on your PATH.
 
 With Docker (multi-arch: linux/amd64, linux/arm64):
 
 ```
-docker pull ghcr.io/amikai/job-mcp
+docker pull ghcr.io/amikai/openings-mcp
 ```
 
 ## Add the MCP server to your tool
 
-With `jobmcp` on your PATH:
+With `openings-mcp` on your PATH:
 
 **Claude Code**
 
 ```
-claude mcp add job-mcp -- jobmcp
+claude mcp add openings-mcp -- openings-mcp
 ```
 
 **Codex**
 
 ```
-codex mcp add job-mcp -- jobmcp
+codex mcp add openings-mcp -- openings-mcp
 ```
 
 **Gemini CLI**
 
 ```
-gemini mcp add job-mcp jobmcp
+gemini mcp add openings-mcp openings-mcp
 ```
 
-With Docker instead, replace `jobmcp` with `docker run -i --rm ghcr.io/amikai/job-mcp`, e.g.:
+With Docker instead, replace `openings-mcp` with `docker run -i --rm ghcr.io/amikai/openings-mcp`, e.g.:
 
 ```
-claude mcp add job-mcp -- docker run -i --rm ghcr.io/amikai/job-mcp
+claude mcp add openings-mcp -- docker run -i --rm ghcr.io/amikai/openings-mcp
 ```
 
 ## Disclaimer

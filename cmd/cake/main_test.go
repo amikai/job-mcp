@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"testing"
 
-	cake "github.com/amikai/job-mcp/internal/provider/cake"
+	cake "github.com/amikai/openings-mcp/internal/provider/cake"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

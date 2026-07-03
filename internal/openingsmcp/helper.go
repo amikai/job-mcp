@@ -1,4 +1,4 @@
-package jobmcp
+package openingsmcp
 
 import (
 	"encoding/json"
@@ -10,7 +10,7 @@ import (
 func mustSchema(rawSchema []byte) *jsonschema.Schema {
 	var s jsonschema.Schema
 	if err := json.Unmarshal(rawSchema, &s); err != nil {
-		panic(fmt.Sprintf("jobmcp tool schema: %v", err))
+		panic(fmt.Sprintf("openingsmcp tool schema: %v", err))
 	}
 	return &s
 }

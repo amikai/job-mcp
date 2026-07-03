@@ -1,4 +1,4 @@
-module github.com/amikai/job-mcp
+module github.com/amikai/openings-mcp
 
 go 1.26.4
 

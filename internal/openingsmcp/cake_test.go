@@ -1,10 +1,10 @@
-package jobmcp
+package openingsmcp
 
 import (
 	"encoding/json"
 	"testing"
 
-	"github.com/amikai/job-mcp/internal/provider/cake"
+	"github.com/amikai/openings-mcp/internal/provider/cake"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

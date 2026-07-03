@@ -14,13 +14,13 @@ import (
 	"github.com/peterbourgon/ff/v4"
 	"github.com/peterbourgon/ff/v4/ffhelp"
 
-	"github.com/amikai/job-mcp/internal/jobmcp"
-	"github.com/amikai/job-mcp/internal/logging"
-	"github.com/amikai/job-mcp/internal/provider/cake"
-	"github.com/amikai/job-mcp/internal/provider/google"
-	"github.com/amikai/job-mcp/internal/provider/job104"
-	"github.com/amikai/job-mcp/internal/provider/nvidia"
-	"github.com/amikai/job-mcp/internal/provider/tsmc"
+	"github.com/amikai/openings-mcp/internal/openingsmcp"
+	"github.com/amikai/openings-mcp/internal/logging"
+	"github.com/amikai/openings-mcp/internal/provider/cake"
+	"github.com/amikai/openings-mcp/internal/provider/google"
+	"github.com/amikai/openings-mcp/internal/provider/job104"
+	"github.com/amikai/openings-mcp/internal/provider/nvidia"
+	"github.com/amikai/openings-mcp/internal/provider/tsmc"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
@@ -33,7 +33,7 @@ var (
 // serverInstructions carries the cross-tool guidance for host LLMs: provider
 // routing and the shared search→detail flow. Per-tool behavior stays in each
 // tool's description.
-const serverInstructions = `job-mcp exposes job-search tools for five job boards: 104 and Cake.me (both Taiwan-centric), plus the official careers sites of Google, NVIDIA, and TSMC.
+const serverInstructions = `openings-mcp exposes job-search tools for five job boards: 104 and Cake.me (both Taiwan-centric), plus the official careers sites of Google, NVIDIA, and TSMC.
 
 Tool selection:
 - When the user names a site or company, use that provider's tools.
@@ -49,14 +49,14 @@ Context management:
 - After filtering, fetch details when both hold: the user's criteria include something summaries can't answer (tech stack, remote policy, overtime culture, education requirements written in the posting body, etc.), and the filtered set is small enough to fetch economically (roughly 5-10 postings). If either condition fails, present summaries and let the user decide whether to go deeper.`
 
 func main() {
-	fs := ff.NewFlagSet("jobmcp")
+	fs := ff.NewFlagSet("openings-mcp")
 	var (
 		logFile              = fs.StringLong("log-file", "", "path to the log file (defaults to empty, outputs to stderr)")
 		enableCommandLogging = fs.BoolLong("enable-command-logging", "log raw JSON-RPC traffic to the log output")
 		versionFlag          = fs.BoolLong("version", "print version information and exit")
 	)
 	cmd := &ff.Command{
-		Name:      "jobmcp",
+		Name:      "openings-mcp",
 		ShortHelp: "MCP server exposing job-search tools for job boards and company careers sites",
 		Flags:     fs,
 	}
@@ -130,12 +130,12 @@ func runWithTransport(transport mcp.Transport, logger *slog.Logger) error {
 }
 
 func newServer(c104 *job104.Client, cCake *cake.Client, cNvidia *nvidia.Client, cTsmc *tsmc.Client, cGoogle *google.Client, logger *slog.Logger) *mcp.Server {
-	server := mcp.NewServer(&mcp.Implementation{Name: "job-mcp", Version: version}, &mcp.ServerOptions{Instructions: serverInstructions, Logger: logger})
+	server := mcp.NewServer(&mcp.Implementation{Name: "openings-mcp", Version: version}, &mcp.ServerOptions{Instructions: serverInstructions, Logger: logger})
 	server.AddReceivingMiddleware(logging.ErrorLoggingMiddleware(logger))
-	jobmcp.RegisterJob104(server, c104)
-	jobmcp.RegisterCake(server, cCake)
-	jobmcp.RegisterNvidia(server, cNvidia)
-	jobmcp.RegisterTsmc(server, cTsmc)
-	jobmcp.RegisterGoogle(server, cGoogle)
+	openingsmcp.RegisterJob104(server, c104)
+	openingsmcp.RegisterCake(server, cCake)
+	openingsmcp.RegisterNvidia(server, cNvidia)
+	openingsmcp.RegisterTsmc(server, cTsmc)
+	openingsmcp.RegisterGoogle(server, cGoogle)
 	return server
 }
