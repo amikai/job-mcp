@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <img src="assets/openings_demo.gif" alt="Demo of openings-mcp searching job listings from Claude Code" width="600">
+  <img src="assets/openings_demo.gif" alt="Demo of openings-mcp searching job listings from Claude Code" width="800">
 </p>
 
 **openings-mcp** searches job listings across job boards and company career sites —
