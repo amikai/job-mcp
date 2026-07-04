@@ -69,7 +69,7 @@ func main() {
 		details[job.ID] = detail
 	}
 
-	writeReport(os.Stdout, *keywords, search, details)
+	writeReport(os.Stdout, *keywords, *baseURL, search, details)
 }
 
 func buildJobsRequest(keywords, location string, distance int, workplaceType, jobType string, easyApply bool, companyIDs string, postedWithin time.Duration, start int) *linkedin.JobsRequest {
@@ -105,14 +105,14 @@ func jobsForDetail(jobs []linkedin.Job, n int) []linkedin.Job {
 	return jobs[:n]
 }
 
-func writeReport(w io.Writer, keywords string, search *linkedin.JobsResponse, details map[string]*linkedin.JobDetailResponse) {
+func writeReport(w io.Writer, keywords, baseURL string, search *linkedin.JobsResponse, details map[string]*linkedin.JobDetailResponse) {
 	fmt.Fprintf(w, "LinkedIn Jobs Report\n")
 	fmt.Fprintf(w, "Keywords: %s\n", keywords)
 	fmt.Fprintf(w, "Found %d jobs\n\n", len(search.Jobs))
 
 	for i, job := range search.Jobs {
 		fmt.Fprintf(w, "%d. [%s] %s\n", i+1, job.ID, job.Title)
-		fmt.Fprintf(w, "URL: https://www.linkedin.com/jobs/view/%s\n", job.ID)
+		fmt.Fprintf(w, "URL: %s/jobs/view/%s\n", baseURL, job.ID)
 		if job.Company != "" {
 			fmt.Fprintf(w, "Company: %s\n", job.Company)
 		}
