@@ -1,0 +1,424 @@
+openapi: 3.0.3
+info:
+  title: Greenhouse Job Board API
+  description: >
+    Public, unauthenticated read-only API for Greenhouse-hosted job boards.
+    Source: https://raw.githubusercontent.com/grnhse/greenhouse-api-docs/refs/heads/master/source/includes/job-board/_jobs.md
+  version: "1.0"
+servers:
+  - url: https://boards-api.greenhouse.io/v1
+
+paths:
+  /boards/{board_token}/jobs:
+    get:
+      summary: List all jobs for a board
+      operationId: listJobs
+      parameters:
+        - name: board_token
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Job Board URL token (e.g. "acme" in boards.greenhouse.io/acme)
+        - name: content
+          in: query
+          required: false
+          schema:
+            type: boolean
+          description: >
+            If true, includes the full post description (content), departments,
+            and offices for each job.
+      responses:
+        "200":
+          description: List of jobs on the board
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JobListResponse"
+        "404":
+          description: Unknown board_token
+
+  /boards/{board_token}/jobs/{job_id}:
+    get:
+      summary: Retrieve a single job
+      operationId: getJob
+      parameters:
+        - name: board_token
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: job_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID of the job to retrieve (the posting `id`, not `internal_job_id`)
+        - name: questions
+          in: query
+          required: false
+          schema:
+            type: boolean
+          description: >
+            If true, includes questions, location_questions, data_compliance,
+            and demographic_questions (application form structure).
+        - name: pay_transparency
+          in: query
+          required: false
+          schema:
+            type: boolean
+          description: If true, includes the pay_input_ranges array.
+      responses:
+        "200":
+          description: Job detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JobDetail"
+        "404":
+          description: Unknown board_token or job_id
+
+components:
+  schemas:
+    Location:
+      type: object
+      properties:
+        name:
+          type: string
+
+    Department:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        parent_id:
+          type: integer
+          nullable: true
+        child_ids:
+          type: array
+          items:
+            type: integer
+
+    Office:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        location:
+          type: string
+        parent_id:
+          type: integer
+          nullable: true
+        child_ids:
+          type: array
+          items:
+            type: integer
+
+    JobSummary:
+      type: object
+      properties:
+        id:
+          type: integer
+        internal_job_id:
+          type: integer
+          nullable: true
+          description: Null for prospect posts.
+        title:
+          type: string
+        company_name:
+          type: string
+        first_published:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        requisition_id:
+          type: string
+        application_deadline:
+          type: string
+          format: date-time
+          nullable: true
+        education:
+          type: string
+          description: Only present on some boards.
+          enum:
+            - education_required
+            - education_optional
+        location:
+          $ref: "#/components/schemas/Location"
+        absolute_url:
+          type: string
+          format: uri
+        language:
+          type: string
+        metadata:
+          type: array
+          nullable: true
+          items:
+            type: object
+        data_compliance:
+          type: array
+          items:
+            $ref: "#/components/schemas/DataCompliance"
+        content:
+          type: string
+          description: Only present when `content=true` is passed. HTML entity-encoded.
+        departments:
+          type: array
+          items:
+            $ref: "#/components/schemas/Department"
+        offices:
+          type: array
+          items:
+            $ref: "#/components/schemas/Office"
+
+    JobListResponse:
+      type: object
+      properties:
+        jobs:
+          type: array
+          items:
+            $ref: "#/components/schemas/JobSummary"
+        meta:
+          type: object
+          properties:
+            total:
+              type: integer
+
+    QuestionField:
+      type: object
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+          enum:
+            - input_file
+            - input_text
+            - input_hidden
+            - textarea
+            - multi_value_single_select
+            - multi_value_multi_select
+        values:
+          type: array
+          items:
+            type: object
+            properties:
+              value:
+                oneOf:
+                  - type: string
+                  - type: integer
+              label:
+                type: string
+
+    Question:
+      type: object
+      properties:
+        required:
+          type: boolean
+        label:
+          type: string
+        description:
+          type: string
+          nullable: true
+        fields:
+          type: array
+          items:
+            $ref: "#/components/schemas/QuestionField"
+
+    DataCompliance:
+      type: object
+      properties:
+        type:
+          type: string
+          example: gdpr
+        requires_consent:
+          type: boolean
+        requires_processing_consent:
+          type: boolean
+        requires_retention_consent:
+          type: boolean
+        retention_period:
+          type: integer
+          nullable: true
+        demographic_data_consent_applies:
+          type: boolean
+
+    Compliance:
+      type: object
+      description: >
+        EEOC/compliance disclosure block, only observed with `questions=true`.
+        Distinct from `data_compliance`.
+      properties:
+        type:
+          type: string
+          example: eeoc
+        questions:
+          type: array
+          items:
+            $ref: "#/components/schemas/Question"
+        description:
+          type: string
+          description: HTML entity-encoded disclosure text.
+
+    PayInputRange:
+      type: object
+      properties:
+        min_cents:
+          type: integer
+        max_cents:
+          type: integer
+        currency_type:
+          type: string
+        title:
+          type: string
+        blurb:
+          type: string
+
+    DemographicAnswerOption:
+      type: object
+      properties:
+        id:
+          type: integer
+        label:
+          type: string
+        free_form:
+          type: boolean
+
+    DemographicQuestion:
+      type: object
+      properties:
+        id:
+          type: integer
+        label:
+          type: string
+        required:
+          type: boolean
+        type:
+          type: string
+          enum:
+            - multi_value_single_select
+            - multi_value_multi_select
+        answer_options:
+          type: array
+          items:
+            $ref: "#/components/schemas/DemographicAnswerOption"
+
+    DemographicQuestions:
+      type: object
+      properties:
+        header:
+          type: string
+        description:
+          type: string
+        questions:
+          type: array
+          items:
+            $ref: "#/components/schemas/DemographicQuestion"
+
+    JobDetail:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        company_name:
+          type: string
+        first_published:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        application_deadline:
+          type: string
+          format: date-time
+          nullable: true
+        education:
+          type: string
+          description: Only present on some boards.
+          enum:
+            - education_required
+            - education_optional
+        requisition_id:
+          type: string
+        location:
+          $ref: "#/components/schemas/Location"
+        content:
+          type: string
+        absolute_url:
+          type: string
+          format: uri
+        language:
+          type: string
+        internal_job_id:
+          type: integer
+          nullable: true
+        include_ai_disclaimer:
+          type: boolean
+          nullable: true
+        ai_disclaimer:
+          type: string
+          nullable: true
+        ai_opt_out_request_url:
+          type: string
+          format: uri
+          nullable: true
+        location_questions:
+          type: array
+          items:
+            $ref: "#/components/schemas/Question"
+        questions:
+          type: array
+          description: Present only when `questions=true` is passed.
+          items:
+            $ref: "#/components/schemas/Question"
+        metadata:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+              name:
+                type: string
+              value_type:
+                type: string
+              value:
+                type: string
+        data_compliance:
+          type: array
+          items:
+            $ref: "#/components/schemas/DataCompliance"
+        departments:
+          type: array
+          items:
+            $ref: "#/components/schemas/Department"
+        offices:
+          type: array
+          items:
+            $ref: "#/components/schemas/Office"
+        compliance:
+          type: array
+          nullable: true
+          description: >
+            EEOC disclosure blocks. Only observed non-null when `questions=true`
+            is passed (distinct from `data_compliance`, which is always
+            present); some boards return `null` even with `questions=true`.
+          items:
+            $ref: "#/components/schemas/Compliance"
+        pay_input_ranges:
+          type: array
+          description: Present only when `pay_transparency=true` is passed.
+          items:
+            $ref: "#/components/schemas/PayInputRange"
+        demographic_questions:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/DemographicQuestions"
