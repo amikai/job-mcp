@@ -1,0 +1,375 @@
+openapi: 3.1.0
+
+info:
+  title: Workday CXS (Candidate Experience) Career Site API
+  version: "1.0.0"
+  description: >
+    Workday is a multi-tenant platform used by many companies to power
+    their career sites. Each company has its own tenant, Workday instance,
+    and site identifier, so the client can construct the target company's
+    base URL at runtime and query job data through the same shared API
+    contract, documented here. 
+
+    OpenAPI requires a default value for each variable in the server URL
+    template, so the defaults are set to Workday's own careers site, which is
+    stable and always on.
+
+    ## Multi-tenant URL shape
+
+    A company's public careers site and its CXS API share one host and one
+    trailing `{site}` segment: the public site is
+    `https://{tenant}.{wdInstance}.myworkdayjobs.com/{site}` and the API
+    base is
+    `https://{tenant}.{wdInstance}.myworkdayjobs.com/wday/cxs/{tenant}/{site}`.
+    Read all three variables off the public careers URL; `{wdInstance}`
+    (the Workday pod, e.g. `wd1` or `wd5`) varies per company and is not
+    derivable from the tenant name.
+
+    ## Facets are tenant-specific, and narrow with the query
+
+    `appliedFacets` maps each facet parameter name to an array of opaque
+    Workday GUIDs. Both the parameter names and the GUIDs behind each
+    value are configured per tenant, so none of it is portable across
+    companies. Every `POST /jobs` response carries a `facets` field with
+    live counts for the current query.
+
+    That tree is scoped to the current query, not a static per-tenant
+    list: `searchText` narrows it just as much as `appliedFacets` does.
+    To discover a tenant's full facet vocabulary, both fields have to be empty
+    at once: `{appliedFacets: {}, searchText: "", limit: 1, offset: 0}`.
+
+    Facet nodes are recursive (see `FacetNode`): a node is either a leaf
+    value (`descriptor` + `id` + `count`, usable in `appliedFacets`) or a
+    group (`facetParameter` + nested `values`). Depth varies per facet:
+    `jobFamilyGroup`, `workerSubType`, and `timeType` have been observed
+    flat, while `locationMainGroup` nested location types, countries, and
+    city-level sites. Walk until a node has no `values`.
+
+    ## Pagination and errors
+
+    `limit`/`offset` paginate `jobPostings`. `total` reports the match
+    count; it was observed capped at 2000 on at least one tenant when
+    unfiltered and exact once a filter narrows the set, so treat the cap
+    as tenant-specific rather than a platform constant. Error shapes and
+    codes are likewise not guaranteed portable; 400 has been observed both
+    for a too-high `limit` and for an unknown facet id.
+
+servers:
+  - url: https://{tenant}.{wdInstance}.myworkdayjobs.com/wday/cxs/{tenant}/{site}
+    variables:
+      tenant: { default: workday, description: Company's Workday tenant slug }
+      wdInstance:
+        {
+          default: wd5,
+          description: Workday pod. Varies per company and is not derivable from the tenant name; read it off the company's careers URL.,
+        }
+      site:
+        {
+          default: Workday,
+          description: "Career site name, e.g. `ExternalCareerSite`",
+        }
+
+tags:
+  - name: Jobs
+    description: Generic search and detail endpoints shared by Workday CXS tenants
+
+paths:
+  /jobs:
+    post:
+      tags: [Jobs]
+      summary: Search / filter / paginate jobs
+      description: >
+        Searches jobs by keyword and/or facet filters, paginated via
+        `limit`/`offset`. All four body fields are required even when
+        unused.
+
+        The response's `facets` tree is scoped to the current query:
+        `searchText` narrows it as much as `appliedFacets` does. To
+        discover a tenant's full facet vocabulary, send both empty
+        (`{}` for `appliedFacets`, `""` for `searchText`) with `limit: 1`.
+      operationId: searchJobs
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/JobsRequest"
+            examples:
+              discoverFacets:
+                summary: Unfiltered search that discovers the tenant's full facet tree
+                value:
+                  appliedFacets: {}
+                  limit: 1
+                  offset: 0
+                  searchText: ""
+              keywordSearch:
+                summary: Keyword search, no facet filters
+                value:
+                  appliedFacets: {}
+                  limit: 20
+                  offset: 0
+                  searchText: "engineer"
+              filtered:
+                summary: Facet-filtered search (value ids are tenant-specific)
+                value:
+                  appliedFacets:
+                    jobFamilyGroup: ["<tenant-specific-guid>"]
+                  limit: 20
+                  offset: 0
+                  searchText: ""
+      responses:
+        "200":
+          description: Search succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JobsResponse"
+        default:
+          description: >
+            Any non-200 status. Error shape and codes are not guaranteed
+            identical across tenants; 400 has been observed for a `limit`
+            above the tenant's cap or an unknown facet parameter/value id.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /job/{location}/{titleSlug}:
+    get:
+      tags: [Jobs]
+      summary: Get job detail
+      description: >
+        Fetches a single job posting. `externalPath` from the search
+        response has the form `/job/{location}/{titleSlug}`, with exactly
+        two segments after `/job/`. Split it on the first `/` and pass the
+        parts as separate path parameters: a single combined parameter
+        fails because standard URI encoders percent-encode its embedded
+        `/`, producing a URL the server rejects. This routing detail holds
+        across tenants, including `XMLNAME-` titleSlugs, Workday's naming
+        for titles that start with a non-letter.
+      operationId: getJobDetail
+      parameters:
+        - name: location
+          in: path
+          required: true
+          description: Location slug segment.
+          schema:
+            type: string
+          example: "US-CA-Remote"
+        - name: titleSlug
+          in: path
+          required: true
+          description: Title-and-requisition-id segment
+          schema:
+            type: string
+          example: "Software-Engineer_R12345"
+      responses:
+        "200":
+          description: Job detail found.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JobDetailResponse"
+        default:
+          description: Any non-200 status; 404 observed when a posting is gone or inactive.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+components:
+  schemas:
+    JobsRequest:
+      type: object
+      required: [appliedFacets, limit, offset, searchText]
+      properties:
+        appliedFacets:
+          $ref: "#/components/schemas/AppliedFacets"
+        limit:
+          type: integer
+          minimum: 1
+          description: >
+            Page size. At least one tenant caps this at 20 (HTTP 400
+            above it); treat the cap as tenant-specific.
+          example: 20
+        offset:
+          type: integer
+          minimum: 0
+          description: Zero-based result offset for pagination.
+          example: 0
+        searchText:
+          type: string
+          description: Free-text keyword search across job title and description.
+          example: "engineer"
+
+    AppliedFacets:
+      type: object
+      description: >
+        One property per facet parameter name, each an array of selected
+        value ids. Ids are OR'd within a facet and AND'd across facets.
+        Names and ids are tenant-specific and opaque; discover them from a
+        live `JobsResponse.facets` tree rather than assuming any fixed set
+        (names commonly observed, but not guaranteed: `jobFamilyGroup`,
+        `workerSubType`, `timeType`, `locationHierarchy1`,
+        `locationHierarchy2`, `locations`). Omit a property, or leave its
+        array empty, to leave that dimension unfiltered.
+      additionalProperties:
+        type: array
+        items:
+          type: string
+
+    JobsResponse:
+      type: object
+      required: [total, jobPostings]
+      properties:
+        total:
+          type: integer
+          description: >
+            Total matching job count. Observed capped at 2000 on at least
+            one tenant when unfiltered and exact once a filter narrows the
+            set; verify the cap per tenant.
+          example: 508
+        jobPostings:
+          type: array
+          items:
+            $ref: "#/components/schemas/JobSummary"
+        facets:
+          # `nullable` is the OAS 3.0 keyword, kept because ogen (v1.22)
+          # rejects the 3.1-style `type: [array, "null"]` union.
+          type: array
+          nullable: true
+          description: >
+            The facet tree for the current query, with live counts. It
+            narrows along with `jobPostings`: `searchText` narrows it as
+            much as an `appliedFacets` filter does, so it is only the
+            tenant's complete facet tree when both `appliedFacets` and
+            `searchText` are empty. Present on every observed response,
+            and the primary way to discover the filter vocabulary when
+            read from such an unfiltered search. It is deliberately
+            optional and nullable so a tenant that omits it (or sends
+            `facets: null`) still decodes rather than failing the whole
+            search.
+          items:
+            $ref: "#/components/schemas/FacetNode"
+
+    FacetNode:
+      type: object
+      description: >
+        Recursive. A group has `facetParameter` (and usually `descriptor`)
+        plus nested `values`; a leaf value has `descriptor`, `id`, and
+        `count`, and no `values`. Top-level entries in
+        `JobsResponse.facets` are groups, and groups may nest further
+        groups (e.g. `locationMainGroup` wrapping `locationHierarchy2`,
+        `locationHierarchy1`, and `locations`) before bottoming out at
+        leaves. There is no fixed depth; walk until a node has no
+        `values`.
+      properties:
+        facetParameter:
+          type: string
+          description: Facet parameter name; present on groups, absent on leaf values.
+          example: "jobFamilyGroup"
+        descriptor:
+          type: string
+          description: >
+            Human-readable label: a value's display name on a leaf, a UI
+            section title on a group. Some top-level groups omit it
+            entirely (observed on a tenant's `locationMainGroup`).
+          example: "Engineering"
+        id:
+          type: string
+          description: Opaque tenant-specific GUID; present on leaf values, used in `appliedFacets`.
+          example: "0c40f6bd1d8f10ae43ffaefd46dc7e78"
+        count:
+          type: integer
+          description: Live matching job count for this leaf value.
+          example: 1778
+        values:
+          type: array
+          description: Child nodes; present on groups, absent on leaves.
+          items:
+            $ref: "#/components/schemas/FacetNode"
+
+    JobSummary:
+      type: object
+      description: >
+        Entries occasionally arrive incomplete, carrying only
+        `bulletFields` with no `title` or `externalPath` (a transient
+        posting on Workday's side). Neither field is required; skip
+        entries with an empty `externalPath` rather than assuming every
+        entry is fetchable.
+      properties:
+        title:
+          type: string
+          example: "Senior Software Engineer, Data Services"
+        externalPath:
+          type: string
+          description: Path for `GET /job/{location}/{titleSlug}` (leading slash included).
+          example: "/job/US-CA-Santa-Clara/Senior-Software-Engineer--Data-Services_JR2003389"
+        locationsText:
+          type: string
+          description: Human-readable location summary, e.g. a city or "N Locations".
+          example: "2 Locations"
+        postedOn:
+          type: string
+          description: Human-readable relative posting date.
+          example: "Posted Today"
+        bulletFields:
+          type: array
+          description: >
+            Short supplementary strings shown under the title in search
+            results; in practice usually just the requisition id (e.g.
+            `["JR2003389"]`), but treat as freeform.
+          items:
+            type: string
+
+    JobDetailResponse:
+      type: object
+      required: [jobPostingInfo]
+      properties:
+        jobPostingInfo:
+          $ref: "#/components/schemas/JobPostingInfo"
+
+    JobPostingInfo:
+      type: object
+      required: [title, jobDescription]
+      properties:
+        title:
+          type: string
+          example: "Senior Software Engineer, Data Services"
+        jobDescription:
+          type: string
+          description: Full HTML job description.
+        location:
+          type: string
+          example: "US, CA, Santa Clara"
+        additionalLocations:
+          type: array
+          items:
+            type: string
+        postedOn:
+          type: string
+          example: "Posted Today"
+        timeType:
+          type: string
+          example: "Full time"
+        jobReqId:
+          type: string
+          example: "JR2003389"
+        externalUrl:
+          type: string
+
+    ErrorResponse:
+      type: object
+      description: >
+        Best-effort error body; exact fields vary per tenant, so unknown
+        properties are allowed.
+      properties:
+        errorCode:
+          type: string
+          example: "HTTP_400"
+        httpStatus:
+          type: integer
+          example: 400
+        message:
+          type: string
+      additionalProperties: true

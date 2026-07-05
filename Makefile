@@ -6,7 +6,8 @@ OPENAPI_SPECS := \
 	internal/provider/job104/openapi.yaml \
 	internal/provider/nvidia/openapi.yaml \
 	internal/provider/synopsys/openapi.yaml \
-	internal/provider/tsmc/openapi.yaml
+	internal/provider/tsmc/openapi.yaml \
+	internal/provider/workday/openapi.yaml
 
 validate-openapi: $(OPENAPI_SPECS)
 	@for spec in $^; do \

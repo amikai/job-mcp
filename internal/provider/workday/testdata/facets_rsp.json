@@ -1,0 +1,963 @@
+{
+  "total": 2000,
+  "jobPostings": [
+    {
+      "title": "Senior Scientific Machine Learning Engineer – Earth-2",
+      "externalPath": "/job/US-CA-Santa-Clara/Senior-Scientific-Machine-Learning-Engineer---Earth-2_JR2012860",
+      "locationsText": "2 Locations",
+      "postedOn": "Posted Today",
+      "bulletFields": [
+        "JR2012860"
+      ]
+    }
+  ],
+  "facets": [
+    {
+      "facetParameter": "jobFamilyGroup",
+      "descriptor": "Job Category",
+      "values": [
+        {
+          "descriptor": "Engineering",
+          "id": "0c40f6bd1d8f10ae43ffaefd46dc7e78",
+          "count": 1772
+        },
+        {
+          "descriptor": "Sales",
+          "id": "0c40f6bd1d8f10ae43ffcac5bbec7e90",
+          "count": 272
+        },
+        {
+          "descriptor": "Operations",
+          "id": "0c40f6bd1d8f10ae43ffc3fc7d8c7e8a",
+          "count": 125
+        },
+        {
+          "descriptor": "Program Manager",
+          "id": "0c40f6bd1d8f10ae43ffc668c6847e8c",
+          "count": 118
+        },
+        {
+          "descriptor": "Marketing",
+          "id": "0c40f6bd1d8f10ae43ffc19725ec7e88",
+          "count": 83
+        },
+        {
+          "descriptor": "Research",
+          "id": "0c40f6bd1d8f10ae43ffc8817cf47e8e",
+          "count": 50
+        },
+        {
+          "descriptor": "IT - Information Technology",
+          "id": "0c40f6bd1d8f10ae43ffbd1459047e84",
+          "count": 40
+        },
+        {
+          "descriptor": "Univ Employment",
+          "id": "0c40f6bd1d8f10ae43ffda1e8d447e94",
+          "count": 25
+        },
+        {
+          "descriptor": "Finance",
+          "id": "0c40f6bd1d8f10ae43ffb5dd06f47e7e",
+          "count": 20
+        },
+        {
+          "descriptor": "Professional Services",
+          "id": "e8bdc341a93101bd5f4d2b0a1c005e36",
+          "count": 18
+        },
+        {
+          "descriptor": "Human Resources",
+          "id": "0c40f6bd1d8f10ae43ffbac3680c7e82",
+          "count": 9
+        },
+        {
+          "descriptor": "Legal",
+          "id": "0c40f6bd1d8f10ae43ffbf4412147e86",
+          "count": 6
+        },
+        {
+          "descriptor": "Facilities",
+          "id": "0c40f6bd1d8f10ae43ffb3a6aaac7e7c",
+          "count": 5
+        },
+        {
+          "descriptor": "Business Development",
+          "id": "0c40f6bd1d8f10ae43ffac5fdfac7e76",
+          "count": 5
+        }
+      ]
+    },
+    {
+      "facetParameter": "workerSubType",
+      "descriptor": "Job Type",
+      "values": [
+        {
+          "descriptor": "Regular Employee",
+          "id": "0c40f6bd1d8f10adf6dae161b1844a15",
+          "count": 2256
+        },
+        {
+          "descriptor": "Management",
+          "id": "0c40f6bd1d8f10adf6dae2cd57444a16",
+          "count": 190
+        },
+        {
+          "descriptor": "New College Graduate",
+          "id": "ab40a98049581037a3ada55b087049b7",
+          "count": 74
+        },
+        {
+          "descriptor": "Intern (Fixed Term)",
+          "id": "0c40f6bd1d8f10adf6dae42e46d44a17",
+          "count": 24
+        },
+        {
+          "descriptor": "Regular Employee (Fixed Term)",
+          "id": "cc40d60d614c01809d56fe967144ce2c",
+          "count": 3
+        },
+        {
+          "descriptor": "Academic (Fixed Term)",
+          "id": "ec9560ee6dc71001d6f3cf17ea640000",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "facetParameter": "timeType",
+      "descriptor": "Time Type",
+      "values": [
+        {
+          "descriptor": "Full time",
+          "id": "5509c0b5959810ac0029943377d47364",
+          "count": 2544
+        },
+        {
+          "descriptor": "Part time",
+          "id": "5509c0b5959810ac00299430e7947363",
+          "count": 4
+        }
+      ]
+    },
+    {
+      "facetParameter": "locationMainGroup",
+      "values": [
+        {
+          "facetParameter": "locationHierarchy2",
+          "descriptor": "Location Type",
+          "values": [
+            {
+              "descriptor": "Office",
+              "id": "0c3f5f117e9a0101f6422f0fe79d0000",
+              "count": 2429
+            },
+            {
+              "descriptor": "Remote",
+              "id": "0c3f5f117e9a0101f63dc469c3010000",
+              "count": 513
+            }
+          ]
+        },
+        {
+          "facetParameter": "locationHierarchy1",
+          "descriptor": "Locations",
+          "values": [
+            {
+              "descriptor": "Armenia",
+              "id": "d21cf68980ad0128000fd2c6b107c000",
+              "count": 1
+            },
+            {
+              "descriptor": "Australia",
+              "id": "2fcb99c455831013ea528dce556b3224",
+              "count": 6
+            },
+            {
+              "descriptor": "Brazil",
+              "id": "2fcb99c455831013ea5298c9e1f63230",
+              "count": 2
+            },
+            {
+              "descriptor": "Canada",
+              "id": "2fcb99c455831013ea529c3b93ba3236",
+              "count": 20
+            },
+            {
+              "descriptor": "China",
+              "id": "2fcb99c455831013ea529fe151e3323c",
+              "count": 181
+            },
+            {
+              "descriptor": "Czechia",
+              "id": "2fcb99c455831013ea52a358b3d53242",
+              "count": 3
+            },
+            {
+              "descriptor": "Denmark",
+              "id": "d21cf68980ad0121a67d319db107a200",
+              "count": 5
+            },
+            {
+              "descriptor": "Finland",
+              "id": "2fcb99c455831013ea52a6cbc15f3248",
+              "count": 2
+            },
+            {
+              "descriptor": "France",
+              "id": "2fcb99c455831013ea52aa2df70e324e",
+              "count": 20
+            },
+            {
+              "descriptor": "Germany",
+              "id": "2fcb99c455831013ea52adc65f5d3254",
+              "count": 57
+            },
+            {
+              "descriptor": "Greece",
+              "id": "c498fba66f4e01b7b7931c0fd400ab04",
+              "count": 1
+            },
+            {
+              "descriptor": "Hong Kong",
+              "id": "2fcb99c455831013ea52b157d0d6325a",
+              "count": 9
+            },
+            {
+              "descriptor": "Hungary",
+              "id": "7bcfe8379f6b01ad4d347d1ca87689a6",
+              "count": 4
+            },
+            {
+              "descriptor": "India",
+              "id": "2fcb99c455831013ea52b82135ba3266",
+              "count": 189
+            },
+            {
+              "descriptor": "Israel",
+              "id": "2fcb99c455831013ea52bbe14cf9326c",
+              "count": 455
+            },
+            {
+              "descriptor": "Italy",
+              "id": "2fcb99c455831013ea52bf52796c3272",
+              "count": 6
+            },
+            {
+              "descriptor": "Japan",
+              "id": "2fcb99c455831013ea52c29d2e923278",
+              "count": 24
+            },
+            {
+              "descriptor": "Korea",
+              "id": "2fcb99c455831013ea52c61ded6e327e",
+              "count": 24
+            },
+            {
+              "descriptor": "Mexico",
+              "id": "2fcb99c455831013ea52cd244532328a",
+              "count": 5
+            },
+            {
+              "descriptor": "Netherlands",
+              "id": "2fcb99c455831013ea52d0e0e4583290",
+              "count": 7
+            },
+            {
+              "descriptor": "Palestine",
+              "id": "970bf8c909a701f9c086d363d300fa06",
+              "count": 3
+            },
+            {
+              "descriptor": "Poland",
+              "id": "2fcb99c455831013ea52d8783aa0329c",
+              "count": 27
+            },
+            {
+              "descriptor": "Romania",
+              "id": "e5375aecc8d9103bebfb513cb69200d4",
+              "count": 3
+            },
+            {
+              "descriptor": "Saudi Arabia",
+              "id": "e4c3fe651a5b01ddbafb67d7d001b447",
+              "count": 1
+            },
+            {
+              "descriptor": "Singapore",
+              "id": "2fcb99c455831013ea52df1adb7432a8",
+              "count": 20
+            },
+            {
+              "descriptor": "Spain",
+              "id": "2fcb99c455831013ea52e31a43e832ae",
+              "count": 6
+            },
+            {
+              "descriptor": "Sweden",
+              "id": "2fcb99c455831013ea52e6c3067832b4",
+              "count": 3
+            },
+            {
+              "descriptor": "Switzerland",
+              "id": "2fcb99c455831013ea52e9ef1a0032ba",
+              "count": 36
+            },
+            {
+              "descriptor": "Taiwan",
+              "id": "2fcb99c455831013ea52ed162d4932c0",
+              "count": 132
+            },
+            {
+              "descriptor": "Thailand",
+              "id": "2fcb99c455831013ea52f07ea4c732c6",
+              "count": 3
+            },
+            {
+              "descriptor": "Ukraine",
+              "id": "970bf8c909a7012c3733f063d3000107",
+              "count": 4
+            },
+            {
+              "descriptor": "United Arab Emirates",
+              "id": "2fcb99c455831013ea52f3d5d2c232cc",
+              "count": 1
+            },
+            {
+              "descriptor": "United Kingdom",
+              "id": "2fcb99c455831013ea52f785717432d2",
+              "count": 45
+            },
+            {
+              "descriptor": "United States",
+              "id": "2fcb99c455831013ea52fb338f2932d8",
+              "count": 1331
+            },
+            {
+              "descriptor": "Vietnam",
+              "id": "2fcb99c455831013ea52fea3f8d732de",
+              "count": 43
+            }
+          ]
+        },
+        {
+          "facetParameter": "locations",
+          "descriptor": "Sites",
+          "values": [
+            {
+              "descriptor": "Armenia, Yerevan",
+              "id": "c0ed409f79231000eaff724467330000",
+              "count": 1
+            },
+            {
+              "descriptor": "Australia, Remote",
+              "id": "91336993fab910af6d70362ab49cc2f7",
+              "count": 6
+            },
+            {
+              "descriptor": "Australia, Sydney",
+              "id": "0d86a8e04eda011538f0ac5d90019611",
+              "count": 1
+            },
+            {
+              "descriptor": "Brazil, Remote",
+              "id": "91336993fab910af6d7115f6c23cc357",
+              "count": 1
+            },
+            {
+              "descriptor": "Brazil, Sao Paulo",
+              "id": "91336993fab910af6d7113d4a58cc352",
+              "count": 2
+            },
+            {
+              "descriptor": "Canada, Remote",
+              "id": "91336993fab910af6d7111b9ef64c34d",
+              "count": 12
+            },
+            {
+              "descriptor": "Canada, Toronto",
+              "id": "4205b8279d1110811b5e0a9820d6693a",
+              "count": 14
+            },
+            {
+              "descriptor": "China, Beijing",
+              "id": "91336993fab910af6d710912773cc339",
+              "count": 75
+            },
+            {
+              "descriptor": "China, Guangzhou",
+              "id": "a91ba405af43014cbf6c6d9e38015a54",
+              "count": 1
+            },
+            {
+              "descriptor": "China, Remote",
+              "id": "b4fd8272c6061070475410ad248007f0",
+              "count": 3
+            },
+            {
+              "descriptor": "China, Shanghai",
+              "id": "91336993fab910af6d710b3449b4c33e",
+              "count": 147
+            },
+            {
+              "descriptor": "China, Shenzhen",
+              "id": "91336993fab910af6d7106eea8f4c334",
+              "count": 41
+            },
+            {
+              "descriptor": "Czechia, Remote",
+              "id": "91336993fab910af6d70ecbaa6f4c2fd",
+              "count": 3
+            },
+            {
+              "descriptor": "Denmark, Roskilde",
+              "id": "c498fba66f4e01c0944dde87d5005f05",
+              "count": 5
+            },
+            {
+              "descriptor": "Finland, Helsinki",
+              "id": "91336993fab910af6d6fdb4a260cc22a",
+              "count": 1
+            },
+            {
+              "descriptor": "Finland, Remote",
+              "id": "91336993fab910af6d6fd9177efcc225",
+              "count": 1
+            },
+            {
+              "descriptor": "France, Courbevoie",
+              "id": "91336993fab910af6d6fd25f3c44c216",
+              "count": 9
+            },
+            {
+              "descriptor": "France, Remote",
+              "id": "91336993fab910af6d6fd6c8476cc220",
+              "count": 12
+            },
+            {
+              "descriptor": "Germany, Berlin",
+              "id": "91336993fab910af6d6fc2799054c1f3",
+              "count": 5
+            },
+            {
+              "descriptor": "Germany, Munich",
+              "id": "91336993fab910af6d6fc4f707bcc1f8",
+              "count": 32
+            },
+            {
+              "descriptor": "Germany, Remote",
+              "id": "91336993fab910af6d6fc96a405cc202",
+              "count": 44
+            },
+            {
+              "descriptor": "Germany, Wuerselen",
+              "id": "91336993fab910af6d6fc737d3e4c1fd",
+              "count": 4
+            },
+            {
+              "descriptor": "Greece, Athens",
+              "id": "d01f8704a10b0121fa6766dd38019c82",
+              "count": 1
+            },
+            {
+              "descriptor": "Hong Kong, STP",
+              "id": "91336993fab910af6d6fc02e0a14c1ee",
+              "count": 9
+            },
+            {
+              "descriptor": "Hungary, Budapest",
+              "id": "fc94d97a3a280100b73f626fd1610000",
+              "count": 1
+            },
+            {
+              "descriptor": "Hungary, Remote",
+              "id": "7bcfe8379f6b017176531c86a87649a7",
+              "count": 3
+            },
+            {
+              "descriptor": "India, Bengaluru",
+              "id": "91336993fab910af6d6fb9748af4c1df",
+              "count": 158
+            },
+            {
+              "descriptor": "India, Gurugram",
+              "id": "f28ae3c49d2601aff203e114d301695f",
+              "count": 7
+            },
+            {
+              "descriptor": "India, Hyderabad",
+              "id": "91336993fab910af6d6fb2be0974c1d0",
+              "count": 36
+            },
+            {
+              "descriptor": "India, Mumbai",
+              "id": "91336993fab910af6d6fabbb968cc1c1",
+              "count": 8
+            },
+            {
+              "descriptor": "India, Pune",
+              "id": "91336993fab910af6d6fb0782884c1cb",
+              "count": 36
+            },
+            {
+              "descriptor": "India, Remote",
+              "id": "91336993fab910af6d6fb4ee7634c1d5",
+              "count": 6
+            },
+            {
+              "descriptor": "Israel, Beer Sheva",
+              "id": "970bf8c909a701bb080521ddd400ae07",
+              "count": 27
+            },
+            {
+              "descriptor": "Israel, Raanana",
+              "id": "970bf8c909a7013ea54a57dcd4008107",
+              "count": 102
+            },
+            {
+              "descriptor": "Israel, Tel Aviv",
+              "id": "c7769ee377291036b08490819096b8bf",
+              "count": 249
+            },
+            {
+              "descriptor": "Israel, Tel Hai",
+              "id": "970bf8c909a7016a7d893ddcd4007c07",
+              "count": 18
+            },
+            {
+              "descriptor": "Israel, Yokneam",
+              "id": "970bf8c909a701c749f87bdcd4008607",
+              "count": 339
+            },
+            {
+              "descriptor": "Italy, Remote",
+              "id": "91336993fab910af6d6fa203fa6cc1ad",
+              "count": 6
+            },
+            {
+              "descriptor": "Japan, Remote",
+              "id": "b00b3256ed551015d42d2bebe06b02b7",
+              "count": 7
+            },
+            {
+              "descriptor": "Japan, Tokyo",
+              "id": "91336993fab910af6d6f9a47b91cc19e",
+              "count": 22
+            },
+            {
+              "descriptor": "Korea, Remote",
+              "id": "91336993fab910af6d71963a259cc46f",
+              "count": 3
+            },
+            {
+              "descriptor": "Korea, Seoul",
+              "id": "91336993fab910af6d6f3f56714cc112",
+              "count": 24
+            },
+            {
+              "descriptor": "Mexico, Remote",
+              "id": "91336993fab910af6d6f97e94b04c199",
+              "count": 5
+            },
+            {
+              "descriptor": "Netherlands, Amsterdam",
+              "id": "42289dda31210100f43ca5dad0ff0000",
+              "count": 3
+            },
+            {
+              "descriptor": "Netherlands, Remote",
+              "id": "5f84e8157c6a101b415772d270da2de1",
+              "count": 4
+            },
+            {
+              "descriptor": "Palestine, Rawabi",
+              "id": "30350996b69b01a7dbccf4403c0174a8",
+              "count": 3
+            },
+            {
+              "descriptor": "Poland, Remote",
+              "id": "91336993fab910af6d6f931ae68cc18f",
+              "count": 26
+            },
+            {
+              "descriptor": "Poland, Warsaw",
+              "id": "811700f7388d0103b8ceed030d490e48",
+              "count": 11
+            },
+            {
+              "descriptor": "Romania, Iasi",
+              "id": "bf8aa7d10cd61000fb56e1988f3b0000",
+              "count": 1
+            },
+            {
+              "descriptor": "Romania, Remote",
+              "id": "5f84e8157c6a101b435468d5d0e34bd9",
+              "count": 2
+            },
+            {
+              "descriptor": "Saudi Arabia, Remote",
+              "id": "e4c3fe651a5b01f48e294d9ad1015e4b",
+              "count": 1
+            },
+            {
+              "descriptor": "Singapore, Remote",
+              "id": "91336993fab910af6d6f8a1a368cc17b",
+              "count": 11
+            },
+            {
+              "descriptor": "Singapore, Singapore-Suntec Tower",
+              "id": "c498fba66f4e01971ba26688d5008705",
+              "count": 16
+            },
+            {
+              "descriptor": "Spain, Remote",
+              "id": "91336993fab910af6d6f87de293cc176",
+              "count": 6
+            },
+            {
+              "descriptor": "Sweden, Gothenburg",
+              "id": "c18da66b8c3f01e4f8939069de3534f8",
+              "count": 2
+            },
+            {
+              "descriptor": "Sweden, Lund",
+              "id": "91336993fab910af6d6f859de1e4c171",
+              "count": 1
+            },
+            {
+              "descriptor": "Sweden, Remote",
+              "id": "91336993fab910af6d6f8342ac04c16c",
+              "count": 3
+            },
+            {
+              "descriptor": "Switzerland, Remote",
+              "id": "91336993fab910af6d6f7e35a07cc162",
+              "count": 26
+            },
+            {
+              "descriptor": "Switzerland, Zurich",
+              "id": "91336993fab910af6d6f80c09504c167",
+              "count": 17
+            },
+            {
+              "descriptor": "Taiwan, Hsinchu",
+              "id": "91336993fab910af6d6f7933b49cc158",
+              "count": 97
+            },
+            {
+              "descriptor": "Taiwan, Remote",
+              "id": "91336993fab910af6d6f56c5409cc13f",
+              "count": 2
+            },
+            {
+              "descriptor": "Taiwan, Taipei",
+              "id": "91336993fab910af6d6f5eaae3acc14e",
+              "count": 71
+            },
+            {
+              "descriptor": "Thailand, Remote",
+              "id": "f57d67c891a11057224421d76bc979ab",
+              "count": 3
+            },
+            {
+              "descriptor": "UAE, Dubai",
+              "id": "91336993fab910af6d6f516bf58cc135",
+              "count": 1
+            },
+            {
+              "descriptor": "UK, Belfast",
+              "id": "970bf8c909a7015f56c618ded400e007",
+              "count": 1
+            },
+            {
+              "descriptor": "UK, Bristol",
+              "id": "91336993fab910af6d6f41d01ff4c117",
+              "count": 3
+            },
+            {
+              "descriptor": "UK, Cambridge",
+              "id": "91336993fab910af6d6f445436acc11c",
+              "count": 6
+            },
+            {
+              "descriptor": "UK, Reading",
+              "id": "91336993fab910af6d6f4c211db4c12b",
+              "count": 8
+            },
+            {
+              "descriptor": "UK, Remote",
+              "id": "91336993fab910af6d6f4954559cc126",
+              "count": 38
+            },
+            {
+              "descriptor": "Ukraine, Kyiv",
+              "id": "970bf8c909a701acf1aa08ded400db07",
+              "count": 4
+            },
+            {
+              "descriptor": "Ukraine, Remote",
+              "id": "970bf8c909a70104bdbe3eddd400bd07",
+              "count": 4
+            },
+            {
+              "descriptor": "US, AL, Madison",
+              "id": "91336993fab910af6d7140d48764c3b6",
+              "count": 3
+            },
+            {
+              "descriptor": "US, AL, Remote",
+              "id": "91336993fab910af6d7170a1a684c41f",
+              "count": 1
+            },
+            {
+              "descriptor": "US, AR, Remote",
+              "id": "df27165dab550120b41aa51fc701619d",
+              "count": 1
+            },
+            {
+              "descriptor": "US, AZ, Remote",
+              "id": "91336993fab910af6d7013ca699cc2a7",
+              "count": 11
+            },
+            {
+              "descriptor": "US, CA, Remote",
+              "id": "91336993fab910af6d716528e9d4c406",
+              "count": 210
+            },
+            {
+              "descriptor": "US, CA, San Jose",
+              "id": "895d7243647101d8c9619dd37377338f",
+              "count": 1
+            },
+            {
+              "descriptor": "US, CA, Santa Clara",
+              "id": "91336993fab910af6d702fae0bb4c2e8",
+              "count": 1227
+            },
+            {
+              "descriptor": "US, CO, Boulder",
+              "id": "91336993fab910af6d712ddeebf4c38e",
+              "count": 7
+            },
+            {
+              "descriptor": "US, CO, Remote",
+              "id": "91336993fab910af6d716c1bb8d4c415",
+              "count": 19
+            },
+            {
+              "descriptor": "US, CT, Remote",
+              "id": "91336993fab910af6d715e41b394c3f7",
+              "count": 3
+            },
+            {
+              "descriptor": "US, DC, Remote",
+              "id": "91336993fab910af6d713a0f5044c3a7",
+              "count": 11
+            },
+            {
+              "descriptor": "US, DC, Washington",
+              "id": "851660e123f40195e5fbfb9dce1137a2",
+              "count": 1
+            },
+            {
+              "descriptor": "US, FL, Remote",
+              "id": "91336993fab910af6d7020bf3b14c2c5",
+              "count": 11
+            },
+            {
+              "descriptor": "US, GA, Remote",
+              "id": "91336993fab910af6d6fe4b908fcc23e",
+              "count": 5
+            },
+            {
+              "descriptor": "US, IL, Champaign",
+              "id": "3f056d7dcee210447f581d1002c2e672",
+              "count": 5
+            },
+            {
+              "descriptor": "US, IL, Remote",
+              "id": "91336993fab910af6d714794d4b4c3c5",
+              "count": 5
+            },
+            {
+              "descriptor": "US, MA, Remote",
+              "id": "91336993fab910af6d702d89918cc2e3",
+              "count": 35
+            },
+            {
+              "descriptor": "US, MA, Westford",
+              "id": "91336993fab910af6d7008ff1774c28e",
+              "count": 43
+            },
+            {
+              "descriptor": "US, MD, Remote",
+              "id": "91336993fab910af6d719855647cc474",
+              "count": 4
+            },
+            {
+              "descriptor": "US, MI, Remote",
+              "id": "91336993fab910af6d6fe9a03534c248",
+              "count": 2
+            },
+            {
+              "descriptor": "US, MN, Remote",
+              "id": "91336993fab910af6d700b282d4cc293",
+              "count": 1
+            },
+            {
+              "descriptor": "US, MO, St. Louis",
+              "id": "91336993fab910af6d7130bb158cc393",
+              "count": 2
+            },
+            {
+              "descriptor": "US, NC, Durham",
+              "id": "91336993fab910af6d7022e347dcc2ca",
+              "count": 57
+            },
+            {
+              "descriptor": "US, NC, Remote",
+              "id": "91336993fab910af6d7006cdf31cc289",
+              "count": 31
+            },
+            {
+              "descriptor": "US, NH, Remote",
+              "id": "91336993fab910af6d6ffd32b89cc275",
+              "count": 3
+            },
+            {
+              "descriptor": "US, NJ, Remote",
+              "id": "91336993fab910af6d7152b6749cc3de",
+              "count": 8
+            },
+            {
+              "descriptor": "US, NM, Remote",
+              "id": "91336993fab910af6d712b900a54c389",
+              "count": 2
+            },
+            {
+              "descriptor": "US, NV, Remote",
+              "id": "91336993fab910af6d7015dee21cc2ac",
+              "count": 3
+            },
+            {
+              "descriptor": "US, NY, New York",
+              "id": "d2088e737cbb01293f745dc7ce017070",
+              "count": 18
+            },
+            {
+              "descriptor": "US, NY, Remote",
+              "id": "91336993fab910af6d6ff2800b0cc25c",
+              "count": 26
+            },
+            {
+              "descriptor": "US, OH, Remote",
+              "id": "91336993fab910af6d700d4fc83cc298",
+              "count": 2
+            },
+            {
+              "descriptor": "US, OR, Hillsboro",
+              "id": "91336993fab910af6d7027195454c2d4",
+              "count": 49
+            },
+            {
+              "descriptor": "US, OR, Remote",
+              "id": "91336993fab910af6d6ff05591bcc257",
+              "count": 32
+            },
+            {
+              "descriptor": "US, PA, Remote",
+              "id": "91336993fab910af6d700193f3c4c27f",
+              "count": 1
+            },
+            {
+              "descriptor": "US, Remote",
+              "id": "16fc4607fc4310011e929f7115f90000",
+              "count": 105
+            },
+            {
+              "descriptor": "US, SC, Remote",
+              "id": "91336993fab910af6d6ffb099324c270",
+              "count": 3
+            },
+            {
+              "descriptor": "US, TN, Remote",
+              "id": "91336993fab910af6d7122ef682cc375",
+              "count": 3
+            },
+            {
+              "descriptor": "US, TX, Austin",
+              "id": "91336993fab910af6d702b631b94c2de",
+              "count": 170
+            },
+            {
+              "descriptor": "US, TX, Houston",
+              "id": "10b0744835e11001030c2489586f0000",
+              "count": 1
+            },
+            {
+              "descriptor": "US, TX, Remote",
+              "id": "91336993fab910af6d702939a7fcc2d9",
+              "count": 75
+            },
+            {
+              "descriptor": "US, UT, Remote",
+              "id": "91336993fab910af6d6fee30ae1cc252",
+              "count": 3
+            },
+            {
+              "descriptor": "US, UT, Salt Lake City",
+              "id": "91336993fab910af6d6ff8e9d004c26b",
+              "count": 2
+            },
+            {
+              "descriptor": "US, VA, Herndon",
+              "id": "c498fba66f4e012b5a8a2e88d5007805",
+              "count": 3
+            },
+            {
+              "descriptor": "US, VA, Remote",
+              "id": "91336993fab910af6d7159be65c4c3ed",
+              "count": 8
+            },
+            {
+              "descriptor": "US, WA, Redmond",
+              "id": "91336993fab910af6d701e82d004c2c0",
+              "count": 74
+            },
+            {
+              "descriptor": "US, WA, Remote",
+              "id": "91336993fab910af6d7169a81124c410",
+              "count": 52
+            },
+            {
+              "descriptor": "US, WA, Seattle",
+              "id": "d2088e737cbb01d5e2be9e52ce01926f",
+              "count": 56
+            },
+            {
+              "descriptor": "US, WV, Remote",
+              "id": "91336993fab910af6d71356e58b4c39d",
+              "count": 1
+            },
+            {
+              "descriptor": "Vietnam, Hanoi",
+              "id": "dd4916e138561000a8f8afa559f50000",
+              "count": 25
+            },
+            {
+              "descriptor": "Vietnam, Ho Chi Minh City",
+              "id": "229b3d23e3f91000aa5f712809fa0000",
+              "count": 17
+            },
+            {
+              "descriptor": "Vietnam, Remote",
+              "id": "7ae28cf24c8b10874977c2d1387c19b0",
+              "count": 16
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "userAuthenticated": false
+}
