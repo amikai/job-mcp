@@ -116,7 +116,7 @@ func parseFacets(raw []string) (workday.AppliedFacets, error) {
 // (internal/provider/workday/companies.yaml), sorted by company name. It
 // makes no network call.
 func runCompanies(format string) error {
-	cs := workday.Companies()
+	cs := workday.Companies
 
 	if format == "json" {
 		enc := json.NewEncoder(os.Stdout)
@@ -138,7 +138,7 @@ func runFacets(ctx context.Context, tenant string, timeout time.Duration, search
 	if tenant == "" {
 		return fmt.Errorf("--tenant is required")
 	}
-	company, ok := workday.CompanyByTenant(tenant)
+	company, ok := workday.CompaniesByTenant[strings.ToLower(tenant)]
 	if !ok {
 		return fmt.Errorf("tenant %q not found; run 'workday companies' to see supported tenants", tenant)
 	}
@@ -232,7 +232,7 @@ func runSearch(ctx context.Context, tenant string, timeout time.Duration, search
 	if tenant == "" {
 		return fmt.Errorf("--tenant is required")
 	}
-	company, ok := workday.CompanyByTenant(tenant)
+	company, ok := workday.CompaniesByTenant[strings.ToLower(tenant)]
 	if !ok {
 		return fmt.Errorf("tenant %q not found; run 'workday companies' to see supported tenants", tenant)
 	}

@@ -37,10 +37,12 @@ func (c Company) BaseURL() string {
 	return fmt.Sprintf("https://%s.%s.myworkdayjobs.com/wday/cxs/%s/%s", c.Tenant, c.Instance, c.Tenant, c.Site)
 }
 
-var (
-	companies         = mustLoadCompanies()
-	companiesByTenant = buildTenantIndex(companies)
-)
+// Companies holds every confirmed Workday tenant, sorted by company name.
+var Companies = mustLoadCompanies()
+
+// CompaniesByTenant looks up a confirmed tenant by slug. Keys are
+// lowercased, so callers must lowercase their input before indexing.
+var CompaniesByTenant = buildTenantIndex(Companies)
 
 // mustLoadCompanies parses the embedded companies.yaml. A parse failure is a
 // build-time bug in a file this package owns, not a runtime condition to
@@ -60,15 +62,4 @@ func buildTenantIndex(cs []Company) map[string]Company {
 		m[strings.ToLower(c.Tenant)] = c
 	}
 	return m
-}
-
-// Companies returns every confirmed Workday tenant, sorted by company name.
-func Companies() []Company {
-	return companies
-}
-
-// CompanyByTenant looks up a confirmed tenant by slug, case-insensitively.
-func CompanyByTenant(tenant string) (Company, bool) {
-	c, ok := companiesByTenant[strings.ToLower(tenant)]
-	return c, ok
 }
