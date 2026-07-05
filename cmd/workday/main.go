@@ -19,15 +19,27 @@ import (
 func main() {
 	rootFlags := ff.NewFlagSet("workday")
 	var (
-		baseURL = rootFlags.StringLong("base-url", "", "Workday CXS base URL, e.g. https://acme.wd3.myworkdayjobs.com/wday/cxs/acme/AcmeCareers")
+		tenant  = rootFlags.StringLong("tenant", "", "confirmed Workday tenant slug, e.g. 3m, att (see 'workday companies' for the full list)")
 		timeout = rootFlags.DurationLong("timeout", 60*time.Second, "request timeout")
 		format  = rootFlags.StringEnumLong("format", "output format", "text", "json")
 	)
 	rootCmd := &ff.Command{
 		Name:  "workday",
-		Usage: "workday --base-url URL [FLAGS] <facets|search> [FLAGS]",
+		Usage: "workday --tenant TENANT [FLAGS] <companies|facets|search> [FLAGS]",
 		Flags: rootFlags,
 	}
+
+	companiesFlags := ff.NewFlagSet("companies").SetParent(rootFlags)
+	companiesCmd := &ff.Command{
+		Name:      "companies",
+		Usage:     "workday companies [--format text|json]",
+		ShortHelp: "list confirmed Workday tenants (company name and tenant slug)",
+		Flags:     companiesFlags,
+		Exec: func(ctx context.Context, args []string) error {
+			return runCompanies(*format)
+		},
+	}
+	rootCmd.Subcommands = append(rootCmd.Subcommands, companiesCmd)
 
 	facetsFlags := ff.NewFlagSet("facets").SetParent(rootFlags)
 	var (
@@ -36,11 +48,11 @@ func main() {
 	)
 	facetsCmd := &ff.Command{
 		Name:      "facets",
-		Usage:     "workday --base-url URL facets [--search-text TEXT] [--facet name=id ...] [--format text|json]",
+		Usage:     "workday --tenant TENANT facets [--search-text TEXT] [--facet name=id ...] [--format text|json]",
 		ShortHelp: "discover a tenant's current facet tree (categories, locations, ...)",
 		Flags:     facetsFlags,
 		Exec: func(ctx context.Context, args []string) error {
-			return runFacets(ctx, *baseURL, *timeout, *facetsSearchText, *facetsFacetArgs, *format)
+			return runFacets(ctx, *tenant, *timeout, *facetsSearchText, *facetsFacetArgs, *format)
 		},
 	}
 	rootCmd.Subcommands = append(rootCmd.Subcommands, facetsCmd)
@@ -54,11 +66,11 @@ func main() {
 	)
 	searchCmd := &ff.Command{
 		Name:      "search",
-		Usage:     "workday --base-url URL search [--search-text TEXT] [--limit N] [--offset N] [--facet name=id ...] [--format text|json]",
+		Usage:     "workday --tenant TENANT search [--search-text TEXT] [--limit N] [--offset N] [--facet name=id ...] [--format text|json]",
 		ShortHelp: "search jobs and fetch full detail for each result",
 		Flags:     searchFlags,
 		Exec: func(ctx context.Context, args []string) error {
-			return runSearch(ctx, *baseURL, *timeout, *searchText, *limit, *offset, *searchFacetArgs, *format)
+			return runSearch(ctx, *tenant, *timeout, *searchText, *limit, *offset, *searchFacetArgs, *format)
 		},
 	}
 	rootCmd.Subcommands = append(rootCmd.Subcommands, searchCmd)
@@ -74,7 +86,7 @@ func main() {
 
 	if rootCmd.GetSelected() == rootCmd {
 		fmt.Fprintln(os.Stderr, ffhelp.Command(rootCmd))
-		fmt.Fprintln(os.Stderr, "err: a subcommand (facets or search) is required")
+		fmt.Fprintln(os.Stderr, "err: a subcommand (companies, facets, or search) is required")
 		os.Exit(1)
 	}
 
@@ -100,14 +112,37 @@ func parseFacets(raw []string) (workday.AppliedFacets, error) {
 	return af, nil
 }
 
+// runCompanies lists every confirmed Workday tenant embedded in the CLI
+// (internal/provider/workday/companies.yaml), sorted by company name. It
+// makes no network call.
+func runCompanies(format string) error {
+	cs := workday.Companies()
+
+	if format == "json" {
+		enc := json.NewEncoder(os.Stdout)
+		enc.SetIndent("", "  ")
+		return enc.Encode(cs)
+	}
+
+	for _, c := range cs {
+		fmt.Printf("%s (%s)\n", c.Name, c.Tenant)
+	}
+	return nil
+}
+
 // runFacets discovers a tenant's current facet tree via a search whose only
 // job is to read back JobsResponse.Facets — Limit is 1 because the actual
 // jobPostings aren't used here (see openapi.yaml's note that every /jobs
 // response, filtered or not, carries the full current facet tree).
-func runFacets(ctx context.Context, baseURL string, timeout time.Duration, searchText string, facetArgs []string, format string) error {
-	if baseURL == "" {
-		return fmt.Errorf("--base-url is required")
+func runFacets(ctx context.Context, tenant string, timeout time.Duration, searchText string, facetArgs []string, format string) error {
+	if tenant == "" {
+		return fmt.Errorf("--tenant is required")
 	}
+	company, ok := workday.CompanyByTenant(tenant)
+	if !ok {
+		return fmt.Errorf("tenant %q not found; run 'workday companies' to see supported tenants", tenant)
+	}
+
 	appliedFacets, err := parseFacets(facetArgs)
 	if err != nil {
 		return err
@@ -116,7 +151,7 @@ func runFacets(ctx context.Context, baseURL string, timeout time.Duration, searc
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
-	client, err := workday.NewClient(baseURL)
+	client, err := workday.NewClient(company.BaseURL())
 	if err != nil {
 		return err
 	}
@@ -193,10 +228,15 @@ type searchResultJSON struct {
 // listed with a "no detail available" note rather than silently dropped, so
 // "showing N" always matches the page's posting count) — one page per
 // invocation, no auto-pagination.
-func runSearch(ctx context.Context, baseURL string, timeout time.Duration, searchText string, limit, offset int, facetArgs []string, format string) error {
-	if baseURL == "" {
-		return fmt.Errorf("--base-url is required")
+func runSearch(ctx context.Context, tenant string, timeout time.Duration, searchText string, limit, offset int, facetArgs []string, format string) error {
+	if tenant == "" {
+		return fmt.Errorf("--tenant is required")
 	}
+	company, ok := workday.CompanyByTenant(tenant)
+	if !ok {
+		return fmt.Errorf("tenant %q not found; run 'workday companies' to see supported tenants", tenant)
+	}
+
 	appliedFacets, err := parseFacets(facetArgs)
 	if err != nil {
 		return err
@@ -205,6 +245,7 @@ func runSearch(ctx context.Context, baseURL string, timeout time.Duration, searc
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
+	baseURL := company.BaseURL()
 	client, err := workday.NewClient(baseURL)
 	if err != nil {
 		return err
