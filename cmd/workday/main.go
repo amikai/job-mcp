@@ -131,13 +131,16 @@ func runFacets(ctx context.Context, baseURL string, timeout time.Duration, searc
 		return err
 	}
 
+	// Get returns a nil slice when the tenant omitted facets or sent null.
+	facets, _ := search.Facets.Get()
+
 	if format == "json" {
 		enc := json.NewEncoder(os.Stdout)
 		enc.SetIndent("", "  ")
-		return enc.Encode(search.Facets)
+		return enc.Encode(facets)
 	}
 
-	for _, node := range search.Facets {
+	for _, node := range facets {
 		printFacetNode(node, 0)
 	}
 	return nil
@@ -350,6 +353,12 @@ func fallbackURL(baseURL, externalPath string) string {
 	site, err := workday.PublicSiteURL(baseURL)
 	if err != nil {
 		return externalPath
+	}
+	// externalPath usually starts with "/", but SplitExternalPath treats a
+	// missing leading slash as just another malformed shape that lands here —
+	// don't let it glue the site segment and location together.
+	if !strings.HasPrefix(externalPath, "/") {
+		externalPath = "/" + externalPath
 	}
 	return site + externalPath
 }

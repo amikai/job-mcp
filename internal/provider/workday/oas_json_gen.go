@@ -1028,13 +1028,9 @@ func (s *JobsResponse) encodeFields(e *jx.Encoder) {
 		e.ArrEnd()
 	}
 	{
-		if s.Facets != nil {
+		if s.Facets.Set {
 			e.FieldStart("facets")
-			e.ArrStart()
-			for _, elem := range s.Facets {
-				elem.Encode(e)
-			}
-			e.ArrEnd()
+			s.Facets.Encode(e)
 		}
 	}
 }
@@ -1086,15 +1082,8 @@ func (s *JobsResponse) Decode(d *jx.Decoder) error {
 			}
 		case "facets":
 			if err := func() error {
-				s.Facets = make([]FacetNode, 0)
-				if err := d.Arr(func(d *jx.Decoder) error {
-					var elem FacetNode
-					if err := elem.Decode(d); err != nil {
-						return err
-					}
-					s.Facets = append(s.Facets, elem)
-					return nil
-				}); err != nil {
+				s.Facets.Reset()
+				if err := s.Facets.Decode(d); err != nil {
 					return err
 				}
 				return nil
@@ -1188,6 +1177,67 @@ func (s OptInt) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *OptInt) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes []FacetNode as json.
+func (o OptNilFacetNodeArray) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	if o.Null {
+		e.Null()
+		return
+	}
+	e.ArrStart()
+	for _, elem := range o.Value {
+		elem.Encode(e)
+	}
+	e.ArrEnd()
+}
+
+// Decode decodes []FacetNode from json.
+func (o *OptNilFacetNodeArray) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptNilFacetNodeArray to nil")
+	}
+	if d.Next() == jx.Null {
+		if err := d.Null(); err != nil {
+			return err
+		}
+
+		var v []FacetNode
+		o.Value = v
+		o.Set = true
+		o.Null = true
+		return nil
+	}
+	o.Set = true
+	o.Null = false
+	o.Value = make([]FacetNode, 0)
+	if err := d.Arr(func(d *jx.Decoder) error {
+		var elem FacetNode
+		if err := elem.Decode(d); err != nil {
+			return err
+		}
+		o.Value = append(o.Value, elem)
+		return nil
+	}); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptNilFacetNodeArray) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptNilFacetNodeArray) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }

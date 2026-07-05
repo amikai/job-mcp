@@ -81,12 +81,12 @@ func TestSearchJobs(t *testing.T) {
 			{Title: NewOptString("Senior Systems Software Engineer, Kubernetes Scale - DGX Cloud"), ExternalPath: NewOptString("/job/Germany-Remote/Senior-Systems-Software-Engineer--Kubernetes-Scale---DGX-Cloud_JR2020234-1"), LocationsText: NewOptString("6 Locations"), PostedOn: NewOptString("Posted 9 Days Ago"), BulletFields: []string{"JR2020234"}},
 			{Title: NewOptString("Senior Cloud Software Engineer"), ExternalPath: NewOptString("/job/India-Bengaluru/Senior-Cloud-Software-Engineer_JR2020094"), LocationsText: NewOptString("2 Locations"), PostedOn: NewOptString("Posted 5 Days Ago"), BulletFields: []string{"JR2020094"}},
 		},
-		Facets: []FacetNode{
+		Facets: NewOptNilFacetNodeArray([]FacetNode{
 			{FacetParameter: NewOptString("jobFamilyGroup"), Descriptor: NewOptString("Job Category"), Values: []FacetNode{{Descriptor: NewOptString("Engineering"), ID: NewOptString("0c40f6bd1d8f10ae43ffaefd46dc7e78"), Count: NewOptInt(27)}, {Descriptor: NewOptString("Marketing"), ID: NewOptString("0c40f6bd1d8f10ae43ffc19725ec7e88"), Count: NewOptInt(1)}}},
 			{FacetParameter: NewOptString("workerSubType"), Descriptor: NewOptString("Job Type"), Values: []FacetNode{{Descriptor: NewOptString("Regular Employee"), ID: NewOptString("0c40f6bd1d8f10adf6dae161b1844a15"), Count: NewOptInt(26)}, {Descriptor: NewOptString("Management"), ID: NewOptString("0c40f6bd1d8f10adf6dae2cd57444a16"), Count: NewOptInt(1)}}},
 			{FacetParameter: NewOptString("timeType"), Descriptor: NewOptString("Time Type"), Values: []FacetNode{{Descriptor: NewOptString("Full time"), ID: NewOptString("5509c0b5959810ac0029943377d47364"), Count: NewOptInt(27)}}},
 			{FacetParameter: NewOptString("locationMainGroup"), Values: []FacetNode{{FacetParameter: NewOptString("locationHierarchy2"), Descriptor: NewOptString("Location Type"), Values: []FacetNode{{Descriptor: NewOptString("Office"), ID: NewOptString("0c3f5f117e9a0101f6422f0fe79d0000"), Count: NewOptInt(24)}, {Descriptor: NewOptString("Remote"), ID: NewOptString("0c3f5f117e9a0101f63dc469c3010000"), Count: NewOptInt(9)}}}, {FacetParameter: NewOptString("locationHierarchy1"), Descriptor: NewOptString("Locations"), Values: []FacetNode{{Descriptor: NewOptString("United States"), ID: NewOptString("2fcb99c455831013ea52fb338f2932d8"), Count: NewOptInt(18)}, {Descriptor: NewOptString("Israel"), ID: NewOptString("2fcb99c455831013ea52bbe14cf9326c"), Count: NewOptInt(3)}, {Descriptor: NewOptString("Poland"), ID: NewOptString("2fcb99c455831013ea52d8783aa0329c"), Count: NewOptInt(3)}, {Descriptor: NewOptString("United Kingdom"), ID: NewOptString("2fcb99c455831013ea52f785717432d2"), Count: NewOptInt(2)}, {Descriptor: NewOptString("Switzerland"), ID: NewOptString("2fcb99c455831013ea52e9ef1a0032ba"), Count: NewOptInt(2)}, {Descriptor: NewOptString("Spain"), ID: NewOptString("2fcb99c455831013ea52e31a43e832ae"), Count: NewOptInt(2)}, {Descriptor: NewOptString("India"), ID: NewOptString("2fcb99c455831013ea52b82135ba3266"), Count: NewOptInt(2)}, {Descriptor: NewOptString("Germany"), ID: NewOptString("2fcb99c455831013ea52adc65f5d3254"), Count: NewOptInt(2)}, {Descriptor: NewOptString("France"), ID: NewOptString("2fcb99c455831013ea52aa2df70e324e"), Count: NewOptInt(2)}, {Descriptor: NewOptString("China"), ID: NewOptString("2fcb99c455831013ea529fe151e3323c"), Count: NewOptInt(1)}}}, {FacetParameter: NewOptString("locations"), Descriptor: NewOptString("Sites"), Values: []FacetNode{{Descriptor: NewOptString("US, CA, Santa Clara"), ID: NewOptString("91336993fab910af6d702fae0bb4c2e8"), Count: NewOptInt(16)}, {Descriptor: NewOptString("US, Remote"), ID: NewOptString("16fc4607fc4310011e929f7115f90000"), Count: NewOptInt(6)}, {Descriptor: NewOptString("US, WA, Seattle"), ID: NewOptString("d2088e737cbb01d5e2be9e52ce01926f"), Count: NewOptInt(5)}, {Descriptor: NewOptString("US, TX, Austin"), ID: NewOptString("91336993fab910af6d702b631b94c2de"), Count: NewOptInt(3)}, {Descriptor: NewOptString("US, NC, Durham"), ID: NewOptString("91336993fab910af6d7022e347dcc2ca"), Count: NewOptInt(3)}, {Descriptor: NewOptString("US, MA, Westford"), ID: NewOptString("91336993fab910af6d7008ff1774c28e"), Count: NewOptInt(3)}, {Descriptor: NewOptString("Poland, Remote"), ID: NewOptString("91336993fab910af6d6f931ae68cc18f"), Count: NewOptInt(3)}, {Descriptor: NewOptString("Israel, Yokneam"), ID: NewOptString("970bf8c909a701c749f87bdcd4008607"), Count: NewOptInt(3)}, {Descriptor: NewOptString("Israel, Raanana"), ID: NewOptString("970bf8c909a7013ea54a57dcd4008107"), Count: NewOptInt(3)}, {Descriptor: NewOptString("Israel, Tel Aviv"), ID: NewOptString("c7769ee377291036b08490819096b8bf"), Count: NewOptInt(3)}, {Descriptor: NewOptString("UK, Remote"), ID: NewOptString("91336993fab910af6d6f4954559cc126"), Count: NewOptInt(2)}, {Descriptor: NewOptString("France, Remote"), ID: NewOptString("91336993fab910af6d6fd6c8476cc220"), Count: NewOptInt(2)}, {Descriptor: NewOptString("Germany, Remote"), ID: NewOptString("91336993fab910af6d6fc96a405cc202"), Count: NewOptInt(2)}, {Descriptor: NewOptString("India, Pune"), ID: NewOptString("91336993fab910af6d6fb0782884c1cb"), Count: NewOptInt(2)}, {Descriptor: NewOptString("Spain, Remote"), ID: NewOptString("91336993fab910af6d6f87de293cc176"), Count: NewOptInt(2)}, {Descriptor: NewOptString("Switzerland, Remote"), ID: NewOptString("91336993fab910af6d6f7e35a07cc162"), Count: NewOptInt(2)}, {Descriptor: NewOptString("US, TX, Remote"), ID: NewOptString("91336993fab910af6d702939a7fcc2d9"), Count: NewOptInt(1)}, {Descriptor: NewOptString("US, OR, Hillsboro"), ID: NewOptString("91336993fab910af6d7027195454c2d4"), Count: NewOptInt(1)}, {Descriptor: NewOptString("US, WA, Redmond"), ID: NewOptString("91336993fab910af6d701e82d004c2c0"), Count: NewOptInt(1)}, {Descriptor: NewOptString("US, NC, Remote"), ID: NewOptString("91336993fab910af6d7006cdf31cc289"), Count: NewOptInt(1)}, {Descriptor: NewOptString("India, Bengaluru"), ID: NewOptString("91336993fab910af6d6fb9748af4c1df"), Count: NewOptInt(1)}, {Descriptor: NewOptString("Poland, Warsaw"), ID: NewOptString("811700f7388d0103b8ceed030d490e48"), Count: NewOptInt(1)}, {Descriptor: NewOptString("US, WA, Remote"), ID: NewOptString("91336993fab910af6d7169a81124c410"), Count: NewOptInt(1)}, {Descriptor: NewOptString("US, CA, Remote"), ID: NewOptString("91336993fab910af6d716528e9d4c406"), Count: NewOptInt(1)}, {Descriptor: NewOptString("China, Shanghai"), ID: NewOptString("91336993fab910af6d710b3449b4c33e"), Count: NewOptInt(1)}}}}},
-		},
+		}),
 	}
 
 	assert.Equal(t, want, resp)
@@ -94,26 +94,39 @@ func TestSearchJobs(t *testing.T) {
 
 // TestSearchJobsToleratesMissingFacets guards the JobsResponse contract: a
 // tenant whose /jobs response carries usable total/jobPostings but omits the
-// `facets` field must still decode (facets is intentionally not required),
-// rather than failing the whole search. Regression guard for the CLI's
-// generic, multi-tenant use.
+// `facets` field or sends `facets: null` must still decode (facets is
+// intentionally not required and nullable), rather than failing the whole
+// search. Regression guard for the CLI's generic, multi-tenant use.
 func TestSearchJobsToleratesMissingFacets(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{"total":1,"jobPostings":[{"title":"X","externalPath":"/job/L/T_1"}]}`))
-	}))
-	defer srv.Close()
+	cases := []struct {
+		name string
+		body string
+	}{
+		{name: "facets omitted", body: `{"total":1,"jobPostings":[{"title":"X","externalPath":"/job/L/T_1"}]}`},
+		{name: "facets null", body: `{"total":1,"jobPostings":[{"title":"X","externalPath":"/job/L/T_1"}],"facets":null}`},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.Write([]byte(tc.body))
+			}))
+			defer srv.Close()
 
-	client, err := NewClient(srv.URL)
-	require.NoError(t, err)
+			client, err := NewClient(srv.URL)
+			require.NoError(t, err)
 
-	resp, err := client.SearchJobs(context.Background(), &JobsRequest{
-		AppliedFacets: AppliedFacets{},
-		Limit:         1,
-	})
-	require.NoError(t, err)
-	assert.Equal(t, 1, resp.Total)
-	assert.Empty(t, resp.Facets)
+			resp, err := client.SearchJobs(context.Background(), &JobsRequest{
+				AppliedFacets: AppliedFacets{},
+				Limit:         1,
+			})
+			require.NoError(t, err)
+			assert.Equal(t, 1, resp.Total)
+			facets, ok := resp.Facets.Get()
+			assert.False(t, ok)
+			assert.Empty(t, facets)
+		})
+	}
 }
 
 func TestGetJobDetail(t *testing.T) {

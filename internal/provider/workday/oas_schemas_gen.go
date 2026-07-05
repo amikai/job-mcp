@@ -423,9 +423,10 @@ type JobsResponse struct {
 	JobPostings []JobSummary `json:"jobPostings"`
 	// The tenant's complete, current facet tree with live counts. Present on every response, including an
 	// unfiltered search — this is the primary way to discover a tenant's filter vocabulary without
-	// hardcoding it. Confirmed present on NVIDIA's tenant, but deliberately not marked `required` so a
-	// tenant that omits it (or sends `facets: null`) still decodes rather than failing the whole search.
-	Facets []FacetNode `json:"facets"`
+	// hardcoding it. Confirmed present on NVIDIA's tenant, but deliberately not marked `required` and
+	// nullable so a tenant that omits it (or sends `facets: null`) still decodes rather than failing the
+	// whole search.
+	Facets OptNilFacetNodeArray `json:"facets"`
 }
 
 // GetTotal returns the value of Total.
@@ -439,7 +440,7 @@ func (s *JobsResponse) GetJobPostings() []JobSummary {
 }
 
 // GetFacets returns the value of Facets.
-func (s *JobsResponse) GetFacets() []FacetNode {
+func (s *JobsResponse) GetFacets() OptNilFacetNodeArray {
 	return s.Facets
 }
 
@@ -454,7 +455,7 @@ func (s *JobsResponse) SetJobPostings(val []JobSummary) {
 }
 
 // SetFacets sets the value of Facets.
-func (s *JobsResponse) SetFacets(val []FacetNode) {
+func (s *JobsResponse) SetFacets(val OptNilFacetNodeArray) {
 	s.Facets = val
 }
 
@@ -498,6 +499,74 @@ func (o OptInt) Get() (v int, ok bool) {
 
 // Or returns value if set, or given parameter if does not.
 func (o OptInt) Or(d int) int {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptNilFacetNodeArray returns new OptNilFacetNodeArray with value set to v.
+func NewOptNilFacetNodeArray(v []FacetNode) OptNilFacetNodeArray {
+	return OptNilFacetNodeArray{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptNilFacetNodeArray is optional nullable []FacetNode.
+type OptNilFacetNodeArray struct {
+	Value []FacetNode
+	Set   bool
+	Null  bool
+}
+
+// IsSet returns true if OptNilFacetNodeArray was set.
+func (o OptNilFacetNodeArray) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptNilFacetNodeArray) Reset() {
+	var v []FacetNode
+	o.Value = v
+	o.Set = false
+	o.Null = false
+}
+
+// SetTo sets value to v.
+func (o *OptNilFacetNodeArray) SetTo(v []FacetNode) {
+	o.Set = true
+	o.Null = false
+	o.Value = v
+}
+
+// IsNull returns true if value is Null.
+func (o OptNilFacetNodeArray) IsNull() bool { return o.Null }
+
+// SetToNull sets value to null.
+func (o *OptNilFacetNodeArray) SetToNull() {
+	o.Set = true
+	o.Null = true
+	var v []FacetNode
+	o.Value = v
+}
+
+// IsEmpty returns true if the field was omitted from the payload (not Set and not Null).
+func (o OptNilFacetNodeArray) IsEmpty() bool {
+	return !o.Set && !o.Null
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptNilFacetNodeArray) Get() (v []FacetNode, ok bool) {
+	if o.Null {
+		return v, false
+	}
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptNilFacetNodeArray) Or(d []FacetNode) []FacetNode {
 	if v, ok := o.Get(); ok {
 		return v
 	}

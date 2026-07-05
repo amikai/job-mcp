@@ -12,9 +12,9 @@ var mockJobsRsp []byte
 //go:embed testdata/job_detail_rsp.json
 var mockJobDetailRsp []byte
 
-// NewMockServer returns an httptest.Server serving canned, synthetic Workday
-// CXS fixture responses, so tests never hit a real tenant. The caller owns
-// the server and must Close it.
+// NewMockServer returns an httptest.Server serving canned Workday CXS fixture
+// responses captured from a real tenant (see testdata/*.sh), so tests never
+// hit a live one. The caller owns the server and must Close it.
 func NewMockServer() *httptest.Server {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/jobs", serveMockJSON(mockJobsRsp))

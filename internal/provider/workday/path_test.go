@@ -25,17 +25,33 @@ func TestSplitExternalPath(t *testing.T) {
 			wantOK:       true,
 		},
 		{
-			name:         "missing /job/ prefix still splits on first slash",
+			name:         "missing /job/ prefix is rejected",
 			externalPath: "US-CA-Remote/Software-Engineer_JR12345",
-			wantLocation: "US-CA-Remote",
-			wantTitle:    "Software-Engineer_JR12345",
-			wantOK:       true,
+			wantOK:       false,
+		},
+		{
+			name:         "other leading segment is rejected",
+			externalPath: "/details/US-CA-Remote/Software-Engineer_JR12345",
+			wantOK:       false,
 		},
 		{
 			name:         "no second segment fails",
 			externalPath: "/job/onlyonesegment",
-			wantLocation: "onlyonesegment",
-			wantTitle:    "",
+			wantOK:       false,
+		},
+		{
+			name:         "trailing slash (empty titleSlug) fails",
+			externalPath: "/job/US-CA-Remote/",
+			wantOK:       false,
+		},
+		{
+			name:         "empty location fails",
+			externalPath: "/job//Software-Engineer_JR12345",
+			wantOK:       false,
+		},
+		{
+			name:         "extra path segments fail instead of percent-encoding the slash",
+			externalPath: "/job/US/CA/Software-Engineer_JR12345",
 			wantOK:       false,
 		},
 	}

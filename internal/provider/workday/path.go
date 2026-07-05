@@ -10,9 +10,22 @@ import (
 // "/job/US-CA-Remote/Software-Engineer--CUDA_JR12345") into the two path
 // segments GetJobDetail expects. The API rejects a single combined path
 // parameter because standard URI encoders escape the "/" between them.
+//
+// Only the exact "/job/{location}/{titleSlug}" shape is accepted; anything
+// else — missing "/job/" prefix, an empty segment, or extra path segments
+// (whose "/" a URI encoder would percent-encode into a shape the server
+// rejects) — returns ok=false so callers can take their fallback path
+// instead of issuing a request that is guaranteed to fail.
 func SplitExternalPath(externalPath string) (location, titleSlug string, ok bool) {
-	location, titleSlug, ok = strings.Cut(strings.TrimPrefix(externalPath, "/job/"), "/")
-	return location, titleSlug, ok
+	rest, found := strings.CutPrefix(externalPath, "/job/")
+	if !found {
+		return "", "", false
+	}
+	location, titleSlug, ok = strings.Cut(rest, "/")
+	if !ok || location == "" || titleSlug == "" || strings.Contains(titleSlug, "/") {
+		return "", "", false
+	}
+	return location, titleSlug, true
 }
 
 // PublicSiteURL derives a Workday tenant's public-facing (non-API) career
