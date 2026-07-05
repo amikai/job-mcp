@@ -92,6 +92,30 @@ func TestSearchJobs(t *testing.T) {
 	assert.Equal(t, "United States", nested.Values[0].Descriptor.Value)
 }
 
+// TestSearchJobsToleratesMissingFacets guards the JobsResponse contract: a
+// tenant whose /jobs response carries usable total/jobPostings but omits the
+// `facets` field must still decode (facets is intentionally not required),
+// rather than failing the whole search. Regression guard for the CLI's
+// generic, multi-tenant use.
+func TestSearchJobsToleratesMissingFacets(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"total":1,"jobPostings":[{"title":"X","externalPath":"/job/L/T_1"}]}`))
+	}))
+	defer srv.Close()
+
+	client, err := NewClient(srv.URL)
+	require.NoError(t, err)
+
+	resp, err := client.SearchJobs(context.Background(), &JobsRequest{
+		AppliedFacets: AppliedFacets{},
+		Limit:         1,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, 1, resp.Total)
+	assert.Empty(t, resp.Facets)
+}
+
 func TestGetJobDetail(t *testing.T) {
 	srv := newMockServer(t)
 	defer srv.Close()

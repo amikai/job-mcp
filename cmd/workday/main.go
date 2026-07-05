@@ -143,14 +143,16 @@ func runFacets(ctx context.Context, baseURL string, timeout time.Duration, searc
 	return nil
 }
 
-// printFacetNode recursively prints one facet tree node. A node with child
-// Values is a group (printed as "facetParameter (descriptor)", descriptor
-// omitted when unset — some top-level groups like locationMainGroup have
-// none); a node without Values is a leaf, printed as
-// "descriptor  id=...  count=...".
+// printFacetNode recursively prints one facet tree node. A node with a
+// facetParameter is a group (printed as "facetParameter (descriptor)",
+// descriptor omitted when unset — some top-level groups like
+// locationMainGroup have none); a node without one is a leaf, printed as
+// "descriptor  id=...  count=...". Grouping keys on facetParameter rather
+// than len(Values) so a group whose Values are momentarily empty isn't
+// mis-rendered as a leaf.
 func printFacetNode(node workday.FacetNode, depth int) {
 	indent := strings.Repeat("  ", depth)
-	if len(node.Values) > 0 {
+	if node.FacetParameter.Set {
 		label := node.FacetParameter.Value
 		if node.Descriptor.Set {
 			label = fmt.Sprintf("%s (%s)", label, node.Descriptor.Value)
@@ -183,9 +185,11 @@ type searchResultJSON struct {
 	Jobs  []jobResultJSON `json:"jobs"`
 }
 
-// runSearch searches jobs, then fetches full detail for every result that
-// has an ExternalPath (mirrors cmd/nvidia's report behavior exactly) — one
-// page per invocation, no auto-pagination.
+// runSearch searches jobs, then fetches full detail for every result
+// (mirrors cmd/nvidia's report behavior: a posting with no ExternalPath is
+// listed with a "no detail available" note rather than silently dropped, so
+// "showing N" always matches the page's posting count) — one page per
+// invocation, no auto-pagination.
 func runSearch(ctx context.Context, baseURL string, timeout time.Duration, searchText string, limit, offset int, facetArgs []string, format string) error {
 	if baseURL == "" {
 		return fmt.Errorf("--base-url is required")
@@ -215,9 +219,6 @@ func runSearch(ctx context.Context, baseURL string, timeout time.Duration, searc
 
 	results := make([]jobResultJSON, 0, len(search.JobPostings))
 	for _, job := range search.JobPostings {
-		if job.ExternalPath.Value == "" {
-			continue
-		}
 		results = append(results, fetchJobResult(ctx, client, baseURL, job))
 	}
 
@@ -234,7 +235,9 @@ func runSearch(ctx context.Context, baseURL string, timeout time.Duration, searc
 		if r.PostedOn != "" {
 			fmt.Printf("Posted: %s\n", r.PostedOn)
 		}
-		fmt.Printf("URL: %s\n", r.URL)
+		if r.URL != "" {
+			fmt.Printf("URL: %s\n", r.URL)
+		}
 		printResultLocations(r)
 		switch {
 		case r.Error != "":
@@ -264,9 +267,17 @@ func printResultLocations(r jobResultJSON) {
 // failure is non-fatal: it falls back to a derived public site URL and the
 // summary's aggregate LocationsText, and records the error instead of a
 // description, so one bad job doesn't abort the whole search — mirrors
-// cmd/nvidia's existing per-job fallback behavior.
+// cmd/nvidia's existing per-job fallback behavior. A summary with no
+// ExternalPath (an incomplete/transient Workday posting) can't be fetched at
+// all, so it's returned with a "no detail available" note rather than dropped.
 func fetchJobResult(ctx context.Context, client *workday.Client, baseURL string, job workday.JobSummary) jobResultJSON {
 	r := jobResultJSON{Title: job.Title.Value, PostedOn: job.PostedOn.Value}
+
+	if job.ExternalPath.Value == "" {
+		r.Error = "listing has no externalPath"
+		setLocations(&r, job.LocationsText.Value)
+		return r
+	}
 
 	location, titleSlug, ok := workday.SplitExternalPath(job.ExternalPath.Value)
 	if !ok {
@@ -285,8 +296,15 @@ func fetchJobResult(ctx context.Context, client *workday.Client, baseURL string,
 	}
 
 	info := detail.JobPostingInfo
-	r.Title = info.Title
-	r.PostedOn = info.PostedOn.Value
+	// Overwrite the summary's title/postedOn only when the detail actually
+	// carries a value — a detail response that omits postedOn (optional) or
+	// returns an empty title must not blank out the good summary value.
+	if info.Title != "" {
+		r.Title = info.Title
+	}
+	if info.PostedOn.Set {
+		r.PostedOn = info.PostedOn.Value
+	}
 	r.JobReqId = info.JobReqId.Value
 	if info.ExternalUrl.Set {
 		r.URL = info.ExternalUrl.Value

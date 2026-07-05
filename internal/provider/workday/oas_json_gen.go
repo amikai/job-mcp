@@ -1028,12 +1028,14 @@ func (s *JobsResponse) encodeFields(e *jx.Encoder) {
 		e.ArrEnd()
 	}
 	{
-		e.FieldStart("facets")
-		e.ArrStart()
-		for _, elem := range s.Facets {
-			elem.Encode(e)
+		if s.Facets != nil {
+			e.FieldStart("facets")
+			e.ArrStart()
+			for _, elem := range s.Facets {
+				elem.Encode(e)
+			}
+			e.ArrEnd()
 		}
-		e.ArrEnd()
 	}
 }
 
@@ -1083,7 +1085,6 @@ func (s *JobsResponse) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"jobPostings\"")
 			}
 		case "facets":
-			requiredBitSet[0] |= 1 << 2
 			if err := func() error {
 				s.Facets = make([]FacetNode, 0)
 				if err := d.Arr(func(d *jx.Decoder) error {
@@ -1110,7 +1111,7 @@ func (s *JobsResponse) Decode(d *jx.Decoder) error {
 	// Validate required fields.
 	var failures []validate.FieldError
 	for i, mask := range [1]uint8{
-		0b00000111,
+		0b00000011,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.

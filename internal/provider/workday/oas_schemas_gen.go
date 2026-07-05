@@ -423,7 +423,8 @@ type JobsResponse struct {
 	JobPostings []JobSummary `json:"jobPostings"`
 	// The tenant's complete, current facet tree with live counts. Present on every response, including an
 	// unfiltered search — this is the primary way to discover a tenant's filter vocabulary without
-	// hardcoding it.
+	// hardcoding it. Confirmed present on NVIDIA's tenant, but deliberately not marked `required` so a
+	// tenant that omits it (or sends `facets: null`) still decodes rather than failing the whole search.
 	Facets []FacetNode `json:"facets"`
 }
 
