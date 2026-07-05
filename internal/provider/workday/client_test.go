@@ -122,10 +122,19 @@ func TestSearchJobsToleratesMissingFacets(t *testing.T) {
 				Limit:         1,
 			})
 			require.NoError(t, err)
-			assert.Equal(t, 1, resp.Total)
-			facets, ok := resp.Facets.Get()
-			assert.False(t, ok)
-			assert.Empty(t, facets)
+
+			var wantFacets OptNilFacetNodeArray
+			if tc.name == "facets null" {
+				wantFacets.SetToNull()
+			}
+			want := &JobsResponse{
+				Total: 1,
+				JobPostings: []JobSummary{
+					{Title: NewOptString("X"), ExternalPath: NewOptString("/job/L/T_1")},
+				},
+				Facets: wantFacets,
+			}
+			assert.Equal(t, want, resp)
 		})
 	}
 }
@@ -189,15 +198,26 @@ func TestSecondTenantFixtures(t *testing.T) {
 		SearchText:    "backend engineer",
 	})
 	require.NoError(t, err)
-	assert.Equal(t, 42, search.Total)
-	require.Len(t, search.JobPostings, 5)
+
+	wantSearch := &JobsResponse{
+		Total: 42,
+		JobPostings: []JobSummary{
+			{Title: NewOptString("(Sr.) Backend Engineer"), ExternalPath: NewOptString("/job/Taipei/XMLNAME--Sr--Backend-Engineer_R0006260-1"), LocationsText: NewOptString("Taipei"), PostedOn: NewOptString("Posted 30+ Days Ago"), BulletFields: []string{"R0006260"}},
+			{Title: NewOptString("(Sr.) Backend Engineer"), ExternalPath: NewOptString("/job/Taipei/XMLNAME--Sr--Backend-Engineer_R0009324"), LocationsText: NewOptString("Taipei"), PostedOn: NewOptString("Posted 30+ Days Ago"), BulletFields: []string{"R0009324"}},
+			{Title: NewOptString("Sr. Backend Engineer (IIA)"), ExternalPath: NewOptString("/job/Taipei/Sr-Backend-Engineer--IIA-_R0009294"), LocationsText: NewOptString("Taipei"), PostedOn: NewOptString("Posted 30+ Days Ago"), BulletFields: []string{"R0009294"}},
+			{Title: NewOptString("(Sr.) Applied AI Backend Engineer"), ExternalPath: NewOptString("/job/Taipei/XMLNAME--Sr--Backend-Engineer_R0007813"), LocationsText: NewOptString("Taipei"), PostedOn: NewOptString("Posted 30+ Days Ago"), BulletFields: []string{"R0007813"}},
+			{Title: NewOptString("(Sr.) Applied AI Backend Engineer"), ExternalPath: NewOptString("/job/Taipei/Sr-Engineer-Backend_R0007867"), LocationsText: NewOptString("Taipei"), PostedOn: NewOptString("Posted 30+ Days Ago"), BulletFields: []string{"R0007867"}},
+		},
+		Facets: NewOptNilFacetNodeArray([]FacetNode{
+			{FacetParameter: NewOptString("jobFamilyGroup"), Descriptor: NewOptString("Job Category"), Values: []FacetNode{{Descriptor: NewOptString("Product Development"), ID: NewOptString("904e04688bb0016982d07b383e1dab0c"), Count: NewOptInt(40)}, {Descriptor: NewOptString("Threat"), ID: NewOptString("904e04688bb001c112547b383e1da90c"), Count: NewOptInt(1)}, {Descriptor: NewOptString("DataIQ"), ID: NewOptString("904e04688bb0010d914c7a383e1da50c"), Count: NewOptInt(1)}}},
+			{FacetParameter: NewOptString("workerSubType"), Descriptor: NewOptString("Job Type"), Values: []FacetNode{{Descriptor: NewOptString("Regular"), ID: NewOptString("904e04688bb00110d3d92e873c1dfc04"), Count: NewOptInt(42)}}},
+			{FacetParameter: NewOptString("timeType"), Descriptor: NewOptString("Time Type"), Values: []FacetNode{{Descriptor: NewOptString("Full time"), ID: NewOptString("f6887f8ffb6901a0ae6afd8c1a1d8900"), Count: NewOptInt(42)}}},
+			{FacetParameter: NewOptString("locationMainGroup"), Values: []FacetNode{{FacetParameter: NewOptString("locationCountry"), Descriptor: NewOptString("Location Country"), Values: []FacetNode{{Descriptor: NewOptString("Canada"), ID: NewOptString("a30a87ed25634629aa6c3958aa2b91ea"), Count: NewOptInt(6)}, {Descriptor: NewOptString("Philippines"), ID: NewOptString("e56f1daf83e04bacae794ba5c5593560"), Count: NewOptInt(1)}, {Descriptor: NewOptString("Taiwan"), ID: NewOptString("a4e08b475d6a4176853c9d1cb9854e02"), Count: NewOptInt(27)}, {Descriptor: NewOptString("United States of America"), ID: NewOptString("bc33aa3152ec42d4995f4791a106ed09"), Count: NewOptInt(3)}}}}},
+		}),
+	}
+	assert.Equal(t, wantSearch, search)
 
 	externalPath := search.JobPostings[0].ExternalPath.Value
-	assert.Equal(t, "/job/Taipei/XMLNAME--Sr--Backend-Engineer_R0006260-1", externalPath)
-	facets, ok := search.Facets.Get()
-	assert.True(t, ok)
-	assert.NotEmpty(t, facets)
-
 	location, titleSlug, ok := SplitExternalPath(externalPath)
 	require.True(t, ok)
 	assert.Equal(t, "Taipei", location)
@@ -208,11 +228,18 @@ func TestSecondTenantFixtures(t *testing.T) {
 		TitleSlug: titleSlug,
 	})
 	require.NoError(t, err)
-	info := detail.JobPostingInfo
-	assert.Equal(t, "(Sr.) Backend Engineer", info.Title)
-	assert.Equal(t, NewOptString("R0006260"), info.JobReqId)
-	assert.Equal(t,
-		NewOptString("https://trendmicro.wd3.myworkdayjobs.com/External/job/Taipei/XMLNAME--Sr--Backend-Engineer_R0006260-1"),
-		info.ExternalUrl)
-	assert.NotEmpty(t, info.JobDescription)
+
+	wantDetail := &JobDetailResponse{
+		JobPostingInfo: JobPostingInfo{
+			Title: "(Sr.) Backend Engineer",
+			JobDescription: `<p style="text-align:left"><b>Join Trend ‧ Join New Generation</b></p><p style="text-align:inherit"></p><p style="text-align:left"><b>趨勢科技 - 全球雲端資安領航者 / 全亞洲最大軟體公司 / 企業版圖橫跨五大洲 / 趨勢全球研發基地在台灣 </b><br /><span><span><span><span><span class="WL01">&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;</span></span></span></span></span></p><p>Trend Micro Vision One is a purpose-built threat defense platform that provides added value and new benefits beyond XDR (Extended Detection and Response) solutions, allowing customer to see more and respond faster. Vision One providing deep and broad extended detection and response capabilities that collect and automatically correlate data across multiple security layers—email, endpoints, servers, cloud workloads, and networks—Trend Micro Vision One prevents the majority of attacks with automated protection.</p><p>The objective of TW Engineering Group is to provide the best endpoint security solution to help customers, from small &amp; medium businesses to vary large enterprises, conquer cybersecurity challenges effectively and efficiently. Every partner within Group 1 will have opportunity to join diverse squad team and demonstrate his/her expertise and enthusiasm to make customer success in their business without cyber threat. Along this journey, we are looking for partners with not only exceptional engineering expertise, but also great curiosity and customer empathy, so we can learn from customer behavior and create business impact together.<br /><br /> </p><p><b>Responsibilities &#xff1a;</b></p><ul><li>Co-work with other teams to design, develop, &amp; operate scalable backend services to support endpoint security and peripheral use cases on public clouds (AWS, Azure, …etc.)</li><li>Design &amp; implement ways to measure and validate the quality of customer experience we deliver</li><li>Analyze &amp; resolve customer problems by listening to data and customer feedbacks</li><li>Identify and report defects, working closely with development teams to resolve issues promptly</li><li>Perform tasks and projects as assigned.</li><li>Document solutions for knowledge sharing within the team.</li></ul><p><b>BASIC QUALIFICATIONS</b></p><ul><li>Bachelor degree or higher in computer science or related fields</li><li>Strong programming skill with any of: Java or Go</li><li>Cloud Application development and debugging experience on AWS or Azure</li><li>Proactive, self-motivated and good teamwork</li><li>Good English communication skill</li></ul><p><b>BIG PLUS</b></p><ul><li>Cloud Application development on container technologies, such as Docker and Kubernetes.</li><li>Have experience with any of: PostgreSQL, MySQL, Redis, MongoDB, Elastic Search, Kibana, or Terraform</li></ul><p><b>Would be a plus</b></p><ul><li>Knowledge in enterprise design/integration pattern</li><li>Experience in the cybersecurity fields</li></ul><p></p><p>#LI-YJ1</p><p><span><span><span>&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;&#61;</span></span></span><br /><i>連結智慧 守護世界 --- Connected Intelligence for Securing a Connected World</i></p>`,
+			Location:            NewOptString("Taipei"),
+			AdditionalLocations: nil,
+			PostedOn:            NewOptString("Posted 30+ Days Ago"),
+			TimeType:            NewOptString("Full time"),
+			JobReqId:            NewOptString("R0006260"),
+			ExternalUrl:         NewOptString("https://trendmicro.wd3.myworkdayjobs.com/External/job/Taipei/XMLNAME--Sr--Backend-Engineer_R0006260-1"),
+		},
+	}
+	assert.Equal(t, wantDetail, detail)
 }
