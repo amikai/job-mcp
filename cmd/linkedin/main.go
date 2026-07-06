@@ -28,10 +28,8 @@ func main() {
 		timeout       = fs.DurationLong("timeout", 60*time.Second, "request timeout")
 		keywords      = fs.StringLong("keywords", "", "free-text search query")
 		location      = fs.StringLong("location", "", "location filter (LinkedIn searches globally)")
-		distance      = fs.IntLong("distance", 0, "search radius in miles")
 		workplaceType = fs.StringEnumLong("workplace-type", usageWithChoices("Workplace type", linkedin.WorkplaceTypeIDs), labels(linkedin.WorkplaceTypeIDs)...)
 		jobType       = fs.StringEnumLong("job-type", usageWithChoices("Job type", linkedin.JobTypeIDs), labels(linkedin.JobTypeIDs)...)
-		easyApply     = fs.BoolLong("easy-apply", "only jobs with LinkedIn Easy Apply")
 		companyIDs    = fs.StringLong("company-ids", "", "comma-separated LinkedIn numeric company IDs")
 		postedWithin  = fs.DurationLong("posted-within", 0, "only jobs posted within this duration, e.g. 24h")
 		start         = fs.IntLong("start", linkedin.DefaultStart, "zero-based result offset for pagination")
@@ -46,7 +44,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	req := buildJobsRequest(*keywords, *location, *distance, *workplaceType, *jobType, *easyApply, *companyIDs, *postedWithin, *start)
+	req := buildJobsRequest(*keywords, *location, *workplaceType, *jobType, *companyIDs, *postedWithin, *start)
 
 	ctx, cancel := context.WithTimeout(context.Background(), *timeout)
 	defer cancel()
@@ -72,13 +70,11 @@ func main() {
 	writeReport(os.Stdout, *keywords, *baseURL, search, details)
 }
 
-func buildJobsRequest(keywords, location string, distance int, workplaceType, jobType string, easyApply bool, companyIDs string, postedWithin time.Duration, start int) *linkedin.JobsRequest {
+func buildJobsRequest(keywords, location, workplaceType, jobType string, companyIDs string, postedWithin time.Duration, start int) *linkedin.JobsRequest {
 	req := &linkedin.JobsRequest{
-		Keywords:  keywords,
-		Location:  location,
-		Distance:  distance,
-		EasyApply: easyApply,
-		Start:     start,
+		Keywords: keywords,
+		Location: location,
+		Start:    start,
 	}
 	if workplaceType != "" {
 		req.WorkplaceType = linkedin.WorkplaceTypeIDs[workplaceType]
