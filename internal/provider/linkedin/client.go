@@ -40,6 +40,14 @@ type Client struct {
 	baseURL    string
 }
 
+// DefaultStart is the start offset a real, signed-out browser uses for its
+// first call to this endpoint: the initial /jobs/search page already
+// renders the first 25 results server-side, so guest scroll traffic never
+// requests start=0 through this endpoint (confirmed live; see
+// openapi.yaml's Pagination notes). Pass 0 explicitly to fetch the results a
+// browser session would already have loaded before ever reaching this call.
+const DefaultStart = 25
+
 type JobsRequest struct {
 	Keywords            string
 	Location            string

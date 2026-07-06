@@ -42,10 +42,23 @@ info:
       `x-ratelimit-*` reset hint) — the body is a small Cloudflare block page,
       so there is no server-provided wait time to honor. Recovery is waiting
       (back off on your own fixed/exponential schedule) or rotating egress IP.
-    - **Pagination**: `start` is a zero-based result offset, incremented by the
-      number of cards actually returned each page (usually the fixed page size,
-      but the API doesn't guarantee it). Results are capped at roughly 1000
-      per query regardless of `start`.
+    - **Pagination**: `start` is a zero-based result offset. Live testing
+      confirms the endpoint always returns exactly 10 cards per call
+      regardless of `start` (values 0, 10, 15, 25, 50, 75, 100, 125, 150, and
+      200 each returned exactly 10, in strict sequential order — `start` is a
+      precise per-item offset, not a page index). LinkedIn's own guest
+      frontend does not increment by 10, though: watching real
+      `/jobs/search` scroll traffic in a browser showed it requesting
+      `start=25`, `50`, `75`, `100`, ... The first 25 results are rendered
+      server-side in the initial full-page load rather than through this
+      endpoint, which is why the frontend's first XHR call to it already
+      starts at 25 — but its 25-per-step increment then silently skips
+      results at positions 10-24, 35-49, 60-74, and so on, since this
+      endpoint only ever serves 10 per call. That's a real gap in LinkedIn's
+      own guest UI, confirmed by direct query, not a theoretical one. A
+      caller working against this endpoint directly should start at `0` and
+      increment by the actual card count returned (10) to scrape without
+      gaps. Results are capped at roughly 1000 total regardless of `start`.
     - **Job ID placement differs by endpoint**: the search card's `href` embeds
       the numeric ID as the LAST hyphen-separated path segment
       (`.../software-engineer-at-boostdraft-4422697744`), but the canonical
@@ -151,13 +164,24 @@ paths:
           in: query
           required: false
           description: |
-            Zero-based result offset for pagination. Increment by the number
-            of cards returned in the previous page. Results are capped at
-            roughly 1000 total regardless of how high `start` goes.
+            Zero-based result offset. The endpoint always returns exactly 10
+            cards per call regardless of this value, confirmed live across
+            `start=0..200`. LinkedIn's own guest frontend increments by 25
+            per scroll step instead of 10: its first XHR call to this
+            endpoint starts at `start=25` (the initial 25 results are
+            already rendered server-side in the full-page load), and the
+            `default: 25` here documents that observed real-browser starting
+            point rather than a confirmed server fallback for an omitted
+            parameter, which hasn't been tested. The frontend's 25-per-step
+            increment then skips 10 of every 25 positions this endpoint can
+            otherwise return. A caller scraping this endpoint directly
+            should start at `0` and increment by the actual card count
+            returned (10) to avoid that gap. Results are capped at roughly
+            1000 total regardless of how high `start` goes.
           schema:
             type: integer
-            default: 0
-          example: 0
+            default: 25
+          example: 25
 
         - name: f_AL
           in: query

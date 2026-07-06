@@ -34,7 +34,7 @@ func main() {
 		easyApply     = fs.BoolLong("easy-apply", "only jobs with LinkedIn Easy Apply")
 		companyIDs    = fs.StringLong("company-ids", "", "comma-separated LinkedIn numeric company IDs")
 		postedWithin  = fs.DurationLong("posted-within", 0, "only jobs posted within this duration, e.g. 24h")
-		start         = fs.IntLong("start", 0, "zero-based result offset for pagination")
+		start         = fs.IntLong("start", linkedin.DefaultStart, "zero-based result offset for pagination")
 		fetchDetails  = fs.IntLong("fetch-details", 0, "fetch full JobDetail for this many results (0 = none; see main's doc comment on why this isn't on by default)")
 	)
 	if err := ff.Parse(fs, os.Args[1:]); err != nil {
