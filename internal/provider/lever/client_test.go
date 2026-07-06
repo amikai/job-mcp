@@ -1,6 +1,7 @@
 package lever
 
 import (
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -86,4 +87,48 @@ func TestGetPosting(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "33538a2f-d27d-4a96-8f05-fa4b0e4d940e", got.ID)
 	assert.Equal(t, "AbelsonTaylor Writer", got.Text)
+}
+
+func TestListPostingsNotFound(t *testing.T) {
+	srv := NewMockServer()
+	defer srv.Close()
+
+	c, err := NewClient(srv.URL, WithClient(srv.Client()))
+	require.NoError(t, err)
+
+	_, err = c.ListPostings(t.Context(), ListPostingsParams{
+		Site: MockNotFoundSite,
+		Mode: ListPostingsModeJSON,
+	})
+	require.Error(t, err)
+
+	ue, ok := errors.AsType[*ErrorResponseStatusCode](err)
+	require.True(t, ok, "expected *ErrorResponseStatusCode in %v", err)
+	want := &ErrorResponseStatusCode{
+		StatusCode: 404,
+		Response:   ErrorResponse{Ok: false, Error: "Document not found"},
+	}
+	assert.Equal(t, want, ue)
+}
+
+func TestGetPostingNotFound(t *testing.T) {
+	srv := NewMockServer()
+	defer srv.Close()
+
+	c, err := NewClient(srv.URL, WithClient(srv.Client()))
+	require.NoError(t, err)
+
+	_, err = c.GetPosting(t.Context(), GetPostingParams{
+		Site:      "leverdemo",
+		PostingId: MockNotFoundPostingID,
+	})
+	require.Error(t, err)
+
+	ue, ok := errors.AsType[*ErrorResponseStatusCode](err)
+	require.True(t, ok, "expected *ErrorResponseStatusCode in %v", err)
+	want := &ErrorResponseStatusCode{
+		StatusCode: 404,
+		Response:   ErrorResponse{Ok: false, Error: "Document not found"},
+	}
+	assert.Equal(t, want, ue)
 }
