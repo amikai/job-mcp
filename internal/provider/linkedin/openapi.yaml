@@ -36,8 +36,12 @@ info:
       testing, but carrying cookies across both calls is recommended regardless.
     - **Rate limiting**: sustained scraping gets a plain HTTP 429. LinkedIn is
       the most restrictive of the job boards JobSpy supports; a single IP
-      typically gets limited around the 10th search page. There is no
-      documented recovery other than waiting or rotating egress IP.
+      typically gets limited around the 10th search request (observed: the
+      10th consecutive `seeMoreJobPostings/search` call returned 429 while the
+      first 9 were 200). The 429 carries **no `Retry-After` header** (nor any
+      `x-ratelimit-*` reset hint) — the body is a small Cloudflare block page,
+      so there is no server-provided wait time to honor. Recovery is waiting
+      (back off on your own fixed/exponential schedule) or rotating egress IP.
     - **Pagination**: `start` is a zero-based result offset, incremented by the
       number of cards actually returned each page (usually the fixed page size,
       but the API doesn't guarantee it). Results are capped at roughly 1000
@@ -217,7 +221,10 @@ paths:
                 type: string
                 description: HTML fragment containing zero or more job cards.
         "429":
-          description: Rate limited. No response body worth parsing; back off.
+          description: |
+            Rate limited (observed around the 10th consecutive request). No
+            response body worth parsing and no `Retry-After` header; back off
+            on your own schedule or rotate egress IP.
 
   /jobs/view/{jobId}:
     get:
