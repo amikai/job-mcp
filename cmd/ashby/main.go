@@ -158,8 +158,8 @@ type jobSummaryJSON struct {
 	Team               string   `json:"team,omitempty"`
 	Location           string   `json:"location,omitempty"`
 	SecondaryLocations []string `json:"secondaryLocations,omitempty"`
-	WorkplaceType      string   `json:"workplaceType"`
-	IsRemote           bool     `json:"isRemote"`
+	WorkplaceType      string   `json:"workplaceType,omitempty"`
+	IsRemote           *bool    `json:"isRemote,omitempty"`
 	PublishedAt        string   `json:"publishedAt"`
 	Compensation       string   `json:"compensation,omitempty"`
 	URL                string   `json:"url"`
@@ -172,15 +172,23 @@ type searchResultJSON struct {
 
 func summarize(j ashby.JobPosting) jobSummaryJSON {
 	s := jobSummaryJSON{
-		ID:            j.ID.Value,
-		Title:         j.Title,
-		Department:    j.Department.Value,
-		Team:          j.Team.Value,
-		Location:      j.Location.Value,
-		WorkplaceType: string(j.WorkplaceType),
-		IsRemote:      j.IsRemote,
-		PublishedAt:   j.PublishedAt.Format("2006-01-02"),
-		URL:           j.JobUrl,
+		ID:          j.ID.Value,
+		Title:       j.Title,
+		Department:  j.Department.Value,
+		Team:        j.Team.Value,
+		Location:    j.Location.Value,
+		PublishedAt: j.PublishedAt.Format("2006-01-02"),
+		URL:         j.JobUrl,
+	}
+	// Both fields are documented as always present but observed as null on
+	// many boards; a null stays empty/omitted rather than defaulting to
+	// OnSite/false.
+	if !j.WorkplaceType.Null {
+		s.WorkplaceType = string(j.WorkplaceType.Value)
+	}
+	if !j.IsRemote.Null {
+		v := j.IsRemote.Value
+		s.IsRemote = &v
 	}
 	for _, sl := range j.SecondaryLocations {
 		if sl.Location.Set {
@@ -252,11 +260,18 @@ func printSummary(s jobSummaryJSON) {
 	} else if s.Location != "" {
 		fmt.Printf("Location: %s\n", s.Location)
 	}
-	workplace := s.WorkplaceType
-	if s.IsRemote {
-		workplace += " (remote)"
+	// Some boards send null workplaceType/isRemote; skip the line rather
+	// than printing a made-up default.
+	if s.WorkplaceType != "" || (s.IsRemote != nil && *s.IsRemote) {
+		workplace := s.WorkplaceType
+		if workplace == "" {
+			workplace = "(unspecified)"
+		}
+		if s.IsRemote != nil && *s.IsRemote {
+			workplace += " (remote)"
+		}
+		fmt.Printf("Workplace: %s\n", workplace)
 	}
-	fmt.Printf("Workplace: %s\n", workplace)
 	fmt.Printf("Posted: %s\n", s.PublishedAt)
 	if s.Compensation != "" {
 		fmt.Printf("Compensation: %s\n", s.Compensation)

@@ -10,11 +10,19 @@ import (
 // real board the testdata was captured from (see testdata/board_req.sh).
 const MockBoardName = "browserbase"
 
+// MockNullsBoardName serves a fixture whose jobs carry null isRemote and
+// workplaceType — fields the official docs claim are always present but many
+// real boards null out (see testdata/board_req.sh).
+const MockNullsBoardName = "weaviate"
+
 //go:embed testdata/board_rsp.json
 var mockBoardRsp []byte
 
 //go:embed testdata/board_comp_rsp.json
 var mockBoardCompRsp []byte
+
+//go:embed testdata/board_nulls_rsp.json
+var mockBoardNullsRsp []byte
 
 // NewMockServer returns an httptest.Server serving canned Ashby job-board
 // fixture responses captured from a real board (see testdata/board_req.sh),
@@ -31,6 +39,7 @@ func NewMockServer() *httptest.Server {
 		}
 		serveMockJSON(mockBoardRsp)(w, r)
 	})
+	mux.HandleFunc("/posting-api/job-board/"+MockNullsBoardName, serveMockJSON(mockBoardNullsRsp))
 	mux.HandleFunc("/posting-api/job-board/", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		w.WriteHeader(http.StatusNotFound)

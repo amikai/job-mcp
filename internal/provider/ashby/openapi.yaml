@@ -145,13 +145,25 @@ components:
           description: Whether the job appears on the public job board listing.
         isRemote:
           type: boolean
-          description: Whether the job is remote.
+          nullable: true
+          description: >
+            Whether the job is remote. The official docs say always present;
+            observed as null on many boards (openai, clickhouse, cohere, ...).
         workplaceType:
           type: string
           enum: [OnSite, Remote, Hybrid]
-          description: Workplace arrangement. The docs enumerate this set exhaustively.
+          nullable: true
+          description: >
+            Workplace arrangement. The docs enumerate this set exhaustively
+            but claim it's always present; observed as null on many boards,
+            always alongside a null isRemote.
         address:
-          $ref: "#/components/schemas/Address"
+          allOf:
+            - $ref: "#/components/schemas/Address"
+          nullable: true
+          description: >
+            Primary location's postal address. Observed as null (rather than
+            omitted) on some boards (clickhouse, eightsleep, zapier, ...).
         jobUrl:
           type: string
           description: URL of the Ashby-hosted job posting page.
@@ -186,7 +198,12 @@ components:
           description: Location display name.
           example: Spain
         address:
-          $ref: "#/components/schemas/Address"
+          allOf:
+            - $ref: "#/components/schemas/Address"
+          nullable: true
+          description: >
+            Secondary location's postal address. Observed as null on some
+            boards (alchemy, cohere).
 
     Address:
       type: object

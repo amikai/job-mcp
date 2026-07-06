@@ -65,6 +65,13 @@ both required.
 `shouldDisplayCompensationOnJobPostings` are optional with descriptions
 noting they are absent from the official docs.
 
+Correction observed after a full-roster scan (46 boards, 2026-07-06): the
+docs claim `isRemote` and `workplaceType` are always present, but many
+boards (openai, clickhouse, cohere, elevenlabs, …) send them as null, and
+`address` / `secondaryLocations[].address` are sometimes null rather than
+omitted. All four stay required where the docs say so but are marked
+`nullable: true`.
+
 Enum policy:
 
 - `workplaceType` (`OnSite`, `Remote`, `Hybrid`) and `employmentType`
