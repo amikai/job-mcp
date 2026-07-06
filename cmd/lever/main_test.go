@@ -1,7 +1,9 @@
 package main
 
 import (
+	"context"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 
@@ -59,4 +61,31 @@ func TestToPostingJSONNoCategories(t *testing.T) {
 
 	want := postingJSON{ID: "id-3", Title: "PM"}
 	assert.Equal(t, want, toPostingJSON(p))
+}
+
+func TestRunSearchMissingSite(t *testing.T) {
+	err := runSearch(context.Background(), "", time.Second, nil, nil, nil, nil, "", 20, 0, "text")
+	assert.ErrorContains(t, err, "--site is required")
+}
+
+func TestRunSearchUnknownSite(t *testing.T) {
+	err := runSearch(context.Background(), "doesnotexist-site-xyz", time.Second, nil, nil, nil, nil, "", 20, 0, "text")
+	assert.ErrorContains(t, err, `site "doesnotexist-site-xyz" not found`)
+	assert.ErrorContains(t, err, "lever companies")
+}
+
+func TestRunGetMissingSite(t *testing.T) {
+	err := runGet(context.Background(), "", time.Second, "some-id", "text")
+	assert.ErrorContains(t, err, "--site is required")
+}
+
+func TestRunGetUnknownSite(t *testing.T) {
+	err := runGet(context.Background(), "doesnotexist-site-xyz", time.Second, "some-id", "text")
+	assert.ErrorContains(t, err, `site "doesnotexist-site-xyz" not found`)
+	assert.ErrorContains(t, err, "lever companies")
+}
+
+func TestRunGetMissingPostingID(t *testing.T) {
+	err := runGet(context.Background(), "leverdemo", time.Second, "", "text")
+	assert.ErrorContains(t, err, "posting id argument is required")
 }
