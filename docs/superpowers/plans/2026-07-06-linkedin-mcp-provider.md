@@ -2,6 +2,19 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+> **Historical note — the shipped code deviates from this plan.** The plan
+> was executed as written, then three follow-up refactors changed the final
+> shape; the code snippets below are the original drafts, not the shipped
+> versions. The deviations: `distance` and `easy_apply` are not exposed
+> (Distance was removed from `JobsRequest` entirely as unverified);
+> `company_ids` is a JSON array, not a comma-separated string;
+> `looks_remote` was renamed back to `remote` to match the provider's field
+> name; the detail output gained a `url` field; and the tool/schema
+> descriptions were trimmed, with rate-limit remedy text moved into the
+> client's 429/999 error strings. The design spec
+> (`docs/superpowers/specs/2026-07-06-linkedin-mcp-provider-design.md`) is
+> kept in sync with the shipped code; trust it over the snippets here.
+
 **Goal:** Wire the existing `internal/provider/linkedin` package into the `openings-mcp` MCP server as `linkedin_search_jobs` and `linkedin_get_job_detail` tools.
 
 **Architecture:** Add `internal/openingsmcp/linkedin.go` following the exact pattern already used for tsmc/nvidia/etc. (hand-written JSON input schema with label enums, MCP↔HTTP conversion functions, `RegisterLinkedin`), then wire a shared `linkedin.Client` into `cmd/openings-mcp/main.go`.

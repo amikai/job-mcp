@@ -54,22 +54,30 @@ provider's existing `WorkplaceTypeIDs`/`JobTypeIDs` lookup tables).
 |---|---|---|---|
 | `keyword` | string | no | free-text; maps to `Keywords` |
 | `location` | string | no | free-text; LinkedIn has no structured location field |
-| `distance` | integer | no | miles radius around `location` |
 | `workplace_type` | enum: `On-site`, `Remote`, `Hybrid` | no | maps via `linkedin.WorkplaceTypeIDs` |
 | `job_type` | enum: `Full-time`, `Part-time`, `Contract`, `Temporary`, `Internship` | no | maps via `linkedin.JobTypeIDs` |
-| `easy_apply` | boolean | no | maps to `f_AL` |
-| `company_ids` | string | no | comma-separated opaque numeric LinkedIn company IDs, passed through raw (not resolvable by a host LLM without a prior lookup — documented as such) |
+| `company_ids` | array of string | no | opaque numeric LinkedIn company IDs, passed through raw (not resolvable by a host LLM without a prior lookup — documented as such; search summaries don't carry them) |
 | `posted_within` | enum: `Past day`, `Past week`, `Past month` | no | maps to 86400 / 604800 / 2592000 seconds |
-| `start` | integer, default 0 | no | raw zero-based result offset (not abstracted into a page number — LinkedIn's own `start` semantics are exposed directly). Description explains: the endpoint always returns exactly 10 cards regardless of `start`; a caller paging through results must increment by exactly 10 each call to avoid the gaps a real browser's 25-per-step scroll traffic produces; a fresh MCP session should start at 0, not the browser-mimicking `linkedin.DefaultStart` (25) that `cmd/linkedin` defaults to. |
+| `start` | integer, default 0 | no | raw zero-based result offset (not abstracted into a page number — LinkedIn's own `start` semantics are exposed directly). The endpoint always returns exactly 10 cards regardless of `start`, so the description instructs paging in steps of 10; a fresh MCP session starts at 0, not the browser-mimicking `linkedin.DefaultStart` (25) that `cmd/linkedin` defaults to. |
+
+Two provider parameters are deliberately not exposed:
+
+- `distance` — its live behavior was never verified (a quick browser check
+  found a negative value silently swaps in unrelated results instead of
+  erroring); the field was removed from `JobsRequest` entirely, and
+  openapi.yaml documents the parameter as real-but-unimplemented.
+- `easy_apply` — `JobsRequest.EasyApply` stays for programmatic use, but
+  neither the MCP schema nor the CLI exposes it.
 
 No field is `required`, unlike tsmc — LinkedIn's search accepts an entirely
 empty query.
 
-Neither tool description hedges on rate limiting: both `linkedin_search_jobs`
-and `linkedin_get_job_detail` descriptions state plainly that a single
-session gets rate-limited around the 10th consecutive request, the 429
-response carries no `Retry-After` hint, and the host should page
-conservatively and back off rather than retry immediately on a 429.
+Tool descriptions stay terse: they state that LinkedIn rate-limits
+aggressively and to back off rather than retry on a 429, but quantitative
+detail (the ~10-request session budget, the missing `Retry-After`) lives in
+the client's 429/999 error strings instead — the LLM pays for that guidance
+only when a block actually happens, and error-time is also when it acts on
+it.
 
 ### Output
 
@@ -79,16 +87,22 @@ type linkedinSearchOutput struct {
 }
 
 type linkedinJobSummary struct {
-    ID          string `json:"id"`
-    Title       string `json:"title"`
-    Company     string `json:"company,omitempty"`
-    CompanyURL  string `json:"company_url,omitempty"`
-    Location    string `json:"location,omitempty"`
-    PostedDate  string `json:"posted_date,omitempty"`
-    LooksRemote bool   `json:"looks_remote,omitempty" jsonschema:"Keyword heuristic (title/location substring match for 'remote'/'work from home'/'wfh'), not a field LinkedIn provides. False does not mean confirmed on-site."`
-    URL         string `json:"url,omitempty" jsonschema:"Public job posting URL; pass the id portion to linkedin_get_job_detail."`
+    ID         string `json:"id" jsonschema:"Numeric LinkedIn job ID; pass to linkedin_get_job_detail's job_id param."`
+    Title      string `json:"title"`
+    Company    string `json:"company,omitempty"`
+    CompanyURL string `json:"company_url,omitempty"`
+    Location   string `json:"location,omitempty"`
+    PostedDate string `json:"posted_date,omitempty"`
+    Remote     bool   `json:"remote,omitempty"`
+    URL        string `json:"url,omitempty" jsonschema:"Public job posting URL."`
 }
 ```
+
+`remote` keeps the provider's own `Job.Remote` field name (and matches the
+`remote` field the google/104 outputs use) rather than the `looks_remote`
+name an earlier draft of this design proposed. It is still a keyword
+heuristic over title/location, not a field LinkedIn provides; the detail
+output's `remote` carries that caveat in its jsonschema description.
 
 No `total` field: unlike the other providers, LinkedIn's search response
 never reports a result count — only ever the current page's up-to-10 cards.
@@ -113,17 +127,18 @@ type linkedinDetailInput struct {
 ```go
 type linkedinDetailOutput struct {
     ID             string `json:"id"`
+    URL            string `json:"url,omitempty" jsonschema:"Public job posting URL."`
     Title          string `json:"title"`
     Company        string `json:"company,omitempty"`
     Location       string `json:"location,omitempty"`
-    Posted         string `json:"posted,omitempty"`
+    Posted         string `json:"posted,omitempty" jsonschema:"Relative time, e.g. '1 month ago'; LinkedIn doesn't expose an exact date."`
     SeniorityLevel string `json:"seniority_level,omitempty"`
     EmploymentType string `json:"employment_type,omitempty"`
     JobFunction    string `json:"job_function,omitempty"`
     Industries     string `json:"industries,omitempty"`
     Description    string `json:"description,omitempty" jsonschema:"Full job description as plain text."`
-    ApplyURL       string `json:"apply_url,omitempty" jsonschema:"External ATS apply URL; absent for LinkedIn Easy Apply postings."`
-    LooksRemote    bool   `json:"looks_remote,omitempty" jsonschema:"Keyword heuristic over title/location only (not the full description), not a field LinkedIn provides. False does not mean confirmed on-site."`
+    ApplyURL       string `json:"apply_url,omitempty" jsonschema:"External ATS apply URL."`
+    Remote         bool   `json:"remote,omitempty" jsonschema:"Keyword heuristic over title/location only (not the full description), not a field LinkedIn provides. False does not mean confirmed on-site."`
 }
 ```
 
@@ -135,16 +150,21 @@ detail output carries a logo field.
 
 `linkedin.Client` is hand-written (unlike nvidia's openapi-generated client),
 so there's no typed error to distinguish upstream status codes. Its errors
-are already descriptive strings (`"HTTP 999: bot-suspected, LinkedIn
-redirected to its authwall..."`, `"HTTP 429"`, `"redirected to ...: no usable
-session"`) and pass straight through `errorResult(err)` — the same treatment
-tsmc and google (also hand-written clients) already get.
+are descriptive strings that pass straight through `errorResult(err)` — the
+same treatment tsmc and google (also hand-written clients) already get.
+Because the error string is the only guidance channel the host LLM has at
+failure time, the 429 and 999 messages carry their own remedy: the 429 says
+immediate retries keep failing (LinkedIn sends no `Retry-After`) and to back
+off, and the 999 says one retry may pass now that the session carries
+cookies (`warmSession` has already primed the jar by then) but to stop if it
+recurs.
 
 ## Conversion functions
 
 - `linkedinMCPToHTTPRequest(in *linkedinSearchInput) (*linkedin.JobsRequest, error)`
   — validates `workplace_type`/`job_type`/`posted_within` against their
-  lookup tables (unknown label → error), splits `company_ids` on commas.
+  lookup tables (unknown label → error); `company_ids` passes through as-is
+  (both sides are `[]string`).
 - `linkedinHTTPToMCPResponse(resp *linkedin.JobsResponse) *linkedinSearchOutput`
   — synthesizes `URL` per job via `linkedinJobURL(id)`.
 - `linkedinHTTPToMCPDetail(detail *linkedin.JobDetailResponse) *linkedinDetailOutput`
@@ -162,9 +182,10 @@ tsmc and google (also hand-written clients) already get.
 ## Out of scope
 
 - No client-side self-throttling/pacing added to `linkedin.Client` itself —
-  rate-limit avoidance is communicated to the host via tool description text
-  only, consistent with how the other providers surface upstream errors
-  reactively rather than pre-emptively.
-- No changes to `internal/provider/linkedin` or `cmd/linkedin` — this design
-  only adds the MCP adapter layer on top of the existing, already-tested
-  provider package.
+  rate-limit avoidance is communicated to the host via tool descriptions and
+  the 429/999 error strings, consistent with how the other providers surface
+  upstream errors reactively rather than pre-emptively.
+- Provider changes are limited to what the MCP wiring surfaced: dropping the
+  unverified `Distance` field (and `--distance`/`--easy-apply` CLI flags)
+  and making the 429/999 error strings self-explanatory for an LLM caller.
+  The scraping/parsing logic itself is untouched.
