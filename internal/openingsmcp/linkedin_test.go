@@ -71,7 +71,7 @@ func TestLinkedinHTTPToMCPResponse(t *testing.T) {
 
 	want := &linkedinSearchOutput{
 		Data: []linkedinJobSummary{
-			{ID: "1", Title: "t1", Company: "c1", CompanyURL: "cu1", Location: "l1", PostedDate: "d1", LooksRemote: true, URL: "https://www.linkedin.com/jobs/view/1"},
+			{ID: "1", Title: "t1", Company: "c1", CompanyURL: "cu1", Location: "l1", PostedDate: "d1", Remote: true, URL: "https://www.linkedin.com/jobs/view/1"},
 			{ID: "2", Title: "t2", URL: "https://www.linkedin.com/jobs/view/2"},
 		},
 	}
@@ -110,7 +110,7 @@ func TestLinkedinHTTPToMCPDetail(t *testing.T) {
 		Industries:     "ind",
 		Description:    "desc",
 		ApplyURL:       "apply-url",
-		LooksRemote:    true,
+		Remote:         true,
 	}
 	assert.Equal(t, want, got)
 }

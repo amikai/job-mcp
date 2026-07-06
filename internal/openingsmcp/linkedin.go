@@ -112,14 +112,14 @@ type linkedinSearchOutput struct {
 }
 
 type linkedinJobSummary struct {
-	ID          string `json:"id" jsonschema:"Numeric LinkedIn job ID; pass to linkedin_get_job_detail's job_id param."`
-	Title       string `json:"title"`
-	Company     string `json:"company,omitempty"`
-	CompanyURL  string `json:"company_url,omitempty"`
-	Location    string `json:"location,omitempty"`
-	PostedDate  string `json:"posted_date,omitempty"`
-	LooksRemote bool   `json:"looks_remote,omitempty" jsonschema:"Keyword heuristic (title/location substring match for 'remote'/'work from home'/'wfh'), not a field LinkedIn provides. False does not mean confirmed on-site."`
-	URL         string `json:"url,omitempty" jsonschema:"Public job posting URL."`
+	ID         string `json:"id" jsonschema:"Numeric LinkedIn job ID; pass to linkedin_get_job_detail's job_id param."`
+	Title      string `json:"title"`
+	Company    string `json:"company,omitempty"`
+	CompanyURL string `json:"company_url,omitempty"`
+	Location   string `json:"location,omitempty"`
+	PostedDate string `json:"posted_date,omitempty"`
+	Remote     bool   `json:"remote,omitempty" jsonschema:"Keyword heuristic (title/location substring match for 'remote'/'work from home'/'wfh'), not a field LinkedIn provides. False does not mean confirmed on-site."`
+	URL        string `json:"url,omitempty" jsonschema:"Public job posting URL."`
 }
 
 func linkedinJobURL(id string) string {
@@ -133,14 +133,14 @@ func linkedinHTTPToMCPResponse(resp *linkedin.JobsResponse) *linkedinSearchOutpu
 	out := &linkedinSearchOutput{Data: make([]linkedinJobSummary, 0, len(resp.Jobs))}
 	for _, j := range resp.Jobs {
 		out.Data = append(out.Data, linkedinJobSummary{
-			ID:          j.ID,
-			Title:       j.Title,
-			Company:     j.Company,
-			CompanyURL:  j.CompanyURL,
-			Location:    j.Location,
-			PostedDate:  j.PostedDate,
-			LooksRemote: j.Remote,
-			URL:         linkedinJobURL(j.ID),
+			ID:         j.ID,
+			Title:      j.Title,
+			Company:    j.Company,
+			CompanyURL: j.CompanyURL,
+			Location:   j.Location,
+			PostedDate: j.PostedDate,
+			Remote:     j.Remote,
+			URL:        linkedinJobURL(j.ID),
 		})
 	}
 	return out
@@ -155,14 +155,14 @@ type linkedinDetailOutput struct {
 	Title          string `json:"title"`
 	Company        string `json:"company,omitempty"`
 	Location       string `json:"location,omitempty"`
-	Posted         string `json:"posted,omitempty"`
-	SeniorityLevel string `json:"seniority_level,omitempty"`
-	EmploymentType string `json:"employment_type,omitempty"`
-	JobFunction    string `json:"job_function,omitempty"`
-	Industries     string `json:"industries,omitempty"`
+	Posted         string `json:"posted,omitempty"`          // relative time, e.g. "1 month ago"; LinkedIn doesn't expose an exact date
+	SeniorityLevel string `json:"seniority_level,omitempty"` // LinkedIn's own "Seniority level" criterion, e.g. Entry level, Mid-Senior level, Director
+	EmploymentType string `json:"employment_type,omitempty"` // LinkedIn's own "Employment type" criterion; distinct from the job_type search filter
+	JobFunction    string `json:"job_function,omitempty"`    // LinkedIn's own "Job function" criterion, e.g. Engineering, Sales, Marketing
+	Industries     string `json:"industries,omitempty"`      // LinkedIn's own "Industries" criterion, e.g. IT Services and IT Consulting
 	Description    string `json:"description,omitempty" jsonschema:"Full job description as plain text."`
-	ApplyURL       string `json:"apply_url,omitempty" jsonschema:"External ATS apply URL; absent for LinkedIn Easy Apply postings."`
-	LooksRemote    bool   `json:"looks_remote,omitempty" jsonschema:"Keyword heuristic over title/location only (not the full description), not a field LinkedIn provides. False does not mean confirmed on-site."`
+	ApplyURL       string `json:"apply_url,omitempty" jsonschema:"External ATS apply URL."`
+	Remote         bool   `json:"remote,omitempty" jsonschema:"Keyword heuristic over title/location only (not the full description), not a field LinkedIn provides. False does not mean confirmed on-site."`
 }
 
 func linkedinHTTPToMCPDetail(detail *linkedin.JobDetailResponse) *linkedinDetailOutput {
@@ -178,7 +178,7 @@ func linkedinHTTPToMCPDetail(detail *linkedin.JobDetailResponse) *linkedinDetail
 		Industries:     detail.Industries,
 		Description:    detail.Description,
 		ApplyURL:       detail.ApplyURL,
-		LooksRemote:    detail.Remote,
+		Remote:         detail.Remote,
 	}
 }
 
