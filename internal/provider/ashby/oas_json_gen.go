@@ -702,7 +702,7 @@ func (s *JobPosting) encodeFields(e *jx.Encoder) {
 	}
 	{
 		e.FieldStart("isRemote")
-		e.Bool(s.IsRemote)
+		s.IsRemote.Encode(e)
 	}
 	{
 		e.FieldStart("workplaceType")
@@ -884,9 +884,7 @@ func (s *JobPosting) Decode(d *jx.Decoder) error {
 		case "isRemote":
 			requiredBitSet[1] |= 1 << 1
 			if err := func() error {
-				v, err := d.Bool()
-				s.IsRemote = bool(v)
-				if err != nil {
+				if err := s.IsRemote.Decode(d); err != nil {
 					return err
 				}
 				return nil
@@ -1123,20 +1121,77 @@ func (s *JobPostingWorkplaceType) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
-// Encode encodes Address as json.
-func (o OptAddress) Encode(e *jx.Encoder) {
-	if !o.Set {
+// Encode encodes bool as json.
+func (o NilBool) Encode(e *jx.Encoder) {
+	if o.Null {
+		e.Null()
 		return
 	}
-	o.Value.Encode(e)
+	e.Bool(bool(o.Value))
 }
 
-// Decode decodes Address from json.
-func (o *OptAddress) Decode(d *jx.Decoder) error {
+// Decode decodes bool from json.
+func (o *NilBool) Decode(d *jx.Decoder) error {
 	if o == nil {
-		return errors.New("invalid: unable to decode OptAddress to nil")
+		return errors.New("invalid: unable to decode NilBool to nil")
 	}
-	o.Set = true
+	if d.Next() == jx.Null {
+		if err := d.Null(); err != nil {
+			return err
+		}
+
+		var v bool
+		o.Value = v
+		o.Null = true
+		return nil
+	}
+	o.Null = false
+	v, err := d.Bool()
+	if err != nil {
+		return err
+	}
+	o.Value = bool(v)
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s NilBool) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *NilBool) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes JobPostingWorkplaceType as json.
+func (o NilJobPostingWorkplaceType) Encode(e *jx.Encoder) {
+	if o.Null {
+		e.Null()
+		return
+	}
+	e.Str(string(o.Value))
+}
+
+// Decode decodes JobPostingWorkplaceType from json.
+func (o *NilJobPostingWorkplaceType) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode NilJobPostingWorkplaceType to nil")
+	}
+	if d.Next() == jx.Null {
+		if err := d.Null(); err != nil {
+			return err
+		}
+
+		var v JobPostingWorkplaceType
+		o.Value = v
+		o.Null = true
+		return nil
+	}
+	o.Null = false
 	if err := o.Value.Decode(d); err != nil {
 		return err
 	}
@@ -1144,14 +1199,14 @@ func (o *OptAddress) Decode(d *jx.Decoder) error {
 }
 
 // MarshalJSON implements stdjson.Marshaler.
-func (s OptAddress) MarshalJSON() ([]byte, error) {
+func (s NilJobPostingWorkplaceType) MarshalJSON() ([]byte, error) {
 	e := jx.Encoder{}
 	s.Encode(&e)
 	return e.Bytes(), nil
 }
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *OptAddress) UnmarshalJSON(data []byte) error {
+func (s *NilJobPostingWorkplaceType) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -1220,6 +1275,55 @@ func (s OptCompensation) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *OptCompensation) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes Address as json.
+func (o OptNilAddress) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	if o.Null {
+		e.Null()
+		return
+	}
+	o.Value.Encode(e)
+}
+
+// Decode decodes Address from json.
+func (o *OptNilAddress) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptNilAddress to nil")
+	}
+	if d.Next() == jx.Null {
+		if err := d.Null(); err != nil {
+			return err
+		}
+
+		var v Address
+		o.Value = v
+		o.Set = true
+		o.Null = true
+		return nil
+	}
+	o.Set = true
+	o.Null = false
+	if err := o.Value.Decode(d); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptNilAddress) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptNilAddress) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }

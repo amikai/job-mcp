@@ -304,11 +304,15 @@ type JobPosting struct {
 	PublishedAt time.Time `json:"publishedAt"`
 	// Whether the job appears on the public job board listing.
 	IsListed bool `json:"isListed"`
-	// Whether the job is remote.
-	IsRemote bool `json:"isRemote"`
-	// Workplace arrangement. The docs enumerate this set exhaustively.
-	WorkplaceType JobPostingWorkplaceType `json:"workplaceType"`
-	Address       OptAddress              `json:"address"`
+	// Whether the job is remote. The official docs say always present; observed as null on many boards
+	// (openai, clickhouse, cohere, ...).
+	IsRemote NilBool `json:"isRemote"`
+	// Workplace arrangement. The docs enumerate this set exhaustively but claim it's always present;
+	// observed as null on many boards, always alongside a null isRemote.
+	WorkplaceType NilJobPostingWorkplaceType `json:"workplaceType"`
+	// Primary location's postal address. Observed as null (rather than omitted) on some boards
+	// (clickhouse, eightsleep, zapier, ...).
+	Address OptNilAddress `json:"address"`
 	// URL of the Ashby-hosted job posting page.
 	JobUrl string `json:"jobUrl"`
 	// URL of the Ashby-hosted application page.
@@ -370,17 +374,17 @@ func (s *JobPosting) GetIsListed() bool {
 }
 
 // GetIsRemote returns the value of IsRemote.
-func (s *JobPosting) GetIsRemote() bool {
+func (s *JobPosting) GetIsRemote() NilBool {
 	return s.IsRemote
 }
 
 // GetWorkplaceType returns the value of WorkplaceType.
-func (s *JobPosting) GetWorkplaceType() JobPostingWorkplaceType {
+func (s *JobPosting) GetWorkplaceType() NilJobPostingWorkplaceType {
 	return s.WorkplaceType
 }
 
 // GetAddress returns the value of Address.
-func (s *JobPosting) GetAddress() OptAddress {
+func (s *JobPosting) GetAddress() OptNilAddress {
 	return s.Address
 }
 
@@ -460,17 +464,17 @@ func (s *JobPosting) SetIsListed(val bool) {
 }
 
 // SetIsRemote sets the value of IsRemote.
-func (s *JobPosting) SetIsRemote(val bool) {
+func (s *JobPosting) SetIsRemote(val NilBool) {
 	s.IsRemote = val
 }
 
 // SetWorkplaceType sets the value of WorkplaceType.
-func (s *JobPosting) SetWorkplaceType(val JobPostingWorkplaceType) {
+func (s *JobPosting) SetWorkplaceType(val NilJobPostingWorkplaceType) {
 	s.WorkplaceType = val
 }
 
 // SetAddress sets the value of Address.
-func (s *JobPosting) SetAddress(val OptAddress) {
+func (s *JobPosting) SetAddress(val OptNilAddress) {
 	s.Address = val
 }
 
@@ -567,7 +571,8 @@ func (s *JobPostingEmploymentType) UnmarshalText(data []byte) error {
 	}
 }
 
-// Workplace arrangement. The docs enumerate this set exhaustively.
+// Workplace arrangement. The docs enumerate this set exhaustively but claim it's always present;
+// observed as null on many boards, always alongside a null isRemote.
 type JobPostingWorkplaceType string
 
 const (
@@ -616,46 +621,90 @@ func (s *JobPostingWorkplaceType) UnmarshalText(data []byte) error {
 	}
 }
 
-// NewOptAddress returns new OptAddress with value set to v.
-func NewOptAddress(v Address) OptAddress {
-	return OptAddress{
+// NewNilBool returns new NilBool with value set to v.
+func NewNilBool(v bool) NilBool {
+	return NilBool{
 		Value: v,
-		Set:   true,
 	}
 }
 
-// OptAddress is optional Address.
-type OptAddress struct {
-	Value Address
-	Set   bool
-}
-
-// IsSet returns true if OptAddress was set.
-func (o OptAddress) IsSet() bool { return o.Set }
-
-// Reset unsets value.
-func (o *OptAddress) Reset() {
-	var v Address
-	o.Value = v
-	o.Set = false
+// NilBool is nullable bool.
+type NilBool struct {
+	Value bool
+	Null  bool
 }
 
 // SetTo sets value to v.
-func (o *OptAddress) SetTo(v Address) {
-	o.Set = true
+func (o *NilBool) SetTo(v bool) {
+	o.Null = false
+	o.Value = v
+}
+
+// IsNull returns true if value is Null.
+func (o NilBool) IsNull() bool { return o.Null }
+
+// SetToNull sets value to null.
+func (o *NilBool) SetToNull() {
+	o.Null = true
+	var v bool
 	o.Value = v
 }
 
 // Get returns value and boolean that denotes whether value was set.
-func (o OptAddress) Get() (v Address, ok bool) {
-	if !o.Set {
+func (o NilBool) Get() (v bool, ok bool) {
+	if o.Null {
 		return v, false
 	}
 	return o.Value, true
 }
 
 // Or returns value if set, or given parameter if does not.
-func (o OptAddress) Or(d Address) Address {
+func (o NilBool) Or(d bool) bool {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewNilJobPostingWorkplaceType returns new NilJobPostingWorkplaceType with value set to v.
+func NewNilJobPostingWorkplaceType(v JobPostingWorkplaceType) NilJobPostingWorkplaceType {
+	return NilJobPostingWorkplaceType{
+		Value: v,
+	}
+}
+
+// NilJobPostingWorkplaceType is nullable JobPostingWorkplaceType.
+type NilJobPostingWorkplaceType struct {
+	Value JobPostingWorkplaceType
+	Null  bool
+}
+
+// SetTo sets value to v.
+func (o *NilJobPostingWorkplaceType) SetTo(v JobPostingWorkplaceType) {
+	o.Null = false
+	o.Value = v
+}
+
+// IsNull returns true if value is Null.
+func (o NilJobPostingWorkplaceType) IsNull() bool { return o.Null }
+
+// SetToNull sets value to null.
+func (o *NilJobPostingWorkplaceType) SetToNull() {
+	o.Null = true
+	var v JobPostingWorkplaceType
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o NilJobPostingWorkplaceType) Get() (v JobPostingWorkplaceType, ok bool) {
+	if o.Null {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o NilJobPostingWorkplaceType) Or(d JobPostingWorkplaceType) JobPostingWorkplaceType {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -748,6 +797,74 @@ func (o OptCompensation) Get() (v Compensation, ok bool) {
 
 // Or returns value if set, or given parameter if does not.
 func (o OptCompensation) Or(d Compensation) Compensation {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptNilAddress returns new OptNilAddress with value set to v.
+func NewOptNilAddress(v Address) OptNilAddress {
+	return OptNilAddress{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptNilAddress is optional nullable Address.
+type OptNilAddress struct {
+	Value Address
+	Set   bool
+	Null  bool
+}
+
+// IsSet returns true if OptNilAddress was set.
+func (o OptNilAddress) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptNilAddress) Reset() {
+	var v Address
+	o.Value = v
+	o.Set = false
+	o.Null = false
+}
+
+// SetTo sets value to v.
+func (o *OptNilAddress) SetTo(v Address) {
+	o.Set = true
+	o.Null = false
+	o.Value = v
+}
+
+// IsNull returns true if value is Null.
+func (o OptNilAddress) IsNull() bool { return o.Null }
+
+// SetToNull sets value to null.
+func (o *OptNilAddress) SetToNull() {
+	o.Set = true
+	o.Null = true
+	var v Address
+	o.Value = v
+}
+
+// IsEmpty returns true if the field was omitted from the payload (not Set and not Null).
+func (o OptNilAddress) IsEmpty() bool {
+	return !o.Set && !o.Null
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptNilAddress) Get() (v Address, ok bool) {
+	if o.Null {
+		return v, false
+	}
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptNilAddress) Or(d Address) Address {
 	if v, ok := o.Get(); ok {
 		return v
 	}
@@ -1052,8 +1169,9 @@ func (s *PostalAddress) SetStreetAddress(val OptString) {
 // Ref: #/components/schemas/SecondaryLocation
 type SecondaryLocation struct {
 	// Location display name.
-	Location OptString  `json:"location"`
-	Address  OptAddress `json:"address"`
+	Location OptString `json:"location"`
+	// Secondary location's postal address. Observed as null on some boards (alchemy, cohere).
+	Address OptNilAddress `json:"address"`
 }
 
 // GetLocation returns the value of Location.
@@ -1062,7 +1180,7 @@ func (s *SecondaryLocation) GetLocation() OptString {
 }
 
 // GetAddress returns the value of Address.
-func (s *SecondaryLocation) GetAddress() OptAddress {
+func (s *SecondaryLocation) GetAddress() OptNilAddress {
 	return s.Address
 }
 
@@ -1072,6 +1190,6 @@ func (s *SecondaryLocation) SetLocation(val OptString) {
 }
 
 // SetAddress sets the value of Address.
-func (s *SecondaryLocation) SetAddress(val OptAddress) {
+func (s *SecondaryLocation) SetAddress(val OptNilAddress) {
 	s.Address = val
 }

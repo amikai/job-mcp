@@ -53,9 +53,9 @@ func TestGetJobBoard(t *testing.T) {
 	assert.Equal(t, NewOptString("Engineering"), job.Department)
 	assert.Equal(t, NewOptString("Engineering"), job.Team)
 	assert.Equal(t, JobPostingEmploymentTypeFullTime, job.EmploymentType)
-	assert.Equal(t, JobPostingWorkplaceTypeOnSite, job.WorkplaceType)
+	assert.Equal(t, NilJobPostingWorkplaceType{Value: JobPostingWorkplaceTypeOnSite}, job.WorkplaceType)
 	assert.Equal(t, NewOptString("San Francisco"), job.Location)
-	assert.False(t, job.IsRemote)
+	assert.Equal(t, NilBool{Value: false}, job.IsRemote)
 	assert.True(t, job.IsListed)
 	assert.True(t, job.PublishedAt.Equal(time.Date(2025, 8, 25, 20, 13, 34, 942_000_000, time.UTC)))
 	assert.Equal(t, "https://jobs.ashbyhq.com/browserbase/7724fbe3-6a27-4418-9705-2dcc40751a16", job.JobUrl)
@@ -129,6 +129,32 @@ func TestGetJobBoardWithCompensation(t *testing.T) {
 	assert.Equal(t, OptNilString{Set: true, Null: true}, equity.CurrencyCode)
 	assert.Equal(t, OptNilFloat64{Set: true, Null: true}, equity.MinValue)
 	assert.Equal(t, OptNilFloat64{Set: true, Null: true}, equity.MaxValue)
+}
+
+// TestGetJobBoardNullFields guards the fields the official docs claim are
+// always present but many real boards null out: a job with isRemote: null
+// and workplaceType: null must decode instead of failing the whole board
+// (the bug that crashed `ashby --board openai search`).
+func TestGetJobBoardNullFields(t *testing.T) {
+	srv := NewMockServer()
+	defer srv.Close()
+
+	client, err := NewClient(srv.URL)
+	require.NoError(t, err)
+
+	res, err := client.GetJobBoard(context.Background(), GetJobBoardParams{JobBoardName: MockNullsBoardName})
+	require.NoError(t, err)
+
+	board, ok := res.(*JobBoardResponse)
+	require.True(t, ok, "expected *JobBoardResponse, got %T", res)
+	require.Len(t, board.Jobs, 4)
+
+	// Jobs 0-1 carry real values; jobs 2-3 null both fields.
+	assert.Equal(t, NilBool{Value: true}, board.Jobs[0].IsRemote)
+	assert.Equal(t, NilJobPostingWorkplaceType{Value: JobPostingWorkplaceTypeRemote}, board.Jobs[0].WorkplaceType)
+	assert.Equal(t, NilBool{Null: true}, board.Jobs[2].IsRemote)
+	assert.Equal(t, NilJobPostingWorkplaceType{Null: true}, board.Jobs[2].WorkplaceType)
+	assert.Equal(t, NilBool{Null: true}, board.Jobs[3].IsRemote)
 }
 
 func TestGetJobBoardNotFound(t *testing.T) {

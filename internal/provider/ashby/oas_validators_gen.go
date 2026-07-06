@@ -214,8 +214,15 @@ func (s *JobPosting) Validate() error {
 		})
 	}
 	if err := func() error {
-		if err := s.WorkplaceType.Validate(); err != nil {
-			return err
+		if value, ok := s.WorkplaceType.Get(); ok {
+			if err := func() error {
+				if err := value.Validate(); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
 		}
 		return nil
 	}(); err != nil {
