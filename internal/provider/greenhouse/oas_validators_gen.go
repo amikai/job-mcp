@@ -199,6 +199,24 @@ func (s *JobDetail) Validate() error {
 		})
 	}
 	if err := func() error {
+		if value, ok := s.Metadata.Get(); ok {
+			if err := func() error {
+				if value == nil {
+					return errors.New("nil is invalid value")
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		failures = append(failures, validate.FieldError{
+			Name:  "metadata",
+			Error: err,
+		})
+	}
+	if err := func() error {
 		if value, ok := s.Compliance.Get(); ok {
 			if err := func() error {
 				if value == nil {
