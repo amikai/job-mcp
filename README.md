@@ -10,6 +10,7 @@
 
 **openings-mcp** searches job listings across job boards and company career sites —
 currently **[104](https://www.104.com.tw)**, **[Cake](https://www.cake.me)**,
+**[LinkedIn](https://www.linkedin.com)** (public search),
 **[Google Careers](https://www.google.com/about/careers/applications/jobs)**,
 **[NVIDIA careers](https://nvidia.wd5.myworkdayjobs.com/NVIDIAExternalCareerSite)**, and
 **[TSMC careers](https://careers.tsmc.com)** —
