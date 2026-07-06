@@ -8,6 +8,7 @@ import (
 	"log"
 	"log/slog"
 	"net/http"
+	"net/http/cookiejar"
 	"os"
 	"time"
 
@@ -19,6 +20,7 @@ import (
 	"github.com/amikai/openings-mcp/internal/provider/cake"
 	"github.com/amikai/openings-mcp/internal/provider/google"
 	"github.com/amikai/openings-mcp/internal/provider/job104"
+	"github.com/amikai/openings-mcp/internal/provider/linkedin"
 	"github.com/amikai/openings-mcp/internal/provider/nvidia"
 	"github.com/amikai/openings-mcp/internal/provider/tsmc"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -33,11 +35,11 @@ var (
 // serverInstructions carries the cross-tool guidance for host LLMs: provider
 // routing and the shared search→detail flow. Per-tool behavior stays in each
 // tool's description.
-const serverInstructions = `openings-mcp exposes job-search tools for five job boards: 104 and Cake.me (both Taiwan-centric), plus the official careers sites of Google, NVIDIA, and TSMC.
+const serverInstructions = `openings-mcp exposes job-search tools for six job boards: 104 and Cake.me (both Taiwan-centric) and LinkedIn (global), plus the official careers sites of Google, NVIDIA, and TSMC.
 
 Tool selection:
 - When the user names a site or company, use that provider's tools.
-- When the user has no target in mind, offer them the provider choices; if they don't pick one, start with the job boards (104 and Cake.me) rather than a single company's careers site.
+- When the user has no target in mind, offer them the provider choices; if they don't pick one, start with the job boards (104, Cake.me, and LinkedIn) rather than a single company's careers site.
 
 Query construction:
 - Listen carefully to the user's stated criteria and map each one onto a search parameter when a matching parameter exists; enforce criteria the parameters cannot express by filtering the results yourself.
@@ -121,7 +123,10 @@ func runWithTransport(transport mcp.Transport, logger *slog.Logger) error {
 
 	cGoogle := google.NewClient("https://www.google.com/about/careers/applications", hc)
 
-	server := newServer(c104, cCake, cNvidia, cTsmc, cGoogle, logger)
+	jarLinkedin, _ := cookiejar.New(nil)
+	cLinkedin := linkedin.NewClient("https://www.linkedin.com", &http.Client{Timeout: 30 * time.Second, Jar: jarLinkedin})
+
+	server := newServer(c104, cCake, cNvidia, cTsmc, cGoogle, cLinkedin, logger)
 
 	if err := server.Run(context.Background(), transport); err != nil && !errors.Is(err, io.EOF) {
 		return err
@@ -129,7 +134,7 @@ func runWithTransport(transport mcp.Transport, logger *slog.Logger) error {
 	return nil
 }
 
-func newServer(c104 *job104.Client, cCake *cake.Client, cNvidia *nvidia.Client, cTsmc *tsmc.Client, cGoogle *google.Client, logger *slog.Logger) *mcp.Server {
+func newServer(c104 *job104.Client, cCake *cake.Client, cNvidia *nvidia.Client, cTsmc *tsmc.Client, cGoogle *google.Client, cLinkedin *linkedin.Client, logger *slog.Logger) *mcp.Server {
 	server := mcp.NewServer(&mcp.Implementation{Name: "openings-mcp", Version: version}, &mcp.ServerOptions{Instructions: serverInstructions, Logger: logger})
 	server.AddReceivingMiddleware(logging.ErrorLoggingMiddleware(logger))
 	openingsmcp.RegisterJob104(server, c104)
@@ -137,5 +142,6 @@ func newServer(c104 *job104.Client, cCake *cake.Client, cNvidia *nvidia.Client, 
 	openingsmcp.RegisterNvidia(server, cNvidia)
 	openingsmcp.RegisterTsmc(server, cTsmc)
 	openingsmcp.RegisterGoogle(server, cGoogle)
+	openingsmcp.RegisterLinkedin(server, cLinkedin)
 	return server
 }
