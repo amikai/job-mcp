@@ -139,6 +139,7 @@ components:
           format: date-time
         requisition_id:
           type: string
+          nullable: true
         application_deadline:
           type: string
           format: date-time
@@ -348,6 +349,7 @@ components:
             - education_optional
         requisition_id:
           type: string
+          nullable: true
         location:
           $ref: "#/components/schemas/Location"
         content:
@@ -381,6 +383,7 @@ components:
             $ref: "#/components/schemas/Question"
         metadata:
           type: array
+          nullable: true
           items:
             type: object
             properties:

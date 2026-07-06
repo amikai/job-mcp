@@ -907,13 +907,9 @@ func (s *JobDetail) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
-		if s.Metadata != nil {
+		if s.Metadata.Set {
 			e.FieldStart("metadata")
-			e.ArrStart()
-			for _, elem := range s.Metadata {
-				elem.Encode(e)
-			}
-			e.ArrEnd()
+			s.Metadata.Encode(e)
 		}
 	}
 	{
@@ -1202,15 +1198,8 @@ func (s *JobDetail) Decode(d *jx.Decoder) error {
 			}
 		case "metadata":
 			if err := func() error {
-				s.Metadata = make([]JobDetailMetadataItem, 0)
-				if err := d.Arr(func(d *jx.Decoder) error {
-					var elem JobDetailMetadataItem
-					if err := elem.Decode(d); err != nil {
-						return err
-					}
-					s.Metadata = append(s.Metadata, elem)
-					return nil
-				}); err != nil {
+				s.Metadata.Reset()
+				if err := s.Metadata.Decode(d); err != nil {
 					return err
 				}
 				return nil
@@ -2825,6 +2814,67 @@ func (s OptNilInt) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *OptNilInt) UnmarshalJSON(data []byte) error {
+	d := jx.DecodeBytes(data)
+	return s.Decode(d)
+}
+
+// Encode encodes []JobDetailMetadataItem as json.
+func (o OptNilJobDetailMetadataItemArray) Encode(e *jx.Encoder) {
+	if !o.Set {
+		return
+	}
+	if o.Null {
+		e.Null()
+		return
+	}
+	e.ArrStart()
+	for _, elem := range o.Value {
+		elem.Encode(e)
+	}
+	e.ArrEnd()
+}
+
+// Decode decodes []JobDetailMetadataItem from json.
+func (o *OptNilJobDetailMetadataItemArray) Decode(d *jx.Decoder) error {
+	if o == nil {
+		return errors.New("invalid: unable to decode OptNilJobDetailMetadataItemArray to nil")
+	}
+	if d.Next() == jx.Null {
+		if err := d.Null(); err != nil {
+			return err
+		}
+
+		var v []JobDetailMetadataItem
+		o.Value = v
+		o.Set = true
+		o.Null = true
+		return nil
+	}
+	o.Set = true
+	o.Null = false
+	o.Value = make([]JobDetailMetadataItem, 0)
+	if err := d.Arr(func(d *jx.Decoder) error {
+		var elem JobDetailMetadataItem
+		if err := elem.Decode(d); err != nil {
+			return err
+		}
+		o.Value = append(o.Value, elem)
+		return nil
+	}); err != nil {
+		return err
+	}
+	return nil
+}
+
+// MarshalJSON implements stdjson.Marshaler.
+func (s OptNilJobDetailMetadataItemArray) MarshalJSON() ([]byte, error) {
+	e := jx.Encoder{}
+	s.Encode(&e)
+	return e.Bytes(), nil
+}
+
+// UnmarshalJSON implements stdjson.Unmarshaler.
+func (s *OptNilJobDetailMetadataItemArray) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }

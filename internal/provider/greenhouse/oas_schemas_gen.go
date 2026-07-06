@@ -356,7 +356,7 @@ type JobDetail struct {
 	ApplicationDeadline OptNilDateTime `json:"application_deadline"`
 	// Only present on some boards.
 	Education           OptJobDetailEducation `json:"education"`
-	RequisitionID       OptString             `json:"requisition_id"`
+	RequisitionID       OptNilString          `json:"requisition_id"`
 	Location            OptLocation           `json:"location"`
 	Content             OptString             `json:"content"`
 	AbsoluteURL         OptURI                `json:"absolute_url"`
@@ -367,11 +367,11 @@ type JobDetail struct {
 	AiOptOutRequestURL  OptNilURI             `json:"ai_opt_out_request_url"`
 	LocationQuestions   []Question            `json:"location_questions"`
 	// Present only when `questions=true` is passed.
-	Questions      []Question              `json:"questions"`
-	Metadata       []JobDetailMetadataItem `json:"metadata"`
-	DataCompliance []DataCompliance        `json:"data_compliance"`
-	Departments    []Department            `json:"departments"`
-	Offices        []Office                `json:"offices"`
+	Questions      []Question                       `json:"questions"`
+	Metadata       OptNilJobDetailMetadataItemArray `json:"metadata"`
+	DataCompliance []DataCompliance                 `json:"data_compliance"`
+	Departments    []Department                     `json:"departments"`
+	Offices        []Office                         `json:"offices"`
 	// EEOC disclosure blocks. Only observed non-null when `questions=true` is passed (distinct from
 	// `data_compliance`, which is always present); some boards return `null` even with `questions=true`.
 	Compliance OptNilComplianceArray `json:"compliance"`
@@ -416,7 +416,7 @@ func (s *JobDetail) GetEducation() OptJobDetailEducation {
 }
 
 // GetRequisitionID returns the value of RequisitionID.
-func (s *JobDetail) GetRequisitionID() OptString {
+func (s *JobDetail) GetRequisitionID() OptNilString {
 	return s.RequisitionID
 }
 
@@ -471,7 +471,7 @@ func (s *JobDetail) GetQuestions() []Question {
 }
 
 // GetMetadata returns the value of Metadata.
-func (s *JobDetail) GetMetadata() []JobDetailMetadataItem {
+func (s *JobDetail) GetMetadata() OptNilJobDetailMetadataItemArray {
 	return s.Metadata
 }
 
@@ -541,7 +541,7 @@ func (s *JobDetail) SetEducation(val OptJobDetailEducation) {
 }
 
 // SetRequisitionID sets the value of RequisitionID.
-func (s *JobDetail) SetRequisitionID(val OptString) {
+func (s *JobDetail) SetRequisitionID(val OptNilString) {
 	s.RequisitionID = val
 }
 
@@ -596,7 +596,7 @@ func (s *JobDetail) SetQuestions(val []Question) {
 }
 
 // SetMetadata sets the value of Metadata.
-func (s *JobDetail) SetMetadata(val []JobDetailMetadataItem) {
+func (s *JobDetail) SetMetadata(val OptNilJobDetailMetadataItemArray) {
 	s.Metadata = val
 }
 
@@ -772,7 +772,7 @@ type JobSummary struct {
 	CompanyName         OptString      `json:"company_name"`
 	FirstPublished      OptDateTime    `json:"first_published"`
 	UpdatedAt           OptDateTime    `json:"updated_at"`
-	RequisitionID       OptString      `json:"requisition_id"`
+	RequisitionID       OptNilString   `json:"requisition_id"`
 	ApplicationDeadline OptNilDateTime `json:"application_deadline"`
 	// Only present on some boards.
 	Education      OptJobSummaryEducation            `json:"education"`
@@ -818,7 +818,7 @@ func (s *JobSummary) GetUpdatedAt() OptDateTime {
 }
 
 // GetRequisitionID returns the value of RequisitionID.
-func (s *JobSummary) GetRequisitionID() OptString {
+func (s *JobSummary) GetRequisitionID() OptNilString {
 	return s.RequisitionID
 }
 
@@ -903,7 +903,7 @@ func (s *JobSummary) SetUpdatedAt(val OptDateTime) {
 }
 
 // SetRequisitionID sets the value of RequisitionID.
-func (s *JobSummary) SetRequisitionID(val OptString) {
+func (s *JobSummary) SetRequisitionID(val OptNilString) {
 	s.RequisitionID = val
 }
 
@@ -1782,6 +1782,74 @@ func (o OptNilInt) Get() (v int, ok bool) {
 
 // Or returns value if set, or given parameter if does not.
 func (o OptNilInt) Or(d int) int {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptNilJobDetailMetadataItemArray returns new OptNilJobDetailMetadataItemArray with value set to v.
+func NewOptNilJobDetailMetadataItemArray(v []JobDetailMetadataItem) OptNilJobDetailMetadataItemArray {
+	return OptNilJobDetailMetadataItemArray{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptNilJobDetailMetadataItemArray is optional nullable []JobDetailMetadataItem.
+type OptNilJobDetailMetadataItemArray struct {
+	Value []JobDetailMetadataItem
+	Set   bool
+	Null  bool
+}
+
+// IsSet returns true if OptNilJobDetailMetadataItemArray was set.
+func (o OptNilJobDetailMetadataItemArray) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptNilJobDetailMetadataItemArray) Reset() {
+	var v []JobDetailMetadataItem
+	o.Value = v
+	o.Set = false
+	o.Null = false
+}
+
+// SetTo sets value to v.
+func (o *OptNilJobDetailMetadataItemArray) SetTo(v []JobDetailMetadataItem) {
+	o.Set = true
+	o.Null = false
+	o.Value = v
+}
+
+// IsNull returns true if value is Null.
+func (o OptNilJobDetailMetadataItemArray) IsNull() bool { return o.Null }
+
+// SetToNull sets value to null.
+func (o *OptNilJobDetailMetadataItemArray) SetToNull() {
+	o.Set = true
+	o.Null = true
+	var v []JobDetailMetadataItem
+	o.Value = v
+}
+
+// IsEmpty returns true if the field was omitted from the payload (not Set and not Null).
+func (o OptNilJobDetailMetadataItemArray) IsEmpty() bool {
+	return !o.Set && !o.Null
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptNilJobDetailMetadataItemArray) Get() (v []JobDetailMetadataItem, ok bool) {
+	if o.Null {
+		return v, false
+	}
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptNilJobDetailMetadataItemArray) Or(d []JobDetailMetadataItem) []JobDetailMetadataItem {
 	if v, ok := o.Get(); ok {
 		return v
 	}
