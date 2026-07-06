@@ -12,10 +12,12 @@ var linkedinSearchInputRawSchema = []byte(`{
 	"type": "object",
 	"properties": {
 		"keyword": {
-			"type": "string"
+			"type": "string",
+			"description": "Free-text search query: role titles, skills, or technologies."
 		},
 		"location": {
-			"type": "string"
+			"type": "string",
+			"description": "Free-text location, e.g. 'Taipei, Taiwan'; omit to search worldwide."
 		},
 		"workplace_type": {
 			"type": "string",
@@ -29,7 +31,7 @@ var linkedinSearchInputRawSchema = []byte(`{
 		},
 		"company_ids": {
 			"type": "array",
-			"description": "LinkedIn numeric company IDs. IDs are opaque and must be resolved from a company's public page or a prior search response, not guessed.",
+			"description": "LinkedIn numeric company IDs, e.g. 1441. IDs are opaque and must come from a company's LinkedIn page, never guessed; search results do not include them.",
 			"items": {
 				"type": "string"
 			}
@@ -156,7 +158,7 @@ type linkedinDetailOutput struct {
 	Title          string `json:"title"`
 	Company        string `json:"company,omitempty"`
 	Location       string `json:"location,omitempty"`
-	Posted         string `json:"posted,omitempty"`          // relative time, e.g. "1 month ago"; LinkedIn doesn't expose an exact date
+	Posted         string `json:"posted,omitempty" jsonschema:"Relative time, e.g. '1 month ago'; LinkedIn doesn't expose an exact date."`
 	SeniorityLevel string `json:"seniority_level,omitempty"` // LinkedIn's own "Seniority level" criterion, e.g. Entry level, Mid-Senior level, Director
 	EmploymentType string `json:"employment_type,omitempty"` // LinkedIn's own "Employment type" criterion; distinct from the job_type search filter
 	JobFunction    string `json:"job_function,omitempty"`    // LinkedIn's own "Job function" criterion, e.g. Engineering, Sales, Marketing

@@ -215,7 +215,10 @@ func (c *Client) getHTML(ctx context.Context, rawURL, referer string) (*goquery.
 	defer resp.Body.Close()
 
 	if resp.StatusCode == 999 {
-		return nil, errors.New("HTTP 999: bot-suspected, LinkedIn redirected to its authwall (retry with a warmed session; see openapi.yaml)")
+		return nil, errors.New("HTTP 999: bot-suspected, LinkedIn redirected to its authwall; one retry may pass now that the session carries cookies — if 999 recurs, stop and back off")
+	}
+	if resp.StatusCode == http.StatusTooManyRequests {
+		return nil, errors.New("HTTP 429: rate limited, and LinkedIn provides no Retry-After; immediate retries keep failing — stop LinkedIn requests for now and back off on your own schedule")
 	}
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("HTTP %d", resp.StatusCode)
