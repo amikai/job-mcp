@@ -61,3 +61,58 @@ func TestLinkedinMCPToHTTPRequestInvalidLabels(t *testing.T) {
 		})
 	}
 }
+
+func TestLinkedinHTTPToMCPResponse(t *testing.T) {
+	in := linkedin.JobsResponse{
+		Jobs: []linkedin.Job{
+			{ID: "1", Title: "t1", Company: "c1", CompanyURL: "cu1", Location: "l1", PostedDate: "d1", Remote: true},
+			{ID: "2", Title: "t2"},
+		},
+	}
+	got := linkedinHTTPToMCPResponse(&in)
+
+	want := &linkedinSearchOutput{
+		Data: []linkedinJobSummary{
+			{ID: "1", Title: "t1", Company: "c1", CompanyURL: "cu1", Location: "l1", PostedDate: "d1", LooksRemote: true, URL: "https://www.linkedin.com/jobs/view/1"},
+			{ID: "2", Title: "t2", URL: "https://www.linkedin.com/jobs/view/2"},
+		},
+	}
+	assert.Equal(t, want, got)
+}
+
+func TestLinkedinHTTPToMCPDetail(t *testing.T) {
+	in := linkedin.JobDetailResponse{
+		ID:             "7",
+		Title:          "t",
+		Company:        "c",
+		Location:       "l",
+		Posted:         "p",
+		SeniorityLevel: "sl",
+		EmploymentType: "et",
+		JobFunction:    "jf",
+		Industries:     "ind",
+		Description:    "desc",
+		CompanyLogo:    "logo-url",
+		ApplyURL:       "apply-url",
+		Remote:         true,
+	}
+	got := linkedinHTTPToMCPDetail(&in)
+
+	// CompanyLogo has no corresponding output field: it's intentionally
+	// dropped, so it must not appear anywhere in want.
+	want := &linkedinDetailOutput{
+		ID:             "7",
+		Title:          "t",
+		Company:        "c",
+		Location:       "l",
+		Posted:         "p",
+		SeniorityLevel: "sl",
+		EmploymentType: "et",
+		JobFunction:    "jf",
+		Industries:     "ind",
+		Description:    "desc",
+		ApplyURL:       "apply-url",
+		LooksRemote:    true,
+	}
+	assert.Equal(t, want, got)
+}

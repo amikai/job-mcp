@@ -124,3 +124,78 @@ func linkedinMCPToHTTPRequest(in *linkedinSearchInput) (*linkedin.JobsRequest, e
 
 	return req, nil
 }
+
+type linkedinSearchOutput struct {
+	Data []linkedinJobSummary `json:"data"`
+}
+
+type linkedinJobSummary struct {
+	ID          string `json:"id" jsonschema:"Numeric LinkedIn job ID; pass to linkedin_get_job_detail's job_id param."`
+	Title       string `json:"title"`
+	Company     string `json:"company,omitempty"`
+	CompanyURL  string `json:"company_url,omitempty"`
+	Location    string `json:"location,omitempty"`
+	PostedDate  string `json:"posted_date,omitempty"`
+	LooksRemote bool   `json:"looks_remote,omitempty" jsonschema:"Keyword heuristic (title/location substring match for 'remote'/'work from home'/'wfh'), not a field LinkedIn provides. False does not mean confirmed on-site."`
+	URL         string `json:"url,omitempty" jsonschema:"Public job posting URL."`
+}
+
+func linkedinJobURL(id string) string {
+	if id == "" {
+		return ""
+	}
+	return "https://www.linkedin.com/jobs/view/" + id
+}
+
+func linkedinHTTPToMCPResponse(resp *linkedin.JobsResponse) *linkedinSearchOutput {
+	out := &linkedinSearchOutput{Data: make([]linkedinJobSummary, 0, len(resp.Jobs))}
+	for _, j := range resp.Jobs {
+		out.Data = append(out.Data, linkedinJobSummary{
+			ID:          j.ID,
+			Title:       j.Title,
+			Company:     j.Company,
+			CompanyURL:  j.CompanyURL,
+			Location:    j.Location,
+			PostedDate:  j.PostedDate,
+			LooksRemote: j.Remote,
+			URL:         linkedinJobURL(j.ID),
+		})
+	}
+	return out
+}
+
+type linkedinDetailInput struct {
+	JobID string `json:"job_id" jsonschema:"Numeric LinkedIn job ID (id from linkedin_search_jobs results, e.g. 4422697744)."`
+}
+
+type linkedinDetailOutput struct {
+	ID             string `json:"id"`
+	Title          string `json:"title"`
+	Company        string `json:"company,omitempty"`
+	Location       string `json:"location,omitempty"`
+	Posted         string `json:"posted,omitempty"`
+	SeniorityLevel string `json:"seniority_level,omitempty"`
+	EmploymentType string `json:"employment_type,omitempty"`
+	JobFunction    string `json:"job_function,omitempty"`
+	Industries     string `json:"industries,omitempty"`
+	Description    string `json:"description,omitempty" jsonschema:"Full job description as plain text."`
+	ApplyURL       string `json:"apply_url,omitempty" jsonschema:"External ATS apply URL; absent for LinkedIn Easy Apply postings."`
+	LooksRemote    bool   `json:"looks_remote,omitempty" jsonschema:"Keyword heuristic over title/location only (not the full description), not a field LinkedIn provides. False does not mean confirmed on-site."`
+}
+
+func linkedinHTTPToMCPDetail(detail *linkedin.JobDetailResponse) *linkedinDetailOutput {
+	return &linkedinDetailOutput{
+		ID:             detail.ID,
+		Title:          detail.Title,
+		Company:        detail.Company,
+		Location:       detail.Location,
+		Posted:         detail.Posted,
+		SeniorityLevel: detail.SeniorityLevel,
+		EmploymentType: detail.EmploymentType,
+		JobFunction:    detail.JobFunction,
+		Industries:     detail.Industries,
+		Description:    detail.Description,
+		ApplyURL:       detail.ApplyURL,
+		LooksRemote:    detail.Remote,
+	}
+}
