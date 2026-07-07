@@ -48,9 +48,37 @@ func (a *GreenhouseAdapter) Filters(ctx context.Context, slug string) (FilterSet
 	return filtersViaDump(ctx, a.dump, slug)
 }
 
-// Detail is implemented in Task 3; stub so the type satisfies Adapter.
 func (a *GreenhouseAdapter) Detail(ctx context.Context, slug, jobID string) (*JobDetail, error) {
-	return nil, fmt.Errorf("greenhouse: Detail not implemented yet")
+	id, err := strconv.Atoi(jobID)
+	if err != nil {
+		return nil, errGreenhouseJobNotFound(slug, jobID)
+	}
+	res, err := a.client.GetJob(ctx, greenhouse.GetJobParams{BoardToken: slug, JobID: id})
+	if err != nil {
+		return nil, fmt.Errorf("greenhouse: fetch job %q for %q: %w", jobID, slug, err)
+	}
+	switch r := res.(type) {
+	case *greenhouse.JobDetail:
+		return &JobDetail{
+			JobID:       jobID,
+			Title:       r.Title.Value,
+			Company:     greenhouse.CompaniesByBoardToken[strings.ToLower(slug)].Name,
+			Location:    r.Location.Value.Name.Value,
+			PostedAt:    greenhousePostedAt(r.FirstPublished),
+			URL:         r.AbsoluteURL.Value.String(),
+			Description: greenhouseDescription(r.Content.Value),
+		}, nil
+	case *greenhouse.GetJobNotFound:
+		return nil, errGreenhouseJobNotFound(slug, jobID)
+	default:
+		return nil, fmt.Errorf("greenhouse: unexpected response type %T", res)
+	}
+}
+
+// errGreenhouseJobNotFound is the one teaching error for both a malformed
+// and an unknown job id — the LLM's fix is the same either way.
+func errGreenhouseJobNotFound(slug, jobID string) error {
+	return fmt.Errorf("greenhouse: job %q not found for company %q; pass a job_id exactly as returned by the job search", jobID, slug)
 }
 
 // dump fetches the full board with content and reshapes it for the filter

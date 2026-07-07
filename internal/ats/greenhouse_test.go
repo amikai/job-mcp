@@ -153,6 +153,43 @@ func TestGreenhouseFilters(t *testing.T) {
 	}
 }
 
+func TestGreenhouseDetail(t *testing.T) {
+	a := testGreenhouseAdapter(t)
+	d, err := a.Detail(context.Background(), "anthropic", "4461450008")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.HasPrefix(d.Title, "Account Executive") {
+		t.Errorf("Title = %q", d.Title)
+	}
+	if d.Company != "Anthropic" {
+		t.Errorf("Company = %q, want display name from the roster", d.Company)
+	}
+	if !strings.Contains(d.Description, "About Anthropic") {
+		t.Errorf("Description should carry decoded JD text, got %.80q", d.Description)
+	}
+	if strings.Contains(d.Description, "&lt;") || strings.Contains(d.Description, "<div") {
+		t.Errorf("Description should be plain text, got %.80q", d.Description)
+	}
+	if d.URL == "" || d.JobID != "4461450008" {
+		t.Errorf("unexpected detail envelope: %+v", d)
+	}
+}
+
+func TestGreenhouseDetailBadID(t *testing.T) {
+	a := testGreenhouseAdapter(t)
+	if _, err := a.Detail(context.Background(), "anthropic", "not-a-number"); err == nil {
+		t.Fatal("want teaching error for non-numeric job id")
+	}
+}
+
+func TestGreenhouseDetailNotFound(t *testing.T) {
+	a := testGreenhouseAdapter(t)
+	if _, err := a.Detail(context.Background(), "anthropic", "999999999999"); err == nil {
+		t.Fatal("want error for unknown job id")
+	}
+}
+
 func TestGreenhouseUnknownBoardUpstream(t *testing.T) {
 	a := testGreenhouseAdapter(t)
 	if _, err := a.Search(context.Background(), "doesnotexist", SearchParams{}); err == nil {
