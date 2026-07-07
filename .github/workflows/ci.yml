@@ -43,6 +43,21 @@ jobs:
       - name: Validate OpenAPI specs
         run: make validate-openapi
 
+  hurl-lint:
+    runs-on: ubuntu-latest
+    env:
+      HURL_VERSION: 8.0.1
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install hurl
+        run: |
+          curl --location --remote-name "https://github.com/Orange-OpenSource/hurl/releases/download/${HURL_VERSION}/hurl_${HURL_VERSION}_amd64.deb"
+          sudo apt update && sudo apt install ./hurl_${HURL_VERSION}_amd64.deb
+
+      - name: Lint .hurl files
+        run: make hurl-lint
+
   release-dry-run:
     # Runs the release pipeline in snapshot mode: builds the binaries and
     # the linux/amd64 + linux/arm64 docker images, but publishes nothing.

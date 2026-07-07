@@ -14,7 +14,7 @@ var mockJobsRsp []byte
 //go:embed testdata/job_detail_rsp.json
 var mockJobDetailRsp []byte
 
-// Real response captured by testdata/issue_94_req.sh — 104's company-keyword
+// Real response captured by testdata/issue_94_req.hurl — 104's company-keyword
 // mode (https://github.com/amikai/openings-mcp/issues/94).
 //
 //go:embed testdata/issue_94_rsp.json

@@ -18,7 +18,7 @@ func newMockServer(t *testing.T) *httptest.Server {
 		assert.Equal(t, http.MethodPost, r.Method)
 		assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
 
-		// Same minimal request as testdata/jobs_req.sh, which captured jobs_rsp.json.
+		// Same minimal request as testdata/jobs_req.hurl, which captured jobs_rsp.json.
 		body, err := io.ReadAll(r.Body)
 		require.NoError(t, err)
 		assert.JSONEq(t, `{"query":"Golang","sort_by":"popularity","filters":{}}`, string(body))

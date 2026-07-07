@@ -1,4 +1,4 @@
-.PHONY: validate-openapi
+.PHONY: validate-openapi hurl-fmt hurl-lint
 
 OPENAPI_SPECS := \
 	internal/provider/cake/openapi.yaml \
@@ -17,3 +17,11 @@ validate-openapi: $(OPENAPI_SPECS)
 		echo "Validating $$spec..."; \
 		docker run --rm -v "$(PWD)/$$spec:/openapi.yaml" pythonopenapi/openapi-spec-validator /openapi.yaml; \
 	done
+
+HURL_FILES := $(shell find internal/provider -path '*/testdata/*.hurl')
+
+hurl-fmt:
+	@hurlfmt --in-place $(HURL_FILES)
+
+hurl-lint:
+	@hurlfmt --check $(HURL_FILES)
