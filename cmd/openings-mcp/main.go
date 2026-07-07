@@ -36,11 +36,10 @@ var (
 // serverInstructions carries the cross-tool guidance for host LLMs: provider
 // routing and the shared search→detail flow. Per-tool behavior stays in each
 // tool's description.
-const serverInstructions = `openings-mcp exposes job-search tools in two families: (1) per-provider tools for the job boards 104 and Cake.me (Taiwan-centric) and LinkedIn (global), plus the careers sites of Google, NVIDIA, and TSMC; (2) unified company tools — search_jobs_by_company, get_filters_by_company, get_job_detail_by_company — covering hundreds of companies' official careers sites behind one company parameter.
+const serverInstructions = `openings-mcp exposes job-search tools for six job boards: 104 and Cake.me (both Taiwan-centric) and LinkedIn (global), plus the official careers sites of Google, NVIDIA, and TSMC.
 
 Tool selection:
-- When the user names a specific site (104, Cake.me, LinkedIn), use that site's tools.
-- When the user names a specific company: use its dedicated tools if it has them (google, nvidia, tsmc); otherwise try search_jobs_by_company — it covers hundreds of companies, and when a name isn't recognized its error message suggests the closest supported ones. Fall back to the job-board tools when the company isn't covered there either.
+- When the user names a site or company, use that provider's tools.
 - When the user has no target in mind, offer them the provider choices; if they don't pick one, start with the job boards (104, Cake.me, and LinkedIn) rather than a single company's careers site.
 
 Query construction:
@@ -159,6 +158,9 @@ func newATSRegistry(hc *http.Client) (*ats.Registry, error) {
 	return ats.NewRegistry(ats.NewWorkdayAdapter(hc), adapterLever, adapterAshby, adapterGreenhouse)
 }
 
+// registry is wired up but not yet registered as MCP tools: the unified
+// company-tools feature (search_jobs_by_company etc.) is still in progress
+// and not part of this release's tool surface.
 func newServer(c104 *job104.Client, cCake *cake.Client, cNvidia *nvidia.Client, cTsmc *tsmc.Client, cGoogle *google.Client, cLinkedin *linkedin.Client, registry *ats.Registry, logger *slog.Logger) *mcp.Server {
 	server := mcp.NewServer(&mcp.Implementation{Name: "openings-mcp", Version: version}, &mcp.ServerOptions{Instructions: serverInstructions, Logger: logger})
 	server.AddReceivingMiddleware(logging.ErrorLoggingMiddleware(logger))
@@ -168,6 +170,5 @@ func newServer(c104 *job104.Client, cCake *cake.Client, cNvidia *nvidia.Client, 
 	openingsmcp.RegisterTsmc(server, cTsmc)
 	openingsmcp.RegisterGoogle(server, cGoogle)
 	openingsmcp.RegisterLinkedin(server, cLinkedin)
-	openingsmcp.RegisterCompany(server, registry)
 	return server
 }
