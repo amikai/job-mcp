@@ -1,6 +1,4 @@
-// Package ats unifies the ATS-backed providers (workday, greenhouse,
-// lever, ashby) behind one company-parameterized search interface, so MCP
-// clients name a company and never learn which ATS serves it.
+// Package ats exposes one company-based interface over the ATS providers.
 package ats
 
 import (
@@ -8,47 +6,36 @@ import (
 	"time"
 )
 
-// PageSize is the fixed page size for every adapter. Workday caps limit at
-// 20 on at least one tenant, so 20 is the largest safe uniform value.
+// PageSize is the largest safe uniform page size; some Workday tenants cap it at 20.
 const PageSize = 20
 
-// clampPage and totalPages centralize the unified pagination contract —
-// 1-based pages, fixed PageSize, ceil-div page count — so adapters can't
-// drift on it.
+// clampPage and totalPages implement the shared 1-based pagination contract.
 func clampPage(p int) int { return max(p, 1) }
 
 func totalPages(total int) int { return (total + PageSize - 1) / PageSize }
 
-// isoDate renders the unified PostedAt format for upstreams that provide a
-// real timestamp.
+// isoDate renders the unified PostedAt format for real upstream timestamps.
 func isoDate(t time.Time) string { return t.UTC().Format("2006-01-02") }
 
-// Adapter is one ATS's implementation of the unified search interface.
-// Methods address a company by slug; slugs are declared by Roster() and
-// indexed by Registry, so a slug that reaches an adapter is always one it
-// declared.
+// Adapter implements the unified search interface for one ATS. Slugs come from
+// Roster and are validated by Registry before reaching an adapter.
 type Adapter interface {
-	// Name identifies the adapter ("workday", "greenhouse", "lever",
-	// "ashby") in logs and error messages only; it never reaches tool
-	// schemas.
+	// Name identifies the adapter in logs and errors.
 	Name() string
-	// Roster lists every curated company on this ATS.
+	// Roster lists the curated companies served by this ATS.
 	Roster() []CompanyInfo
 	Search(ctx context.Context, slug string, p SearchParams) (*SearchResult, error)
 	Filters(ctx context.Context, slug string) (FilterSet, error)
 	Detail(ctx context.Context, slug, jobID string) (*JobDetail, error)
 }
 
-// CompanyInfo is one company as the registry sees it: enough to resolve a
-// user-supplied name to (adapter, slug). Connection config (Workday
-// tenant/instance/site etc.) stays inside each adapter, looked up by slug.
+// CompanyInfo contains the name and slug the registry needs for resolution.
 type CompanyInfo struct {
 	Slug string // unique key; the provider roster's tenant/site/board slug
 	Name string // display name; the resolver also matches on it
 }
 
-// SearchParams are the unified search inputs. Semantics are identical
-// across adapters; how each maps them upstream is the adapter's business.
+// SearchParams are the provider-independent search inputs.
 type SearchParams struct {
 	Query    string              // keywords: titles, skills, tech — never locations
 	Location string              // fuzzy text match; full-dump adapters special-case "remote" via their remote fields, workday matches location facet labels
@@ -64,8 +51,7 @@ type SearchResult struct {
 	TotalPages int
 }
 
-// JobSummary carries summary fields only — full descriptions are Detail's
-// job, keeping search responses small for the LLM.
+// JobSummary omits full descriptions so search responses stay small.
 type JobSummary struct {
 	JobID    string // provider-native id (workday externalPath, lever uuid, ashby id)
 	Title    string
@@ -74,11 +60,10 @@ type JobSummary struct {
 	URL      string // human-clickable posting page
 }
 
-// FilterSet maps a filter dimension to its currently valid values, as
-// display labels. Tenant-specific and discovered at call time.
+// FilterSet maps a filter dimension to its current display values.
 type FilterSet map[string][]string
 
-// JobDetail is one full posting, description normalized to plain text.
+// JobDetail is a full posting with a plain-text description.
 type JobDetail struct {
 	JobID       string
 	Title       string

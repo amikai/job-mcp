@@ -7,9 +7,7 @@ import (
 	"strconv"
 )
 
-// orgID is Synopsys's company ID on the TalentBrew ATS platform (a multi-tenant
-// system shared across many employers' career sites). It identifies which
-// company's job data to query and is fixed, not user-supplied.
+// orgID identifies Synopsys on the shared TalentBrew platform.
 const orgID = "44408"
 
 type FacetFilter struct {
@@ -31,9 +29,8 @@ type JobsRequest struct {
 	FacetFilters   []FacetFilter
 }
 
-// Location filters search results to a geocoded place. Free-text alone does
-// nothing on this API; all four fields must be sent together, resolved via
-// Client.ResolveLocation. Build one from a LocationSuggestion with AsFilter.
+// Location contains the four geocoded fields required by the API; build it
+// from a LocationSuggestion with AsFilter.
 type Location struct {
 	Display   string // human-readable label, cosmetic only
 	Latitude  float64
@@ -42,8 +39,7 @@ type Location struct {
 	Path      string // suggestion's "lp" field, dash-separated ancestor IDs
 }
 
-// LocationSuggestion is one geocoded candidate returned by
-// Client.ResolveLocation for a partial place name typed by the user.
+// LocationSuggestion is a geocoded candidate from ResolveLocation.
 type LocationSuggestion struct {
 	ID           int     `json:"id"`
 	Value        string  `json:"value"`
@@ -58,8 +54,7 @@ type LocationSuggestion struct {
 	PostalCode   string  `json:"pc"`
 }
 
-// AsFilter converts a suggestion into the Location filter accepted by
-// JobsRequest.
+// AsFilter converts a suggestion to the Location filter accepted by JobsRequest.
 func (s LocationSuggestion) AsFilter() *Location {
 	return &Location{
 		Display:   s.Value,
@@ -106,8 +101,7 @@ type JobDetailResponse struct {
 }
 
 func buildSearchQuery(p *JobsRequest) url.Values {
-	// Fixed params the TalentBrew /search-jobs/results endpoint expects on every
-	// call, regardless of query; not user-controllable.
+	// TalentBrew requires these fixed parameters on every request.
 	q := url.Values{
 		"SearchType":              {"5"},
 		"ResultsType":             {"0"},

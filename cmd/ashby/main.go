@@ -16,8 +16,7 @@ import (
 	ashby "github.com/amikai/openings-mcp/internal/provider/ashby"
 )
 
-// apiBaseURL is Ashby's public posting API origin — the single production
-// server in the provider's openapi.yaml.
+// apiBaseURL is Ashby's public posting API origin.
 const apiBaseURL = "https://api.ashbyhq.com"
 
 func main() {
@@ -92,9 +91,7 @@ func main() {
 	}
 }
 
-// runCompanies lists every confirmed Ashby board embedded in the CLI
-// (internal/provider/ashby/companies.yaml), sorted by company name. It
-// makes no network call.
+// runCompanies prints the embedded Ashby board roster without a network call.
 func runCompanies(format string) error {
 	cs := ashby.Companies
 
@@ -110,10 +107,9 @@ func runCompanies(format string) error {
 	return nil
 }
 
-// fetchBoard validates the board slug against the embedded roster, then
-// fetches the board's entire job list with compensation included — the
-// shared front half of search and get. The API's typed 404 is theoretically
-// unreachable for roster boards but reported rather than swallowed.
+// fetchBoard validates the board slug and fetches its full job list with
+// compensation. A typed 404 is reported even though roster boards should not
+// produce one.
 func fetchBoard(ctx context.Context, board string, timeout time.Duration) (*ashby.JobBoardResponse, error) {
 	if board == "" {
 		return nil, fmt.Errorf("--board is required")
@@ -148,9 +144,7 @@ func fetchBoard(ctx context.Context, board string, timeout time.Duration) (*ashb
 	}
 }
 
-// jobSummaryJSON is the --format json shape for one search result and the
-// summary header of a get result: the compact fields a listing needs, no
-// description.
+// jobSummaryJSON is the compact --format json projection used by search and get.
 type jobSummaryJSON struct {
 	ID                 string   `json:"id,omitempty"`
 	Title              string   `json:"title"`
@@ -180,9 +174,7 @@ func summarize(j ashby.JobPosting) jobSummaryJSON {
 		PublishedAt: j.PublishedAt.Format("2006-01-02"),
 		URL:         j.JobUrl,
 	}
-	// Both fields are documented as always present but observed as null on
-	// many boards; a null stays empty/omitted rather than defaulting to
-	// OnSite/false.
+	// Null fields stay omitted rather than defaulting to OnSite/false.
 	if !j.WorkplaceType.Null {
 		s.WorkplaceType = string(j.WorkplaceType.Value)
 	}
@@ -196,8 +188,7 @@ func summarize(j ashby.JobPosting) jobSummaryJSON {
 		}
 	}
 	if j.Compensation.Set {
-		// Get skips both unset and null summaries (a job with compensation
-		// enabled but no published ranges sends null).
+		// A job can enable compensation without publishing any ranges.
 		if v, ok := j.Compensation.Value.CompensationTierSummary.Get(); ok {
 			s.Compensation = v
 		}
@@ -205,9 +196,8 @@ func summarize(j ashby.JobPosting) jobSummaryJSON {
 	return s
 }
 
-// runSearch fetches the whole board and prints summaries, optionally
-// filtered by a case-insensitive substring match on the title. There is no
-// pagination — the API returns everything in one response.
+// runSearch fetches the whole board, filters titles locally, and prints the
+// summaries. Ashby returns the complete board in one response.
 func runSearch(ctx context.Context, board string, timeout time.Duration, keyword, format string) error {
 	resp, err := fetchBoard(ctx, board, timeout)
 	if err != nil {
@@ -238,10 +228,8 @@ func runSearch(ctx context.Context, board string, timeout time.Duration, keyword
 	return nil
 }
 
-// printSummary prints one job's compact text block (everything but the
-// description). The locations block mirrors cmd/workday's singular/plural
-// treatment: a bare "Location:" line when there's one, an itemized
-// "Locations:" list when secondaries exist.
+// printSummary renders the compact text block, using a list when a job has
+// multiple locations.
 func printSummary(s jobSummaryJSON) {
 	switch {
 	case s.Department != "" && s.Team != "" && s.Team != s.Department:
@@ -260,8 +248,7 @@ func printSummary(s jobSummaryJSON) {
 	} else if s.Location != "" {
 		fmt.Printf("Location: %s\n", s.Location)
 	}
-	// Some boards send null workplaceType/isRemote; skip the line rather
-	// than printing a made-up default.
+	// Some boards send both fields as null; do not invent a default.
 	if s.WorkplaceType != "" || (s.IsRemote != nil && *s.IsRemote) {
 		workplace := s.WorkplaceType
 		if workplace == "" {
@@ -282,8 +269,8 @@ func printSummary(s jobSummaryJSON) {
 	}
 }
 
-// runGet fetches the whole board (Ashby has no per-job endpoint) and prints
-// the one job whose id matches, in full.
+// runGet fetches the whole board because Ashby has no per-job endpoint, then
+// prints the matching job.
 func runGet(ctx context.Context, board string, timeout time.Duration, jobID, format string) error {
 	if jobID == "" {
 		return fmt.Errorf("--id is required")
@@ -331,9 +318,8 @@ func printJob(j ashby.JobPosting, format string) error {
 	return nil
 }
 
-// printCompensation itemizes the tier/component detail beneath the one-line
-// summary printSummary already showed. Jobs that publish no ranges send an
-// empty tier list — print nothing rather than an empty header.
+// printCompensation renders the detail below the summary. Empty tier lists
+// produce no output.
 func printCompensation(c ashby.Compensation) {
 	if len(c.CompensationTiers) == 0 {
 		return
@@ -351,10 +337,8 @@ func printCompensation(c ashby.Compensation) {
 	}
 }
 
-// componentLine renders one compensation component. The API's summary
-// already carries the human-readable range and currency ("Estimated base
-// salary $132K – $330K"), so it leads; compensationType and a non-NONE
-// interval qualify it.
+// componentLine renders a component, using the API's human-readable summary
+// first and adding its type and interval when present.
 func componentLine(c ashby.CompensationComponent) string {
 	line := c.Summary.Value
 	if line == "" {

@@ -69,9 +69,7 @@ func (c *Client) Jobs(ctx context.Context, p *JobsRequest) (*JobsResponse, error
 	return result, nil
 }
 
-// ResolveLocation geocodes a partial place name typed by the user. Its result
-// must be passed as JobsRequest.Location (via LocationSuggestion.AsFilter) for
-// location filtering to have any effect on Jobs — see package docs.
+// ResolveLocation geocodes a place name for use with JobsRequest.Location.
 func (c *Client) ResolveLocation(ctx context.Context, term string) ([]LocationSuggestion, error) {
 	q := url.Values{"term": {term}, "countryCodes": {""}, "lat": {""}, "lon": {""}}
 	req, err := newRequest(ctx, http.MethodGet, c.baseURL+"/search-jobs/locations?"+q.Encode())

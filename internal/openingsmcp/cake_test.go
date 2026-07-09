@@ -56,8 +56,7 @@ func TestCakeSearchJobsE2E(t *testing.T) {
 	schema, ok := tool.InputSchema.(map[string]any)
 	require.True(t, ok)
 
-	// Full golden schema: LLM-facing names only (no query/sort_by/filters
-	// nesting), keyword and location required.
+	// The schema exposes only the LLM-facing names; keyword and location are required.
 	want := map[string]any{
 		"type": "object",
 		"properties": map[string]any{
@@ -498,8 +497,6 @@ Design, build, and maintain backend services for B2C Insurance/IoT/Shopping/Poin
 func TestCakeSearchJobsMissingRequiredE2E(t *testing.T) {
 	clientSession, _ := testCakeMCPClientServer(t)
 
-	// Missing required params are rejected by the SDK's input-schema
-	// validation before the handler runs, as an IsError tool result.
 	cases := []struct {
 		name string
 		args map[string]any
@@ -527,9 +524,6 @@ func TestCakeSearchJobsMissingRequiredE2E(t *testing.T) {
 func TestCakeSearchJobsInvalidEnumE2E(t *testing.T) {
 	clientSession, _ := testCakeMCPClientServer(t)
 
-	// A value outside a property's enum is rejected by the SDK's
-	// input-schema validation before the handler runs, as an IsError
-	// tool result.
 	callRes, err := clientSession.CallTool(t.Context(), &mcp.CallToolParams{
 		Name:      "cake_search_jobs",
 		Arguments: map[string]any{"keyword": "Golang", "location": "台灣", "job_type": "valueNotInEnum"},
@@ -718,8 +712,7 @@ func TestCakeMCPToHTTPRequestMinimal(t *testing.T) {
 	got, err := cakeMCPToHTTPRequest(&cakeSearchInput{Keyword: "golang", Location: "台灣"})
 	require.NoError(t, err)
 
-	// The Cake API requires sort_by, so the converter defaults it to
-	// popularity when the tool input omits sort.
+	// Cake requires sort_by, so omitted sort defaults to popularity.
 	want := cake.JobSearchRequest{
 		Query:  "golang",
 		SortBy: cake.JobSearchRequestSortByPopularity,

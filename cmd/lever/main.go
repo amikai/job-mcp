@@ -117,9 +117,7 @@ func normalizeSite(site string) (string, error) {
 	return s, nil
 }
 
-// runCompanies lists every curated Lever site embedded in the CLI
-// (internal/provider/lever/companies.yaml), sorted by company name. It
-// makes no network call.
+// runCompanies prints the embedded Lever site roster without a network call.
 func runCompanies(format string) error {
 	cs := lever.Companies
 
@@ -141,9 +139,8 @@ type searchResultJSON struct {
 	Postings []postingJSON `json:"postings"`
 }
 
-// runSearch fetches one page of postings with the given filters. The list
-// response already carries full posting content, so there are no
-// per-result detail fetches — one API call per invocation.
+// runSearch fetches one page; Lever includes full posting content in the list
+// response, so no per-result detail calls are needed.
 func runSearch(ctx context.Context, site string, timeout time.Duration, locations, commitments, teams, departments []string, level string, limit, skip int, format string) error {
 	s, err := normalizeSite(site)
 	if err != nil {
@@ -232,10 +229,7 @@ func runGet(ctx context.Context, site string, timeout time.Duration, postingID, 
 	return nil
 }
 
-// postingJSON is the --format json shape for one posting, and the input
-// to text rendering: a flat, stable projection of the generated
-// lever.Posting so the CLI's output doesn't change shape when the spec's
-// generated types do.
+// postingJSON is the stable, flat --format json projection used for text output.
 type postingJSON struct {
 	ID          string   `json:"id"`
 	Title       string   `json:"title"`
@@ -279,10 +273,8 @@ func postingLocations(p lever.Posting) []string {
 	return nil
 }
 
-// setLocations fills both the singular Location (first entry, for quick
-// access) and the full Locations array (only when there's more than one,
-// to avoid a redundant one-element array alongside the singular field) —
-// mirrors cmd/workday's setLocations.
+// setLocations fills the singular field and includes Locations only when
+// there is more than one entry.
 func setLocations(r *postingJSON, locations ...string) {
 	if len(locations) == 0 {
 		return

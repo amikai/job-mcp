@@ -18,12 +18,9 @@ var mockJobDetailRsp []byte
 //go:embed testdata/job_detail_full_rsp.json
 var mockJobDetailFullRsp []byte
 
-// NewMockServer returns an httptest.Server serving canned Greenhouse Job
-// Board API fixture responses, so tests never hit a live board. Most
-// fixtures were captured from real boards (see testdata/*.sh);
-// jobs_content_rsp.json is hand-crafted in the same shape so the ats
-// adapter tests have stable content=true data. The caller owns the server
-// and must Close it.
+// NewMockServer serves canned Greenhouse responses. The content fixture is
+// hand-crafted so adapter tests have stable content=true data. The caller
+// owns the server and must close it.
 func NewMockServer() *httptest.Server {
 	mux := http.NewServeMux()
 

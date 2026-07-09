@@ -12,16 +12,8 @@ import (
 //go:embed companies.yaml
 var companiesYAML []byte
 
-// Company is a confirmed Workday CXS tenant for a public company, drawn from
-// a curated S&P 500 list (internal/provider/workday/companies.yaml). It's
-// keyed by tenant slug (e.g. "3m", "att") rather than display name — tenant
-// slugs are unique*, lowercase, and punctuation-free, unlike display names
-// such as "AT&T" or "Workday, Inc.".
-//
-// *Two harmless exceptions share a tenant across two rows with an identical
-// instance/site (Fox Corporation's two share classes under "fox", News
-// Corp's two share classes under "dowjones") — both rows resolve to the same
-// BaseURL either way, so which one a lookup returns doesn't matter.
+// Company is a verified Workday CXS tenant from the curated roster. Tenant is
+// the lowercase slug used to build its API URL.
 type Company struct {
 	Name     string `yaml:"company" json:"company"`
 	Tenant   string `yaml:"tenant" json:"tenant"`
@@ -29,10 +21,7 @@ type Company struct {
 	Site     string `yaml:"site" json:"site"`
 }
 
-// BaseURL builds this company's Workday CXS base URL, e.g.
-// https://3m.wd1.myworkdayjobs.com/wday/cxs/3m/Search — the same
-// {tenant}.{instance}.myworkdayjobs.com/wday/cxs/{tenant}/{site} shape
-// documented on PublicSiteURL in path.go.
+// BaseURL builds the company's Workday CXS base URL.
 func (c Company) BaseURL() string {
 	return fmt.Sprintf("https://%s.%s.myworkdayjobs.com/wday/cxs/%s/%s", c.Tenant, c.Instance, c.Tenant, c.Site)
 }
@@ -40,13 +29,10 @@ func (c Company) BaseURL() string {
 // Companies holds every confirmed Workday tenant, sorted by company name.
 var Companies = mustLoadCompanies()
 
-// CompaniesByTenant looks up a confirmed tenant by slug. Keys are
-// lowercased, so callers must lowercase their input before indexing.
+// CompaniesByTenant indexes companies by lowercase tenant slug.
 var CompaniesByTenant = buildTenantIndex(Companies)
 
-// mustLoadCompanies parses the embedded companies.yaml. A parse failure is a
-// build-time bug in a file this package owns, not a runtime condition to
-// recover from.
+// mustLoadCompanies parses the package-owned embedded roster.
 func mustLoadCompanies() []Company {
 	var cs []Company
 	if err := yaml.Unmarshal(companiesYAML, &cs); err != nil {

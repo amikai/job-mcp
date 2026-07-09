@@ -12,9 +12,8 @@ import (
 	"github.com/amikai/openings-mcp/internal/provider/lever"
 )
 
-// LeverAdapter serves Lever-hosted companies. Lever's list endpoint dumps
-// the whole board (its native filter params are exact-match only, verified
-// useless for fuzzy search), so searching happens in searchDump.
+// LeverAdapter serves Lever companies. Its full-board list is filtered by
+// searchDump because native filters are exact-match only.
 type LeverAdapter struct {
 	client *lever.Client
 }
@@ -65,7 +64,7 @@ func (a *LeverAdapter) Detail(ctx context.Context, slug, jobID string) (*JobDeta
 	}, nil
 }
 
-// dump fetches the full board and reshapes it for the filter engine.
+// dump fetches and reshapes the full board for the filter engine.
 func (a *LeverAdapter) dump(ctx context.Context, slug string) ([]dumpJob, error) {
 	postings, err := a.client.ListPostings(ctx, lever.ListPostingsParams{
 		Site: slug,
@@ -106,9 +105,7 @@ func (a *LeverAdapter) dump(ctx context.Context, slug string) ([]dumpJob, error)
 	return jobs, nil
 }
 
-// leverDescription assembles the full plain-text JD from Lever's sectioned
-// fields: opening+body (descriptionPlain), then each list section (its
-// content is HTML), then the closing (additionalPlain).
+// leverDescription assembles Lever's sectioned description as plain text.
 func leverDescription(p *lever.Posting) (string, error) {
 	var parts []string
 	if s := strings.TrimSpace(p.DescriptionPlain.Value); s != "" {

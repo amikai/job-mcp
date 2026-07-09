@@ -9,11 +9,8 @@ import (
 	"github.com/amikai/openings-mcp/internal/provider/ashby"
 )
 
-// AshbyAdapter serves Ashby-hosted companies. Ashby's public API is a
-// single full-board endpoint — no server-side search and no per-job
-// endpoint (returns 401) — so Search filters the dump via searchDump and
-// Detail refetches the board and picks the one job out. The refetch is a
-// bandwidth cost between this server and Ashby, invisible to the client.
+// AshbyAdapter serves Ashby companies. Ashby exposes only a full-board
+// endpoint, so search filters the dump and detail refetches it.
 type AshbyAdapter struct {
 	client *ashby.Client
 }
@@ -66,7 +63,7 @@ func (a *AshbyAdapter) Detail(ctx context.Context, slug, jobID string) (*JobDeta
 	return nil, fmt.Errorf("ashby: job %q not found for company %q; pass a job_id exactly as returned by the job search", jobID, slug)
 }
 
-// board fetches the full job board, unwrapping ogen's union response.
+// board fetches and unwraps the full job board response.
 func (a *AshbyAdapter) board(ctx context.Context, slug string) (*ashby.JobBoardResponse, error) {
 	res, err := a.client.GetJobBoard(ctx, ashby.GetJobBoardParams{JobBoardName: slug})
 	if err != nil {
@@ -102,8 +99,7 @@ func (a *AshbyAdapter) dump(ctx context.Context, slug string) ([]dumpJob, error)
 		if string(j.EmploymentType) != "" {
 			fields["employmentType"] = string(j.EmploymentType)
 		}
-		// Real boards send null for workplaceType/isRemote (see provider
-		// fixture board_nulls_rsp.json); treat null as unspecified.
+		// Null workplace fields mean unspecified.
 		if wt, ok := j.WorkplaceType.Get(); ok && string(wt) != "" {
 			fields["workplaceType"] = string(wt)
 		}

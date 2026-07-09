@@ -58,7 +58,6 @@ func TestNvidiaSearchJobsE2E(t *testing.T) {
 
 	assert.Equal(t, "object", schema["type"])
 
-	// Test calling nvidia_search_jobs tool
 	callRes, err := clientSession.CallTool(t.Context(), &mcp.CallToolParams{
 		Name: "nvidia_search_jobs",
 		Arguments: map[string]any{
@@ -144,9 +143,6 @@ func TestNvidiaGetJobDetailE2E(t *testing.T) {
 func TestNvidiaSearchJobsInvalidEnumE2E(t *testing.T) {
 	clientSession, _ := testNvidiaMCPClientServer(t)
 
-	// A value outside a property's enum is rejected by the SDK's
-	// input-schema validation before the handler runs, as an IsError
-	// tool result.
 	callRes, err := clientSession.CallTool(t.Context(), &mcp.CallToolParams{
 		Name: "nvidia_search_jobs",
 		Arguments: map[string]any{

@@ -12,14 +12,11 @@ import (
 	"github.com/amikai/openings-mcp/internal/provider/workday"
 )
 
-// WorkdayAdapter serves Workday CXS tenants. Search runs server-side;
-// location and filters name facet labels, which the adapter resolves to
-// tenant-specific GUIDs via a probe request (appliedFacets wants GUIDs but
-// get_filters reports labels — the stateless price is one extra upstream
-// call whenever location or filters are set).
+// WorkdayAdapter serves Workday CXS tenants. Search is server-side, but facet
+// labels must be resolved to tenant-specific GUIDs with a probe request.
 type WorkdayAdapter struct {
 	hc *http.Client
-	// baseURL derives a tenant's CXS base URL; tests point it at a mock.
+	// baseURL is injectable so tests can use a mock server.
 	baseURL func(workday.Company) string
 }
 
@@ -29,9 +26,7 @@ func NewWorkdayAdapter(hc *http.Client) *WorkdayAdapter {
 
 func (a *WorkdayAdapter) Name() string { return "workday" }
 
-// Roster dedupes by tenant slug: fox and dowjones each hold two
-// share-class rows in companies.yaml sharing one tenant, and the registry
-// treats duplicate slugs as curation bugs.
+// Roster deduplicates share-class rows that point to the same tenant slug.
 func (a *WorkdayAdapter) Roster() []CompanyInfo {
 	seen := make(map[string]bool, len(workday.Companies))
 	infos := make([]CompanyInfo, 0, len(workday.Companies))
@@ -73,16 +68,13 @@ func (a *WorkdayAdapter) Search(ctx context.Context, slug string, p SearchParams
 		return nil, fmt.Errorf("workday: search %q: %w", slug, err)
 	}
 
-	// Public posting URLs derive from the tenant's career-site origin;
-	// derivation can fail only on malformed base URLs (e.g. a test mock),
-	// in which case summaries simply omit URLs.
+	// Malformed base URLs only affect the optional public URL.
 	publicURL, pubErr := workday.PublicSiteURL(a.baseURL(company))
 	jobs := make([]JobSummary, 0, len(rsp.JobPostings))
 	for _, js := range rsp.JobPostings {
 		path := js.ExternalPath.Value
 		if path == "" {
-			// Transient posting with no fetchable path; skip rather than
-			// hand out a job_id that can't be detailed.
+			// Do not return a job ID that detail cannot fetch.
 			continue
 		}
 		url := ""
@@ -157,13 +149,11 @@ func (a *WorkdayAdapter) Detail(ctx context.Context, slug, jobID string) (*JobDe
 	}, nil
 }
 
-// client builds a per-tenant CXS client on demand. The wrapper is
-// stateless and cheap; connection pooling lives in the shared http.Client.
+// client builds a per-tenant CXS client; the shared http.Client owns pooling.
 func (a *WorkdayAdapter) client(slug string) (*workday.Client, workday.Company, error) {
 	company, ok := workday.CompaniesByTenant[slug]
 	if !ok {
-		// Registry slugs come from this adapter's own Roster, so a miss is
-		// an internal inconsistency, not user error.
+		// A miss indicates an internal roster inconsistency, not user error.
 		return nil, workday.Company{}, fmt.Errorf("workday: tenant %q not in roster", slug)
 	}
 	c, err := workday.NewClient(a.baseURL(company), workday.WithClient(a.hc))
@@ -173,18 +163,14 @@ func (a *WorkdayAdapter) client(slug string) (*workday.Client, workday.Company, 
 	return c, company, nil
 }
 
-// flatFacet is one facet leaf attributed to its nearest ancestor group
-// carrying a facetParameter (groups nest, e.g. locationMainGroup wraps
-// locationHierarchy1 and locations).
+// flatFacet is a leaf attributed to its nearest facetParameter group.
 type flatFacet struct {
 	param string
 	label string
 	id    string
 }
 
-// probeFacets fetches the tenant's complete current facet tree with a
-// minimal unfiltered search (searchText narrows the tree as much as a
-// facet filter does, so the probe sends neither).
+// probeFacets fetches the current facet tree with a minimal unfiltered search.
 func (a *WorkdayAdapter) probeFacets(ctx context.Context, client *workday.Client, slug string) ([]flatFacet, error) {
 	rsp, err := client.SearchJobs(ctx, &workday.JobsRequest{
 		AppliedFacets: workday.AppliedFacets{},
@@ -223,8 +209,7 @@ func flattenFacets(nodes []workday.FacetNode) []flatFacet {
 	return out
 }
 
-// resolveFacets turns unified location/filter inputs into appliedFacets
-// GUIDs, failing with teaching errors that name the valid alternatives.
+// resolveFacets turns unified filters into Workday facet GUIDs.
 func resolveFacets(flat []flatFacet, location string, filters map[string][]string) (workday.AppliedFacets, error) {
 	applied := workday.AppliedFacets{}
 	if location != "" {
@@ -244,10 +229,8 @@ func resolveFacets(flat []flatFacet, location string, filters map[string][]strin
 	return applied, nil
 }
 
-// resolveLocationFacet fuzzy-matches the location text against every
-// location-flavored facet leaf (params prefixed "location"), then applies
-// the single param with the most hits — mixing params would AND them and
-// over-constrain.
+// resolveLocationFacet matches location leaves and uses the parameter with the
+// most hits; combining parameters would over-constrain the query.
 func resolveLocationFacet(flat []flatFacet, location string) (string, []string, error) {
 	loc := strings.ToLower(strings.TrimSpace(location))
 	hits := make(map[string][]string)
@@ -275,8 +258,7 @@ func resolveLocationFacet(flat []flatFacet, location string) (string, []string, 
 	return params[0], hits[params[0]], nil
 }
 
-// resolveFacetValues maps display labels to GUIDs within one facet param,
-// matching labels case-insensitively.
+// resolveFacetValues maps display labels to GUIDs case-insensitively.
 func resolveFacetValues(flat []flatFacet, key string, values []string) ([]string, error) {
 	byLabel := make(map[string]string)
 	var labels []string

@@ -1,9 +1,7 @@
 package nvidia
 
-// Facet value ids observed from a live, unfiltered POST /jobs response
-// (2026-07-01). They are opaque Workday GUIDs, not derivable from their
-// labels, so a caller (e.g. an MCP tool mapping a region name to a filter)
-// needs a lookup table rather than guessing.
+// These opaque Workday facet IDs were observed from an unfiltered POST /jobs
+// response on 2026-07-01 and cannot be derived from their labels.
 
 // JobCategoryIDs maps a "Job Category" facet label to its jobFamilyGroup id.
 var JobCategoryIDs = map[string]AppliedFacetsJobFamilyGroupItem{
@@ -39,8 +37,7 @@ var TimeTypeIDs = map[string]AppliedFacetsTimeTypeItem{
 	"Part time": AppliedFacetsTimeTypeItem5509c0b5959810ac00299430e7947363,
 }
 
-// LocationTypeIDs maps a "Location Type" facet label to its
-// locationHierarchy2 id.
+// LocationTypeIDs maps a location-type label to its locationHierarchy2 ID.
 var LocationTypeIDs = map[string]AppliedFacetsLocationHierarchy2Item{
 	"Office": AppliedFacetsLocationHierarchy2Item0c3f5f117e9a0101f6422f0fe79d0000,
 	"Remote": AppliedFacetsLocationHierarchy2Item0c3f5f117e9a0101f63dc469c3010000,
@@ -85,9 +82,8 @@ var CountryIDs = map[string]AppliedFacetsLocationHierarchy1Item{
 	"Vietnam":              AppliedFacetsLocationHierarchy1Item2fcb99c455831013ea52fea3f8d732de,
 }
 
-// SiteIDs maps a city-level "Sites" facet label (e.g. "US, CA, Santa Clara",
-// "Taiwan, Taipei", "US, Remote") to its locations id. More granular than
-// CountryIDs; use when a caller names a specific city rather than a country.
+// SiteIDs maps city-level site labels to locations IDs; use it for a city
+// rather than a country-level filter.
 var SiteIDs = map[string]AppliedFacetsLocationsItem{
 	"Armenia, Yerevan":                  AppliedFacetsLocationsItemC0ed409f79231000eaff724467330000,
 	"Australia, Remote":                 AppliedFacetsLocationsItem91336993fab910af6d70362ab49cc2f7,

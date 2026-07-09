@@ -17,8 +17,7 @@ import (
 	"github.com/amikai/openings-mcp/internal/provider/job104"
 )
 
-// main issues a single SearchJobs request built entirely from flags, then
-// fetches GetJobDetail for every job the search returned.
+// main searches with the flags and fetches each returned job's detail.
 func main() {
 	fs := ff.NewFlagSet("104")
 	var (
@@ -73,10 +72,8 @@ func main() {
 		if job.JobAddrNoDesc != "" {
 			fmt.Printf("Location: %s\n", job.JobAddrNoDesc)
 		}
-		// ro/remoteWork are soft filters server-side — the true match count
-		// is search.Metadata.Pagination.Total, but individual entries here
-		// can fail to match what was asked for. Surface the raw values so
-		// that's visible instead of silently assumed.
+		// These server-side filters are soft: individual results may not match
+		// them, so expose the raw values instead of assuming they did.
 		fmt.Printf("jobRo=%d remoteWorkType=%d\n", job.JobRo, job.RemoteWorkType)
 		if code == "" {
 			fmt.Println()
@@ -93,10 +90,8 @@ func main() {
 	}
 }
 
-// buildSearchParams resolves each flag's human label to its job104 request
-// value via the lookup tables above. Labels are already validated against
-// the flag's enum at parse time. An empty label (flag not set) leaves that
-// field unset (unfiltered); page 0 leaves Page unset.
+// buildSearchParams resolves flag labels through the lookup tables. Empty
+// labels and page 0 leave their request fields unset.
 func buildSearchParams(keyword, area, ro, order string, edu []string, remoteWork string, s9 []string, page int) (job104.SearchJobsParams, error) {
 	params := job104.SearchJobsParams{}
 	if keyword != "" {
@@ -134,8 +129,7 @@ func buildSearchParams(keyword, area, ro, order string, edu []string, remoteWork
 	return params, nil
 }
 
-// lookupList resolves each value against table, mirroring the single-value
-// lookups above but for the repeatable flags (--edu, --s9).
+// lookupList resolves the repeatable flag values in table.
 func lookupList[T any](table map[string]T, values []string, flag string) ([]T, error) {
 	out := make([]T, 0, len(values))
 	for _, v := range values {
@@ -162,7 +156,7 @@ func writeDetail(w io.Writer, detail *job104.JobDetailResponse) {
 	}
 }
 
-// labels returns the sorted keys of a generic lookup table.
+// labels returns the sorted keys in table.
 func labels[T any](table map[string]T) []string {
 	l := make([]string, 0, len(table))
 	for label := range table {
@@ -172,15 +166,12 @@ func labels[T any](table map[string]T) []string {
 	return l
 }
 
-// enumChoices is labels prefixed with "" so an ff.StringEnumLong flag can
-// default to unset (no filter) instead of silently falling back to the
-// first real label — ffval.Enum's zero Default only survives initialize()
-// if it's itself in the Valid list.
+// enumChoices prepends an empty value so the flag can mean "unset".
 func enumChoices[T any](table map[string]T) []string {
 	return append([]string{""}, labels(table)...)
 }
 
-// usageWithChoices appends a comma-separated "one of: ..." list to base.
+// usageWithChoices adds the valid values to flag help.
 func usageWithChoices(base string, choices []string) string {
 	return fmt.Sprintf("%s, one of: %s", base, strings.Join(choices, " | "))
 }

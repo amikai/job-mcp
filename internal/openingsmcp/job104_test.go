@@ -65,8 +65,7 @@ func TestJob104SearchJobE2E(t *testing.T) {
 	schema, ok := tool.InputSchema.(map[string]any)
 	require.True(t, ok)
 
-	// Full golden schema: LLM-facing names only (no ro/order/remoteWork/s9),
-	// label enums instead of raw codes, keyword and area required.
+	// The schema exposes label enums instead of raw codes; keyword and area are required.
 	want := map[string]any{
 		"type": "object",
 		"properties": map[string]any{
@@ -189,10 +188,8 @@ func TestJob104SearchJobE2E(t *testing.T) {
 func TestJob104SearchJobsCompanyKeywordE2E(t *testing.T) {
 	clientSession, _ := testJob104MCPClientServer(t)
 
-	// A keyword 104 recognizes as a company name flips the API into a
-	// pagination-less companyKeyword response unless the handler sends
-	// excludeCompanyKeyword=true; the mock reproduces that behavior, so
-	// this call only succeeds when the parameter is actually on the wire.
+	// Company-keyword mode is pagination-less unless excludeCompanyKeyword=true;
+	// this call verifies that the handler sends the parameter.
 	callRes, err := clientSession.CallTool(t.Context(), &mcp.CallToolParams{
 		Name:      "104_search_jobs",
 		Arguments: map[string]any{"keyword": job104.MockCompanyKeyword, "area": "Hsinchu"},
@@ -212,8 +209,6 @@ func TestJob104SearchJobsCompanyKeywordE2E(t *testing.T) {
 func TestJob104SearchJobsMissingRequiredE2E(t *testing.T) {
 	clientSession, _ := testJob104MCPClientServer(t)
 
-	// Missing required params are rejected by the SDK's input-schema
-	// validation before the handler runs, as an IsError tool result.
 	cases := []struct {
 		name string
 		args map[string]any
@@ -241,9 +236,6 @@ func TestJob104SearchJobsMissingRequiredE2E(t *testing.T) {
 func TestJob104SearchJobsInvalidEnumE2E(t *testing.T) {
 	clientSession, _ := testJob104MCPClientServer(t)
 
-	// A value outside a property's enum is rejected by the SDK's
-	// input-schema validation before the handler runs, as an IsError
-	// tool result.
 	callRes, err := clientSession.CallTool(t.Context(), &mcp.CallToolParams{
 		Name:      "104_search_jobs",
 		Arguments: map[string]any{"keyword": "Golang", "area": "Taipei", "job_type": "valueNotInEnum"},
@@ -337,7 +329,7 @@ func TestJob104HTTPToMCPResponse(t *testing.T) {
 	}
 	got := job104HTTPToMCPResponse(&in)
 
-	// Unknown codes (jobRo 9, remoteWorkType 9) map to no label at all.
+	// Unknown codes map to no label.
 	want := &job104SearchOutput{
 		Data: []job104JobSummary{
 			{JobCode: "j1", JobName: "onsite", CompanyName: "c1", URL: "j1", CompanyURL: "u1", SalaryHigh: 2, SalaryLow: 1, JobAddrNoDesc: "a1", AppearDate: "20260101", ApplyCnt: 3, JobType: "Full-time"},
@@ -395,8 +387,7 @@ func TestJob104HTTPToMCPDetail(t *testing.T) {
 	}
 	got := job104HTTPToMCPDetail(&in, "jc1")
 
-	// isSaved/isApplied/custNo/contact are dropped, specialty/jobCategory
-	// keep only descriptions, and everything else flattens to one level.
+	// Provider-only fields are dropped and nested values are flattened.
 	want := &job104DetailOutput{
 		JobName:        "j",
 		CompanyName:    "c",
@@ -440,7 +431,7 @@ func TestJob104HTTPToMCPDetailNullRemoteUnknownJobType(t *testing.T) {
 	}
 	got := job104HTTPToMCPDetail(&in, "jc1")
 
-	// Null remoteWork and unknown jobType code both drop their labels.
+	// Null remoteWork and unknown jobType both drop their labels.
 	want := &job104DetailOutput{
 		JobName:     "j",
 		CompanyName: "c",

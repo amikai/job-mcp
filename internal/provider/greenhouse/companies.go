@@ -12,20 +12,14 @@ import (
 //go:embed companies.yaml
 var companiesYAML []byte
 
-// Company is a confirmed organization hosting a public Greenhouse job
-// board, drawn from a curated list (internal/provider/greenhouse/companies.yaml).
-// Every entry was verified against the live Job Board API — HTTP 200 with
-// a non-empty jobs array; testdata/verify_companies.go re-verifies the
-// roster. BoardToken is the identifier the API takes as its board_token
-// path parameter, e.g. "anthropic" for boards-api.greenhouse.io/v1/boards/anthropic/jobs.
+// Company is a verified Greenhouse board from the curated roster. BoardToken
+// is the identifier used by the board_token API parameter.
 type Company struct {
 	Name       string `yaml:"company" json:"company"`
 	BoardToken string `yaml:"board_token" json:"board_token"`
 }
 
-// BoardURL returns the company's human-facing job board page, e.g.
-// https://job-boards.greenhouse.io/anthropic. API calls instead pass
-// BoardToken directly as the board_token parameter.
+// BoardURL returns the human-facing job board URL.
 func (c Company) BoardURL() string {
 	return fmt.Sprintf("https://job-boards.greenhouse.io/%s", c.BoardToken)
 }
@@ -33,13 +27,10 @@ func (c Company) BoardURL() string {
 // Companies holds every confirmed Greenhouse board, sorted by company name.
 var Companies = mustLoadCompanies()
 
-// CompaniesByBoardToken looks up a confirmed company by board token. Keys
-// are lowercased, so callers must lowercase their input before indexing.
+// CompaniesByBoardToken indexes companies by lowercase board token.
 var CompaniesByBoardToken = buildBoardTokenIndex(Companies)
 
-// mustLoadCompanies parses the embedded companies.yaml. A parse failure is a
-// build-time bug in a file this package owns, not a runtime condition to
-// recover from.
+// mustLoadCompanies parses the package-owned embedded roster.
 func mustLoadCompanies() []Company {
 	var cs []Company
 	if err := yaml.Unmarshal(companiesYAML, &cs); err != nil {

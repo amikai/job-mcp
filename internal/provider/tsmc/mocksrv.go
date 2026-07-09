@@ -12,9 +12,8 @@ var mockJobsRsp []byte
 //go:embed testdata/job_detail_rsp.html
 var mockJobDetailRsp []byte
 
-// NewMockServer returns an httptest.Server that mimics the TSMC careers site
-// with canned fixture responses, so tests never hit the real site. The caller
-// owns the server and must Close it.
+// NewMockServer serves canned TSMC career-site responses. The caller owns the
+// server and must close it.
 func NewMockServer() *httptest.Server {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/zh_TW/careers/SearchJobs/", serveMockHTML(mockJobsRsp))

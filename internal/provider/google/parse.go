@@ -32,8 +32,7 @@ func parseJobCard(li *goquery.Selection) (Job, bool) {
 
 	var company string
 	var remote bool
-	// the company badge comes first, remote jobs add a second "Remote
-	// eligible" badge with the same class.
+	// Remote jobs add a second badge with this same class.
 	for _, s := range li.Find("span.RP7SMd").EachIter() {
 		if t := spanChildText(s); t == "Remote eligible" {
 			remote = true
@@ -57,7 +56,7 @@ func parseJobCard(li *goquery.Selection) (Job, bool) {
 	}, true
 }
 
-// bulletTexts collects the whitespace-normalized text of every <li> under sel.
+// bulletTexts collects normalized text from the <li> elements under sel.
 func bulletTexts(sel *goquery.Selection) []string {
 	var bullets []string
 	for _, li := range sel.Find("li").EachIter() {
@@ -73,11 +72,10 @@ func parseJobDetailHTML(doc *goquery.Document, id string) (*JobDetailResponse, b
 	title := strings.TrimSpace(doc.Find("title").First().Text())
 	detail.Title = strings.TrimSuffix(title, " — Google Careers")
 
-	// scoped to <main> to exclude sidebar content.
+	// Scope to <main> to exclude sidebar content.
 	main := doc.Find("main").First()
 
-	// the company badge comes first, remote jobs add a second "Remote
-	// eligible" badge with the same class.
+	// Remote jobs add a second badge with this same class.
 	for _, s := range main.Find("span.RP7SMd").EachIter() {
 		if t := spanChildText(s); t == "Remote eligible" {
 			detail.Remote = true
@@ -116,9 +114,8 @@ func parseJobDetailHTML(doc *goquery.Document, id string) (*JobDetailResponse, b
 	return &detail, detail.Title != ""
 }
 
-// parseQualifications collects the "Minimum qualifications" heading and, if
-// immediately followed by a "Preferred qualifications" heading, that too —
-// this sibling-order logic isn't expressible as a CSS selector.
+// parseQualifications collects adjacent minimum and preferred sections; the
+// sibling-order rule is not expressible as a CSS selector.
 func parseQualifications(h3 *html.Node) string {
 	var sb strings.Builder
 	appendNodeText(&sb, h3)
@@ -186,7 +183,7 @@ func textContent(n *html.Node) string {
 	return sb.String()
 }
 
-// spanChildText returns the text of the first direct <span> child of sel.
+// spanChildText returns the first direct span's text.
 func spanChildText(sel *goquery.Selection) string {
 	return strings.TrimSpace(sel.ChildrenFiltered("span").First().Text())
 }

@@ -11,9 +11,7 @@ import (
 
 var remoteKeywords = []string{"remote", "work from home", "wfh"}
 
-// looksRemote is a heuristic, not a field LinkedIn provides: it's a plain
-// substring scan over whatever text we hand it. No match defaults to false.
-// A posting silent on remote work is assumed on-site, not unknown.
+// looksRemote scans text for remote-work terms; no match means on-site.
 func looksRemote(parts ...string) bool {
 	joined := strings.ToLower(strings.Join(parts, " "))
 	for _, kw := range remoteKeywords {
@@ -24,8 +22,7 @@ func looksRemote(parts ...string) bool {
 	return false
 }
 
-// parseJobsHTML parses job cards out of the seeMoreJobPostings/search HTML
-// fragment.
+// parseJobsHTML parses cards from a seeMoreJobPostings/search fragment.
 func parseJobsHTML(doc *goquery.Document) []Job {
 	var jobs []Job
 	for _, card := range doc.Find("div.base-search-card").EachIter() {
@@ -37,14 +34,11 @@ func parseJobsHTML(doc *goquery.Document) []Job {
 }
 
 func parseJobCard(card *goquery.Selection) (Job, bool) {
-	// The card div carries the canonical job ID in its urn; the link href is a
-	// slugged fallback for cards that ever omit the attribute.
+	// Prefer the canonical URN; the href is a slugged fallback.
 	urn, _ := card.Attr("data-entity-urn")
 	id := jobIDFromURN(urn)
 
-	// The sr-only span nested in the link is the canonical title; the
-	// h3.base-search-card__title duplicates it but the link is checked first
-	// and wins.
+	// Prefer the link's sr-only title over the duplicated h3 title.
 	var title string
 	if a := card.Find("a.base-card__full-link").First(); a.Length() > 0 {
 		if id == "" {
@@ -83,10 +77,7 @@ func parseJobCard(card *goquery.Selection) (Job, bool) {
 	}, id != "" && title != ""
 }
 
-// jobIDFromURN extracts the numeric job ID from a job card's
-// data-entity-urn ("urn:li:jobPosting:4422697744" -> "4422697744"). Returns
-// "" when the attribute is absent or malformed so the caller can fall back to
-// the href.
+// jobIDFromURN extracts the numeric ID from data-entity-urn, or returns empty.
 func jobIDFromURN(urn string) string {
 	if urn == "" {
 		return ""
@@ -98,9 +89,7 @@ func jobIDFromURN(urn string) string {
 	return urn[idx+1:]
 }
 
-// jobIDFromHref extracts the numeric job ID: the last hyphen-separated
-// segment of the path, ignoring any query string
-// (".../software-engineer-at-boostdraft-4422697744?position=1..." -> "4422697744").
+// jobIDFromHref extracts the final hyphen-separated path segment before the query.
 func jobIDFromHref(href string) string {
 	path, _, _ := strings.Cut(href, "?")
 	idx := strings.LastIndex(path, "-")
@@ -122,14 +111,13 @@ func stripQuery(rawURL string) string {
 	return u.String()
 }
 
-// parseJobDetailHTML parses a single jobs/view/{id} detail page.
+// parseJobDetailHTML parses a jobs/view/{id} detail page.
 func parseJobDetailHTML(doc *goquery.Document, id string) (*JobDetailResponse, bool) {
 	detail := JobDetailResponse{ID: id}
 
 	detail.Title = strings.TrimSpace(doc.Find("h1.topcard__title").First().Text())
 
-	// span.topcard__flavor also holds the location, distinguished by the
-	// extra topcard__flavor--bullet class; first match of each wins.
+	// The bullet class distinguishes location from the other flavor spans.
 	for _, s := range doc.Find("span.topcard__flavor").EachIter() {
 		if s.HasClass("topcard__flavor--bullet") {
 			if detail.Location == "" {
@@ -164,24 +152,19 @@ func parseJobDetailHTML(doc *goquery.Document, id string) (*JobDetailResponse, b
 	detail.EmploymentType = criteria["Employment type"]
 	detail.JobFunction = criteria["Job function"]
 	detail.Industries = criteria["Industries"]
-	// Scan only title+location, not the description: a full-text scan flips
-	// Remote on any incidental mention (e.g. "not a remote position") and would
-	// disagree with the search card, which sees title+location alone.
+	// Match the same title/location scope as search cards; descriptions contain
+	// incidental phrases such as "not a remote position".
 	detail.Remote = looksRemote(detail.Title, detail.Location)
 
 	return &detail, detail.Title != ""
 }
 
-// parseCriteria reads the label/value pairs out of the job criteria list
-// (Seniority level, Employment type, Job function, Industries, and
-// occasionally Workplace type — not every label appears on every posting).
+// parseCriteria reads the optional label/value pairs from the criteria list.
 func parseCriteria(list *goquery.Selection, out map[string]string) {
 	for _, li := range list.ChildrenFiltered("li").EachIter() {
 		label := strings.TrimSpace(li.Find("h3").First().Text())
 
-		// Prefer the value span LinkedIn documents (and openapi.yaml pins);
-		// fall back to the first bare span so a markup tweak doesn't
-		// silently blank the field.
+		// Prefer LinkedIn's documented value span, with a bare-span fallback.
 		var classedValue, anyValue string
 		for _, s := range li.Find("span").EachIter() {
 			text := strings.TrimSpace(s.Text())
@@ -205,10 +188,8 @@ func parseCriteria(list *goquery.Selection, out map[string]string) {
 
 var applyURLPattern = regexp.MustCompile(`\?url=([^"]+)`)
 
-// parseApplyURL extracts the external ATS apply URL from
+// parseApplyURL extracts the external ATS URL when LinkedIn redirects off-site.
 // <code id="applyUrl"><!--"...?...&url=ENCODED"--></code>, present only for
-// postings that redirect off-platform to apply (absent for LinkedIn's own
-// Easy Apply, as in this package's fixture).
 func parseApplyURL(code *goquery.Selection) string {
 	if code.Length() == 0 {
 		return ""
@@ -229,8 +210,7 @@ func parseApplyURL(code *goquery.Selection) string {
 	return ""
 }
 
-// appendNodeText flattens a node's text, inserting newlines around
-// block-level elements so a rich-text description reads as plain text.
+// appendNodeText flattens rich text, inserting newlines around block elements.
 func appendNodeText(sb *strings.Builder, n *html.Node) {
 	if n.Type == html.TextNode {
 		sb.WriteString(n.Data)

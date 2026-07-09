@@ -33,9 +33,8 @@ var (
 	date    = "date"
 )
 
-// serverInstructions carries the cross-tool guidance for host LLMs: provider
-// routing and the shared search→detail flow. Per-tool behavior stays in each
-// tool's description.
+// serverInstructions contains guidance shared by all search tools; individual
+// tool behavior stays in each tool's description.
 const serverInstructions = `openings-mcp exposes job-search tools for six job boards: 104 and Cake.me (both Taiwan-centric) and LinkedIn (global), plus the official careers sites of Google, NVIDIA, and TSMC.
 
 Tool selection:
@@ -99,8 +98,7 @@ func main() {
 }
 
 func runWithTransport(transport mcp.Transport, logger *slog.Logger) error {
-	// One connection pool, with a ceiling so a hung upstream fails that call
-	// instead of stalling the MCP session.
+	// Bound each upstream call so one hung request cannot stall the MCP session.
 	hc104 := &http.Client{Timeout: 30 * time.Second, Transport: job104.BrowserTransport{}}
 
 	c104, err := job104.NewClient("https://www.104.com.tw", job104.WithClient(hc104))
@@ -140,8 +138,7 @@ func runWithTransport(transport mcp.Transport, logger *slog.Logger) error {
 	return nil
 }
 
-// newATSRegistry wires the unified company adapters over one shared
-// connection pool, against the providers' production endpoints.
+// newATSRegistry wires the unified company adapters over the shared client.
 func newATSRegistry(hc *http.Client) (*ats.Registry, error) {
 	adapterLever, err := ats.NewLeverAdapter("https://api.lever.co", hc)
 	if err != nil {
@@ -158,9 +155,8 @@ func newATSRegistry(hc *http.Client) (*ats.Registry, error) {
 	return ats.NewRegistry(ats.NewWorkdayAdapter(hc), adapterLever, adapterAshby, adapterGreenhouse)
 }
 
-// registry is wired up but not yet registered as MCP tools: the unified
-// company-tools feature (search_jobs_by_company etc.) is still in progress
-// and not part of this release's tool surface.
+// registry is prepared for the unified company tools, which are not registered
+// in this release.
 func newServer(c104 *job104.Client, cCake *cake.Client, cNvidia *nvidia.Client, cTsmc *tsmc.Client, cGoogle *google.Client, cLinkedin *linkedin.Client, registry *ats.Registry, logger *slog.Logger) *mcp.Server {
 	server := mcp.NewServer(&mcp.Implementation{Name: "openings-mcp", Version: version}, &mcp.ServerOptions{Instructions: serverInstructions, Logger: logger})
 	server.AddReceivingMiddleware(logging.ErrorLoggingMiddleware(logger))

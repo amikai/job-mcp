@@ -7,31 +7,25 @@ import (
 	"unicode"
 )
 
-// registryEntry binds one resolved company to the adapter that serves it.
 type registryEntry struct {
 	adapter Adapter
 	slug    string
 	name    string
 }
 
-// slugEntry pairs a roster slug with its precomputed normalized form, so
-// the suggestion path doesn't re-normalize the whole roster on every miss.
 type slugEntry struct {
 	slug string
 	norm string
 }
 
-// Registry is the read-only union of every adapter's roster, built once at
-// startup. It owns name resolution; adapters never see unresolved input.
+// Registry is the read-only union of all adapter rosters and owns name resolution.
 type Registry struct {
 	bySlug map[string]registryEntry // key: normalize(slug)
 	byName map[string]registryEntry // key: normalize(display name)
 	slugs  []slugEntry              // sorted by slug, for suggestions
 }
 
-// NewRegistry unions the adapters' rosters. A slug or normalized display
-// name colliding across entries is a curation bug — fail startup loudly
-// rather than silently shadowing one company with another.
+// NewRegistry builds a registry and rejects duplicate slugs or names.
 func NewRegistry(adapters ...Adapter) (*Registry, error) {
 	r := &Registry{
 		bySlug: make(map[string]registryEntry),
@@ -59,9 +53,7 @@ func NewRegistry(adapters ...Adapter) (*Registry, error) {
 	return r, nil
 }
 
-// Resolve maps a user-supplied company string to (adapter, slug). Misses
-// return a teaching error carrying the closest slugs, so one retry from the
-// LLM almost always lands.
+// Resolve maps a company string to an adapter and slug, or returns suggestions.
 func (r *Registry) Resolve(company string) (Adapter, string, error) {
 	key := normalize(company)
 	if key == "" {
@@ -77,8 +69,7 @@ func (r *Registry) Resolve(company string) (Adapter, string, error) {
 		company, strings.Join(r.suggest(key, 3), ", "), len(r.bySlug))
 }
 
-// normalize folds case and strips everything but letters and digits, so
-// "Workday, Inc." and "workday inc" collide on purpose.
+// normalize folds case and removes non-alphanumeric characters.
 func normalize(s string) string {
 	var b strings.Builder
 	for _, r := range strings.ToLower(s) {
@@ -89,8 +80,7 @@ func normalize(s string) string {
 	return b.String()
 }
 
-// suggest ranks slugs for a missed lookup: substring hits (either
-// direction) beat everything, then edit distance breaks ties.
+// suggest ranks substring matches first, then uses edit distance.
 func (r *Registry) suggest(key string, n int) []string {
 	type scored struct {
 		slug string
@@ -98,7 +88,7 @@ func (r *Registry) suggest(key string, n int) []string {
 	}
 	ranked := make([]scored, 0, len(r.slugs))
 	for _, s := range r.slugs {
-		// Substring hits win outright; levenshtein only runs when needed.
+		// Skip edit distance for substring matches.
 		dist := 0
 		if !strings.Contains(s.norm, key) && !strings.Contains(key, s.norm) {
 			dist = levenshtein(key, s.norm)
@@ -121,8 +111,7 @@ func (r *Registry) suggest(key string, n int) []string {
 	return out
 }
 
-// levenshtein is the classic two-row edit distance; rosters are a few
-// hundred short strings, so no need for anything fancier.
+// levenshtein computes edit distance with two rows of storage.
 func levenshtein(a, b string) int {
 	ar, br := []rune(a), []rune(b)
 	prev := make([]int, len(br)+1)

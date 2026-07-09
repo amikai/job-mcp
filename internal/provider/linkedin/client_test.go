@@ -39,9 +39,7 @@ func TestJobDetail(t *testing.T) {
 	assert.Contains(t, description, "BoostDraft is a software engineering company")
 }
 
-// A cold JobDetail call (no prior Jobs on the same client) must prime the
-// session first, mirroring LinkedIn 999-authwalling a cookieless jobs/view
-// request that succeeds once it carries cookies from a prior request.
+// A cold JobDetail call must prime the session before requesting jobs/view.
 func TestJobDetailWarmsColdSession(t *testing.T) {
 	var searched bool
 	mux := http.NewServeMux()
@@ -77,10 +75,7 @@ func TestJobDetailEmptyID(t *testing.T) {
 	assert.Error(t, err)
 }
 
-// LinkedIn's real jobs/view/{id} endpoint returns this non-standard status
-// for bot-suspected requests with no session cookies (observed while building
-// this package's fixtures); getHTML must surface a clear error rather than
-// try to parse the authwall redirect page as job HTML.
+// HTTP 999 is LinkedIn's bot/auth-wall response; getHTML must not parse it as job HTML.
 func TestGetHTMLBotBlocked(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(999)

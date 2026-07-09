@@ -16,11 +16,8 @@ import (
 	"github.com/amikai/openings-mcp/internal/provider/linkedin"
 )
 
-// main issues a single JobsRequest built entirely from flags. Job detail is
-// fetched for at most -fetch-details jobs (default 0, i.e. none): LinkedIn's
-// jobs/view/{id} endpoint is the most block-prone of the two, commonly
-// 999-authwalling a cold request and rate-limiting a single IP after
-// sustained use, so fetching every result's detail is opt-in, not default.
+// main searches with the flags. Detail fetches are opt-in because LinkedIn's
+// jobs/view/{id} endpoint commonly returns HTTP 999 for cold or sustained use.
 func main() {
 	fs := ff.NewFlagSet("linkedin")
 	var (
@@ -150,10 +147,7 @@ func writeDetail(w io.Writer, detail *linkedin.JobDetailResponse) {
 	}
 }
 
-// labels returns the sorted keys of a lookup table, prefixed with "" so an
-// ff.StringEnumLong flag can default to unset (no filter) instead of
-// silently falling back to the first real value — ffval.Enum's zero Default
-// only survives initialize() if it's itself in the Valid list.
+// labels returns sorted keys prefixed with an empty value for an unset flag.
 func labels(table map[string]string) []string {
 	l := make([]string, 0, len(table)+1)
 	l = append(l, "")
@@ -164,9 +158,7 @@ func labels(table map[string]string) []string {
 	return l
 }
 
-// usageWithChoices appends a "one of: ..." list to base. ffhelp never
-// introspects an ff.StringEnumLong's valid values on its own, so small
-// enough choice sets are spelled out here to make -h self-documenting.
+// usageWithChoices adds the valid values to flag help.
 func usageWithChoices(base string, table map[string]string) string {
 	choices := labels(table)[1:] // drop the leading "" no-filter sentinel
 	return fmt.Sprintf("%s, one of: %s", base, strings.Join(choices, " | "))

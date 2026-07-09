@@ -96,8 +96,7 @@ func TestLinkedinHTTPToMCPDetail(t *testing.T) {
 	}
 	got := linkedinHTTPToMCPDetail(&in)
 
-	// CompanyLogo has no corresponding output field: it's intentionally
-	// dropped, so it must not appear anywhere in want.
+	// CompanyLogo has no output field and must be dropped.
 	want := &linkedinDetailOutput{
 		ID:             "7",
 		URL:            "https://www.linkedin.com/jobs/view/7",
@@ -242,9 +241,6 @@ func TestLinkedinSearchJobsE2E(t *testing.T) {
 func TestLinkedinSearchJobsInvalidEnumE2E(t *testing.T) {
 	clientSession, _ := testLinkedinMCPClientServer(t)
 
-	// A value outside a property's enum is rejected by the SDK's
-	// input-schema validation before the handler runs, as an IsError tool
-	// result.
 	callRes, err := clientSession.CallTool(t.Context(), &mcp.CallToolParams{
 		Name:      "linkedin_search_jobs",
 		Arguments: map[string]any{"workplace_type": "valueNotInEnum"},
@@ -271,9 +267,7 @@ func TestLinkedinGetJobDetailE2E(t *testing.T) {
 	var got linkedinDetailOutput
 	require.NoError(t, json.Unmarshal(data, &got))
 
-	// The fixture's description is a very large bilingual blob; asserted via
-	// assert.Contains below rather than pinned verbatim, same as
-	// internal/provider/linkedin/parse_test.go's TestParseDetailHTML.
+	// The large bilingual description is checked with assert.Contains below.
 	description := got.Description
 	got.Description = ""
 

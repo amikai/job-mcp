@@ -6,13 +6,10 @@ import (
 	"net/http/httptest"
 )
 
-// MockBoardName is the board slug the mock server serves fixtures for — the
-// real board the testdata was captured from (see testdata/board_req.hurl).
+// MockBoardName is the board slug used by the main fixture.
 const MockBoardName = "browserbase"
 
-// MockNullsBoardName serves a fixture whose jobs carry null isRemote and
-// workplaceType — fields the official docs claim are always present but many
-// real boards null out (see testdata/board_req.hurl).
+// MockNullsBoardName serves jobs with null workplace fields.
 const MockNullsBoardName = "weaviate"
 
 //go:embed testdata/board_rsp.json
@@ -24,12 +21,9 @@ var mockBoardCompRsp []byte
 //go:embed testdata/board_nulls_rsp.json
 var mockBoardNullsRsp []byte
 
-// NewMockServer returns an httptest.Server serving canned Ashby job-board
-// fixture responses captured from a real board (see testdata/board_req.hurl),
-// so tests never hit the live API. The compensation fixture is served when
-// the request sets includeCompensation=true; unknown boards get the same
-// plain-text 404 the real API returns. The caller owns the server and must
-// Close it.
+// NewMockServer serves canned Ashby responses without hitting the live API.
+// Compensation and unknown-board responses mirror the real API. The caller
+// owns the server and must close it.
 func NewMockServer() *httptest.Server {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/posting-api/job-board/"+MockBoardName, func(w http.ResponseWriter, r *http.Request) {

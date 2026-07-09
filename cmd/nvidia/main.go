@@ -16,9 +16,7 @@ import (
 	nvidia "github.com/amikai/openings-mcp/internal/provider/nvidia"
 )
 
-// nvidiaSiteURL is the public careers site origin, distinct from --base-url
-// (the wday/cxs API origin). ExternalPath values (e.g.
-// "/job/US-CA-Remote/...") are relative to this, under /NVIDIAExternalCareerSite.
+// nvidiaSiteURL is the public careers origin used to resolve ExternalPath.
 const nvidiaSiteURL = "https://nvidia.wd5.myworkdayjobs.com/NVIDIAExternalCareerSite"
 
 // main issues a single JobsRequest built entirely from flags, then fetches
@@ -92,21 +90,17 @@ func main() {
 		detail, err := client.GetJobDetail(ctx, nvidia.GetJobDetailParams{Location: location, TitleSlug: titleSlug})
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "job detail %s: %v\n", job.ExternalPath.Value, err)
-			// Fallback URL when the detail fetch (which carries the
-			// authoritative externalUrl) failed. Must include the site's
-			// "/NVIDIAExternalCareerSite" path segment or the link 404s.
+			// ExternalPath needs the site's career-site segment or the link 404s.
 			fmt.Printf("URL: %s%s\n", nvidiaSiteURL, job.ExternalPath.Value)
-			// LocationsText ("N Locations") is Workday's aggregate string; it's
-			// the best we have left if the detail fetch (which itemizes) failed.
+			// LocationsText is the aggregate fallback when detail is unavailable.
 			if job.LocationsText.Set {
 				fmt.Printf("Location: %s\n", job.LocationsText.Value)
 			}
 			fmt.Println()
 			continue
 		}
-		// detail.JobPostingInfo.ExternalUrl is the site's own authoritative URL
-		// (includes the "/NVIDIAExternalCareerSite" site path segment); hand-
-		// constructing it from ExternalPath alone omits that segment and 404s.
+		// Prefer the site's authoritative URL; ExternalPath omits the career-site
+		// segment and would 404 if used alone.
 		if detail.JobPostingInfo.ExternalUrl.Set {
 			fmt.Printf("URL: %s\n", detail.JobPostingInfo.ExternalUrl.Value)
 		}
@@ -122,10 +116,8 @@ func main() {
 	}
 }
 
-// buildAppliedFacets resolves each flag's human label to a Workday facet id
-// via the facets.go lookup tables. Labels are already validated against the
-// flag's enum at parse time, so a lookup miss here can't happen for a
-// non-empty label. An empty label (flag not set) leaves that facet field nil.
+// buildAppliedFacets resolves flag labels to Workday facet IDs. Empty labels
+// leave their facet fields nil.
 func buildAppliedFacets(jobCategory, jobType, timeType, locationType, country, site string) nvidia.AppliedFacets {
 	var af nvidia.AppliedFacets
 	if jobCategory != "" {
@@ -149,10 +141,7 @@ func buildAppliedFacets(jobCategory, jobType, timeType, locationType, country, s
 	return af
 }
 
-// labels returns the sorted keys of a facets.go lookup table, prefixed with
-// "" so an ff.StringEnumLong flag can default to unset (no filter) instead
-// of silently falling back to the first real label — ffval.Enum's zero
-// Default only survives initialize() if it's itself in the Valid list.
+// labels returns sorted keys prefixed with an empty value for an unset flag.
 func labels[V any](table map[string]V) []string {
 	l := make([]string, 0, len(table)+1)
 	l = append(l, "")
@@ -163,9 +152,7 @@ func labels[V any](table map[string]V) []string {
 	return l
 }
 
-// usageWithChoices appends a comma-separated "one of: ..." list to base.
-// ffhelp never introspects an ff.StringEnumLong's valid values on its own, so
-// small enough choice sets are spelled out here to make -h self-documenting.
+// usageWithChoices adds the valid values to flag help.
 func usageWithChoices[V any](base string, table map[string]V) string {
 	choices := labels(table)[1:] // drop the leading "" no-filter sentinel
 	// " | " (not ", ") because some labels (e.g. site names like
@@ -173,10 +160,8 @@ func usageWithChoices[V any](base string, table map[string]V) string {
 	return fmt.Sprintf("%s, one of: %s", base, strings.Join(choices, " | "))
 }
 
-// printLocations prints the itemized location(s) from a job detail response.
-// Unlike JobSummary.LocationsText (which collapses multi-site postings into
-// an aggregate string like "2 Locations"), JobPostingInfo carries the actual
-// primary Location plus every AdditionalLocations entry.
+// printLocations prints the itemized locations from job detail rather than
+// Workday's aggregate JobSummary.LocationsText.
 func printLocations(info nvidia.JobPostingInfo) {
 	locations := make([]string, 0, 1+len(info.AdditionalLocations))
 	if info.Location.Set {

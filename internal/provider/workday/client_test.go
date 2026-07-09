@@ -87,10 +87,7 @@ func TestGetJobDetail_Nvidia(t *testing.T) {
 	assert.Equal(t, want, detail)
 }
 
-// TestSearchJobs_TrendMicro exercises a second tenant. Workday is multi-tenant
-// and every company runs its own instance, so one tenant can't prove the
-// contract is tenant-agnostic. Trend Micro (wd3 pod, site "External"; see
-// testdata/trendmicro_*.hurl) is that second tenant.
+// TestSearchJobs_TrendMicro verifies the client against a second Workday tenant.
 func TestSearchJobs_TrendMicro(t *testing.T) {
 	srv := NewMockServer(MockTrendMicroJobsRsp, MockTrendMicroJobDetailRsp)
 	defer srv.Close()
@@ -124,9 +121,9 @@ func TestSearchJobs_TrendMicro(t *testing.T) {
 	}
 	assert.Equal(t, wantSearch, search)
 
-	// extract first external path
+	// Extract the first external path.
 	externalPath := search.JobPostings[0].ExternalPath.Value
-	// location: Taipei, titleSlug: XMLNAME--Sr--Backend-Engineer_R0006260-1
+	// Expected path shape: location/TITLE_SLUG.
 	location, titleSlug, ok := JobDetailKeyFromPath(externalPath)
 	require.True(t, ok)
 

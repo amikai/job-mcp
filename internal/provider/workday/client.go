@@ -7,15 +7,12 @@ import (
 	"strings"
 )
 
-// TenantClient is a Workday CXS client that can query any confirmed tenant
-// (see [CompaniesByTenant]) by slug, so callers only need one instance to
-// use across all tenants and calls.
+// TenantClient queries any confirmed Workday tenant by slug.
 type TenantClient struct {
 	client *Client
 }
 
-// NewTenantClient builds a TenantClient. opts configure it the same way as
-// NewClient (timeouts, tracing, a custom http.Client, etc.).
+// NewTenantClient builds a TenantClient with the same options as NewClient.
 func NewTenantClient(opts ...ClientOption) (*TenantClient, error) {
 	c, err := NewClient("", opts...)
 	if err != nil {
@@ -26,8 +23,7 @@ func NewTenantClient(opts ...ClientOption) (*TenantClient, error) {
 	}, nil
 }
 
-// serverURLByTenant resolves tenant to its confirmed Workday CXS base URL,
-// erroring if tenant isn't a confirmed tenant (see CompaniesByTenant).
+// serverURLByTenant resolves a confirmed tenant to its CXS base URL.
 func serverURLByTenant(tenant string) (serverURL *url.URL, err error) {
 	company, ok := CompaniesByTenant[strings.ToLower(tenant)]
 	if !ok {
@@ -40,8 +36,7 @@ func serverURLByTenant(tenant string) (serverURL *url.URL, err error) {
 	return u, nil
 }
 
-// JobsByTenant searches jobs for tenant, a confirmed Workday tenant slug
-// (see CompaniesByTenant). It errors if tenant isn't confirmed.
+// JobsByTenant searches a confirmed tenant.
 func (c *TenantClient) JobsByTenant(ctx context.Context, tenant string, request *JobsRequest) (*JobsResponse, error) {
 	serverURL, err := serverURLByTenant(tenant)
 	if err != nil {
@@ -51,10 +46,8 @@ func (c *TenantClient) JobsByTenant(ctx context.Context, tenant string, request 
 	return c.client.SearchJobs(ctx, request)
 }
 
-// ToGetJobDetailParams returns GetJobDetailParams for the first posting in
-// rsp.JobPostings whose ExternalPath is set and splits into a valid
-// {location}/{titleSlug} pair (see JobDetailKeyFromPath), skipping any that
-// aren't. It reports false if no posting qualifies.
+// ToGetJobDetailParams returns parameters for the first posting with a valid
+// ExternalPath, or false when none qualifies.
 func (rsp *JobsResponse) ToGetJobDetailParams() (GetJobDetailParams, bool) {
 	for _, posting := range rsp.JobPostings {
 		externalPath, ok := posting.ExternalPath.Get()
@@ -70,9 +63,7 @@ func (rsp *JobsResponse) ToGetJobDetailParams() (GetJobDetailParams, bool) {
 	return GetJobDetailParams{}, false
 }
 
-// JobDetailByTenant fetches a single job posting for tenant, a confirmed
-// Workday tenant slug (see [CompaniesByTenant]). It errors if tenant isn't
-// confirmed.
+// JobDetailByTenant fetches one posting for a confirmed tenant.
 func (c *TenantClient) JobDetailByTenant(ctx context.Context, tenant, location, titleSlug string) (*JobDetailResponse, error) {
 	serverURL, err := serverURLByTenant(tenant)
 	if err != nil {

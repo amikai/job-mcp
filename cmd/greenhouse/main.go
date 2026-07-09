@@ -17,8 +17,7 @@ import (
 	greenhouse "github.com/amikai/openings-mcp/internal/provider/greenhouse"
 )
 
-// apiBaseURL is Greenhouse's public Job Board API origin — the single
-// production server in the provider's openapi.yaml.
+// apiBaseURL is Greenhouse's public Job Board API origin.
 const apiBaseURL = "https://boards-api.greenhouse.io/v1"
 
 func main() {
@@ -96,10 +95,7 @@ func main() {
 	}
 }
 
-// jobSummaryJSON is the --format json shape for one search result: the
-// compact fields a listing needs, no description. It's a flat, stable
-// projection of the generated greenhouse.JobSummary so the CLI's output
-// doesn't change shape when the spec's generated types do.
+// jobSummaryJSON is the stable, compact --format json projection for a listing.
 type jobSummaryJSON struct {
 	ID        int    `json:"id"`
 	Title     string `json:"title"`
@@ -132,9 +128,8 @@ func summarize(j greenhouse.JobSummary) jobSummaryJSON {
 	return s
 }
 
-// matches applies the client-side search filters: case-insensitive
-// substring on title (keyword) and location name (location), ANDed. The
-// Job Board API has no server-side filtering, so this is the whole search.
+// matches applies the case-insensitive title and location filters locally;
+// the Job Board API has no server-side filtering.
 func matches(s jobSummaryJSON, keyword, location string) bool {
 	return containsFold(s.Title, keyword) && containsFold(s.Location, location)
 }
@@ -146,8 +141,7 @@ func containsFold(s, sub string) bool {
 	return strings.Contains(strings.ToLower(s), strings.ToLower(sub))
 }
 
-// formatCents renders a pay_input_ranges amount: whole currency units when
-// the cents divide evenly (the common case), two decimals otherwise.
+// formatCents renders whole units when cents divide evenly, otherwise two decimals.
 func formatCents(cents int) string {
 	if cents%100 == 0 {
 		return fmt.Sprintf("%d", cents/100)
@@ -155,9 +149,7 @@ func formatCents(cents int) string {
 	return fmt.Sprintf("%.2f", float64(cents)/100)
 }
 
-// payRangeLine renders one pay range as "title: min – max CURRENCY". The
-// currency comes from currency_type verbatim — no hard-coded "$", the
-// roster has EUR boards.
+// payRangeLine renders a pay range using the API's currency verbatim.
 func payRangeLine(r greenhouse.PayInputRange) string {
 	span := fmt.Sprintf("%s – %s %s",
 		formatCents(r.MinCents.Value), formatCents(r.MaxCents.Value), r.CurrencyType.Value)
@@ -167,9 +159,8 @@ func payRangeLine(r greenhouse.PayInputRange) string {
 	return span
 }
 
-// renderDescription converts a job's content field to plain text. Greenhouse
-// sends it HTML entity-encoded, so decode first, then strip tags; on a
-// conversion failure fall back to the decoded HTML rather than dropping it.
+// renderDescription decodes and strips Greenhouse's HTML content. If stripping
+// fails, it returns the decoded HTML instead of dropping the description.
 func renderDescription(content string) string {
 	decoded := html.UnescapeString(content)
 	if text, err := html2text.FromString(decoded, html2text.Options{}); err == nil {
@@ -178,8 +169,7 @@ func renderDescription(content string) string {
 	return decoded
 }
 
-// printSummary prints one job's compact text block (everything below the
-// title line).
+// printSummary renders a job's compact text block.
 func printSummary(s jobSummaryJSON) {
 	if s.Location != "" {
 		fmt.Printf("Location: %s\n", s.Location)
@@ -193,9 +183,7 @@ func printSummary(s jobSummaryJSON) {
 	fmt.Printf("ID: %d\n", s.ID)
 }
 
-// runCompanies lists every confirmed Greenhouse board embedded in the CLI
-// (internal/provider/greenhouse/companies.yaml), sorted by company name. It
-// makes no network call.
+// runCompanies prints the embedded Greenhouse board roster without a network call.
 func runCompanies(format string) error {
 	cs := greenhouse.Companies
 
@@ -211,8 +199,7 @@ func runCompanies(format string) error {
 	return nil
 }
 
-// normalizeBoard lowercases the --board value and requires it to be a
-// curated board — same policy as cmd/ashby's fetchBoard front half.
+// normalizeBoard lowercases --board and requires it to be in the curated roster.
 func normalizeBoard(board string) (string, error) {
 	if board == "" {
 		return "", fmt.Errorf("--board is required")
@@ -224,9 +211,8 @@ func normalizeBoard(board string) (string, error) {
 	return slug, nil
 }
 
-// runSearch fetches the board's whole job list (the API has no pagination
-// and no server-side filters) WITHOUT content=true — summaries stay small —
-// then filters client-side and prints summaries.
+// runSearch fetches the unexpanded board list, filters it locally, and prints
+// summaries. The API has neither pagination nor server-side filters.
 func runSearch(ctx context.Context, board string, timeout time.Duration, keyword, location, format string) error {
 	slug, err := normalizeBoard(board)
 	if err != nil {
@@ -250,8 +236,7 @@ func runSearch(ctx context.Context, board string, timeout time.Duration, keyword
 	case *greenhouse.JobListResponse:
 		resp = r
 	case *greenhouse.ListJobsNotFound:
-		// Theoretically unreachable for roster boards, but reported
-		// rather than swallowed.
+		// Roster validation makes this unlikely, but do not swallow the error.
 		return fmt.Errorf("board %q not found upstream", board)
 	default:
 		return fmt.Errorf("unexpected response type %T", res)
@@ -281,9 +266,8 @@ func runSearch(ctx context.Context, board string, timeout time.Duration, keyword
 	return nil
 }
 
-// runGet fetches one job in full via Greenhouse's single-job endpoint —
-// unlike Ashby there's no need to re-fetch the whole board — with
-// pay_transparency=true so pay_input_ranges come back.
+// runGet fetches one job through Greenhouse's detail endpoint with pay
+// transparency enabled.
 func runGet(ctx context.Context, board string, timeout time.Duration, jobID int, format string) error {
 	if jobID == 0 {
 		return fmt.Errorf("--id is required (take it from a search result's ID)")
@@ -319,8 +303,7 @@ func runGet(ctx context.Context, board string, timeout time.Duration, jobID int,
 	}
 }
 
-// printDetail renders one full job. JSON mode encodes the generated
-// JobDetail as-is — detail is for seeing the whole record.
+// printDetail renders one full job; JSON mode emits the generated record as-is.
 func printDetail(d *greenhouse.JobDetail, format string) error {
 	if format == "json" {
 		enc := json.NewEncoder(os.Stdout)
@@ -346,8 +329,7 @@ func printDetail(d *greenhouse.JobDetail, format string) error {
 		for _, r := range d.PayInputRanges {
 			fmt.Printf("  %s\n", payRangeLine(r))
 			if b := r.Blurb.Value; b != "" {
-				// Blurbs arrive as HTML fragments; render them like the
-				// description so no raw tags leak into text output.
+				// Blurbs are HTML fragments, like the description.
 				fmt.Printf("    %s\n", strings.TrimSpace(renderDescription(b)))
 			}
 		}

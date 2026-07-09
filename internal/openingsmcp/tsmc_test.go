@@ -54,8 +54,7 @@ func TestTsmcSearchJobsE2E(t *testing.T) {
 	schema, ok := tool.InputSchema.(map[string]any)
 	require.True(t, ok)
 
-	// Full golden schema: label enums instead of the site's numeric
-	// form-field IDs, keyword and location required.
+	// The schema exposes label enums instead of numeric form-field IDs.
 	want := map[string]any{
 		"type": "object",
 		"properties": map[string]any{
@@ -224,8 +223,6 @@ func TestTsmcSearchJobsE2E(t *testing.T) {
 func TestTsmcSearchJobsMissingRequiredE2E(t *testing.T) {
 	clientSession, _ := testTsmcMCPClientServer(t)
 
-	// Missing required params are rejected by the SDK's input-schema
-	// validation before the handler runs, as an IsError tool result.
 	cases := []struct {
 		name string
 		args map[string]any
@@ -253,9 +250,6 @@ func TestTsmcSearchJobsMissingRequiredE2E(t *testing.T) {
 func TestTsmcSearchJobsInvalidEnumE2E(t *testing.T) {
 	clientSession, _ := testTsmcMCPClientServer(t)
 
-	// A value outside a property's enum is rejected by the SDK's
-	// input-schema validation before the handler runs, as an IsError
-	// tool result.
 	callRes, err := clientSession.CallTool(t.Context(), &mcp.CallToolParams{
 		Name:      "tsmc_search_jobs",
 		Arguments: map[string]any{"keyword": "engineer", "location": "Taiwan", "employment_type": "valueNotInEnum"},

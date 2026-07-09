@@ -25,8 +25,7 @@ var (
 	sortOrders      = []string{"relevance", "date"}
 )
 
-// main issues a single JobsRequest built entirely from flags, then fetches
-// JobDetail for the first ten jobs the search returned.
+// main searches with the flags and fetches details for the first ten results.
 func main() {
 	fs := ff.NewFlagSet("google")
 	var (
@@ -104,17 +103,12 @@ func buildJobsRequest(query, location string, hasRemote bool, targetLevel, skill
 	return req
 }
 
-// withUnset prefixes choices with "" so an ff.StringEnumLong flag can default
-// to unset (no filter) instead of silently falling back to the first real
-// value — ffval.Enum's zero Default only survives initialize() if it's itself
-// in the Valid list.
+// withUnset prepends an empty value so the flag can mean "unset".
 func withUnset(choices []string) []string {
 	return append([]string{""}, choices...)
 }
 
-// usageWithChoices appends a "one of: ..." list to base. ffhelp never
-// introspects an ff.StringEnumLong's valid values on its own, so small
-// enough choice sets are spelled out here to make -h self-documenting.
+// usageWithChoices adds the valid values to flag help.
 func usageWithChoices(base string, choices []string) string {
 	return fmt.Sprintf("%s, one of: %s", base, strings.Join(choices, " | "))
 }

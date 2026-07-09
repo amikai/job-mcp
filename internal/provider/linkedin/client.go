@@ -18,15 +18,14 @@ const (
 	jobDetailPath = "/jobs/view"
 )
 
-// Workplace type (f_WT). Only WorkplaceRemote was exercised against the live
-// site; see openapi.yaml.
+// Workplace type (f_WT); WorkplaceRemote is the live-tested value.
 const (
 	WorkplaceOnSite = "1"
 	WorkplaceRemote = "2"
 	WorkplaceHybrid = "3"
 )
 
-// Job type (f_JT), single-letter codes.
+// Job type (f_JT) uses single-letter codes.
 const (
 	JobTypeFullTime   = "F"
 	JobTypePartTime   = "P"
@@ -40,12 +39,8 @@ type Client struct {
 	baseURL    string
 }
 
-// DefaultStart is the start offset a real, signed-out browser uses for its
-// first call to this endpoint: the initial /jobs/search page already
-// renders the first 25 results server-side, so guest scroll traffic never
-// requests start=0 through this endpoint (confirmed live; see
-// openapi.yaml's Pagination notes). Pass 0 explicitly to fetch the results a
-// browser session would already have loaded before ever reaching this call.
+// DefaultStart is 25 because the initial search page already renders the first
+// 25 results before this endpoint is called.
 const DefaultStart = 25
 
 type JobsRequest struct {
@@ -89,11 +84,8 @@ type JobDetailResponse struct {
 	Remote         bool
 }
 
-// NewClient builds a Client. When httpClient is nil, the default carries a
-// cookie jar: a cold request to jobDetailPath commonly gets HTTP 999
-// (bot-suspected authwall redirect), but succeeds once it carries the cookies
-// a prior request to the same host received — the same way a browser would
-// behave across a search-then-click flow. See openapi.yaml Key Behaviors.
+// NewClient builds a Client. The default http.Client has a cookie jar because
+// cold detail requests commonly receive LinkedIn's HTTP 999 auth wall.
 func NewClient(baseURL string, httpClient *http.Client) *Client {
 	if httpClient == nil {
 		jar, _ := cookiejar.New(nil)
@@ -173,10 +165,8 @@ func (c *Client) JobDetail(ctx context.Context, jobID string) (*JobDetailRespons
 	return detail, nil
 }
 
-// warmSession primes the cookie jar before a cold jobs/view request, which
-// LinkedIn otherwise 999-authwalls (see NewClient). It's a best-effort no-op
-// when the client carries no jar (a caller-supplied client) or the jar already
-// holds cookies for the host — e.g. from a prior Jobs call on the same client.
+// warmSession primes the cookie jar before a detail request that would
+// otherwise receive HTTP 999. It is a no-op without a jar or when already warm.
 func (c *Client) warmSession(ctx context.Context) {
 	jar := c.httpClient.Jar
 	if jar == nil {
@@ -189,9 +179,8 @@ func (c *Client) warmSession(ctx context.Context) {
 	if len(jar.Cookies(u)) > 0 {
 		return
 	}
-	// The Set-Cookie values land in the jar during the request regardless of
-	// whether the response parses, so any error here is ignored: the real
-	// jobs/view request follows and surfaces its own error if still blocked.
+	// Cookies are stored even if the response is not valid job HTML; the detail
+	// request reports any remaining block.
 	c.getHTML(ctx, c.baseURL+"/jobs/search", "") //nolint:errcheck
 }
 

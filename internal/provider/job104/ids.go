@@ -1,14 +1,7 @@
 package job104
 
-// AreaIDs maps an area label to its 104 area code. Codes are opaque and not
-// sequential/guessable from the value (confirmed live — one wrong guess
-// pointed at Yilan County instead of Taoyuan). Sourced from 104's own
-// region-picker data at https://static.104.com.tw/category-tool/json/Area.json,
-// which covers Taiwan's 20 counties/cities plus every overseas region (mainland
-// China, other Asia, Oceania, US/Canada, Central/South America, Europe,
-// Africa) the site's job search lets you filter by. Only the top two levels
-// (region group + county/country) are included; finer district-level entries
-// (e.g. Taipei's individual districts) are not.
+// AreaIDs maps labels to 104's opaque area codes. It covers the top two levels
+// of the site's region-picker data, including overseas regions.
 var AreaIDs = map[string]SearchJobsArea{
 	// Taiwan
 	"Taipei":     SearchJobsArea("6001001000"),
@@ -101,9 +94,7 @@ var AreaIDs = map[string]SearchJobsArea{
 	"WestAfrica":    SearchJobsArea("6008005000"),
 }
 
-// RoIDs maps a "Job type" label to its ro request value. See
-// SearchJobs's `ro` parameter description in openapi.yaml for how these
-// were confirmed live against the site's own filter UI.
+// RoIDs maps job-type labels to the confirmed ro request values.
 var RoIDs = map[string]SearchJobsRo{
 	"Full-time": SearchJobsRo1,
 	"Part-time": SearchJobsRo2,
@@ -111,9 +102,7 @@ var RoIDs = map[string]SearchJobsRo{
 	"Dispatch":  SearchJobsRo4,
 }
 
-// OrderIDs maps a sort-order label to its order request value. See
-// SearchJobs's `order` parameter description in openapi.yaml — `15` was a
-// wrong prior guess for Newest; `2` is the confirmed value.
+// OrderIDs maps sort labels to the confirmed order request values.
 var OrderIDs = map[string]SearchJobsOrder{
 	"Relevance": SearchJobsOrder1,
 	"Newest":    SearchJobsOrder2,
@@ -135,10 +124,8 @@ var EduIDs = map[string]SearchJobsEduItem{
 	"Doctorate":       SearchJobsEduItem6,
 }
 
-// S9IDs maps a shift-type label to its s9 request value. Despite the
-// underlying codes being powers of two (1/2/4/8), the server rejects
-// OR'd values (e.g. 3, 6) — only these four exact values round-trip, joined
-// with commas for a multi-select.
+// S9IDs maps shift-type labels to the exact values accepted by the server;
+// OR'd values are rejected even though the codes are powers of two.
 var S9IDs = map[string]SearchJobsS9Item{
 	"Day":       SearchJobsS9Item1,
 	"Night":     SearchJobsS9Item2,

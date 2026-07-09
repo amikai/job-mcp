@@ -11,12 +11,8 @@ import (
 //go:embed companies.yaml
 var companiesYAML []byte
 
-// Company is a confirmed Lever tenant from the curated
-// internal/provider/lever/companies.yaml. Site is the slug that namespaces
-// the company's postings, e.g. "leverdemo" for jobs.lever.co/leverdemo —
-// slugs are unique and lowercase, unlike display names. Every entry was
-// verified to return a non-empty postings array from the global instance
-// (api.lever.co) at collection time.
+// Company is a verified Lever site from the curated roster. Site is the
+// lowercase slug that namespaces its postings.
 type Company struct {
 	Name string `yaml:"company" json:"company"`
 	Site string `yaml:"site" json:"site"`
@@ -25,13 +21,10 @@ type Company struct {
 // Companies holds every confirmed Lever tenant, sorted by company name.
 var Companies = mustLoadCompanies()
 
-// CompaniesBySite looks up a confirmed tenant by site slug. Keys are
-// lowercase slugs as they appear in companies.yaml.
+// CompaniesBySite indexes companies by their lowercase site slug.
 var CompaniesBySite = buildSiteIndex(Companies)
 
-// mustLoadCompanies parses the embedded companies.yaml. A parse failure is
-// a build-time bug in a file this package owns, not a runtime condition to
-// recover from.
+// mustLoadCompanies parses the package-owned embedded roster.
 func mustLoadCompanies() []Company {
 	var cs []Company
 	if err := yaml.Unmarshal(companiesYAML, &cs); err != nil {

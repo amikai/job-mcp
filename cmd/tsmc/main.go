@@ -15,8 +15,7 @@ import (
 	"github.com/amikai/openings-mcp/internal/provider/tsmc"
 )
 
-// main issues a single JobsRequest built entirely from flags, then fetches
-// JobDetail for every job the search returned.
+// main searches with the flags and fetches each returned job's detail.
 func main() {
 	fs := ff.NewFlagSet("tsmc")
 	var (
@@ -89,10 +88,8 @@ func main() {
 	}
 }
 
-// buildJobsRequest resolves each flag's human label to a form-field id via
-// the ids.go lookup tables. Labels are already validated against the flag's
-// enum at parse time, so a lookup miss here can't happen for a non-empty
-// label. An empty label (flag not set) leaves that filter unset.
+// buildJobsRequest resolves non-empty flag labels through ids.go. Empty labels
+// leave their filters unset.
 func buildJobsRequest(keyword, location, category, jobType, employmentType string, page, perPage int) *tsmc.JobsRequest {
 	req := &tsmc.JobsRequest{
 		Keyword: keyword,
@@ -114,10 +111,7 @@ func buildJobsRequest(keyword, location, category, jobType, employmentType strin
 	return req
 }
 
-// labels returns the sorted keys of an ids.go lookup table, prefixed with
-// "" so an ff.StringEnumLong flag can default to unset (no filter) instead
-// of silently falling back to the first real label — ffval.Enum's zero
-// Default only survives initialize() if it's itself in the Valid list.
+// labels returns sorted keys prefixed with an empty value for an unset flag.
 func labels[V any](table map[string]V) []string {
 	l := make([]string, 0, len(table)+1)
 	l = append(l, "")
@@ -128,9 +122,7 @@ func labels[V any](table map[string]V) []string {
 	return l
 }
 
-// usageWithChoices appends a "one of: ..." list to base. ffhelp never
-// introspects an ff.StringEnumLong's valid values on its own, so small
-// enough choice sets are spelled out here to make -h self-documenting.
+// usageWithChoices adds the valid values to flag help.
 func usageWithChoices[V any](base string, table map[string]V) string {
 	choices := labels(table)[1:] // drop the leading "" no-filter sentinel
 	// " | " (not ", ") because some labels (e.g. "USA-Washington, D.C.")

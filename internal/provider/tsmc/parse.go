@@ -11,7 +11,7 @@ import (
 
 var totalRE = regexp.MustCompile(`\d+\s*-\s*\d+\s*of\s*(\d+)`)
 
-// parseSearchHTML parses job cards and total count from a search results page.
+// parseSearchHTML parses cards and the total count from a results page.
 func parseSearchHTML(doc *goquery.Document) ([]Job, int) {
 	total := 0
 	if m := totalRE.FindStringSubmatch(doc.Text()); m != nil {
@@ -72,9 +72,8 @@ func parseJobCard(article *goquery.Selection) (Job, bool) {
 	return job, job.ID != ""
 }
 
-// parseDetailHTML parses a job detail page.
-// Field labels (zh_TW): "公司名稱", "工作地點", "專業領域", "職別", "職務類型", "職務張貼日"
-// Field labels (zh_TW): "職務說明" (Responsibilities), "職務要求" (Qualifications) → multiline div children
+// parseDetailHTML parses a detail page. TSMC labels responsibilities and
+// qualifications separately and stores both as multiline div content.
 func parseDetailHTML(doc *goquery.Document) (JobDetailResponse, bool) {
 	var detail JobDetailResponse
 
@@ -92,8 +91,7 @@ func parseDetailHTML(doc *goquery.Document) (JobDetailResponse, bool) {
 	}
 
 	detail.Title = strings.TrimSpace(doc.Find("h2.banner__text__title").First().Text())
-	// each field group (label + value) lives in its own sibling
-	// article.article--details element.
+	// Each field group lives in an article.article--details element.
 	for _, article := range doc.Find("article.article--details").EachIter() {
 		parseDetailArticle(article, &detail)
 	}
@@ -102,7 +100,7 @@ func parseDetailHTML(doc *goquery.Document) (JobDetailResponse, bool) {
 }
 
 func parseDetailArticle(article *goquery.Selection, detail *JobDetailResponse) {
-	// Collect label-value pairs from field divs, in document order.
+	// Preserve the document order of label/value pairs.
 	var label string
 	for _, n := range article.Find("div.article__content__view__field__label, div.article__content__view__field__value").EachIter() {
 		switch {
@@ -133,8 +131,7 @@ func parseDetailArticle(article *goquery.Selection, detail *JobDetailResponse) {
 	}
 }
 
-// divChildrenText collects text from <div> children joined by newlines,
-// falling back to full text content if no <div> children exist.
+// divChildrenText joins child div text, falling back to the full content.
 func divChildrenText(sel *goquery.Selection) string {
 	var parts []string
 	for _, c := range sel.ChildrenFiltered("div").EachIter() {

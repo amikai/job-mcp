@@ -13,11 +13,8 @@ import (
 	"github.com/amikai/openings-mcp/internal/provider/greenhouse"
 )
 
-// GreenhouseAdapter serves Greenhouse-hosted companies. The Job Board API
-// has no server-side search, so Search fetches the whole board — with
-// content=true, since JD text and department/office dimensions only exist
-// on the content variant — and filters it via searchDump. Detail uses the
-// per-job endpoint, one light request.
+// GreenhouseAdapter serves Greenhouse companies. Search downloads the content
+// board because the API has no server-side filtering; detail uses one endpoint.
 type GreenhouseAdapter struct {
 	client *greenhouse.Client
 }
@@ -75,14 +72,13 @@ func (a *GreenhouseAdapter) Detail(ctx context.Context, slug, jobID string) (*Jo
 	}
 }
 
-// errGreenhouseJobNotFound is the one teaching error for both a malformed
-// and an unknown job id — the LLM's fix is the same either way.
+// errGreenhouseJobNotFound gives the same recovery hint for malformed and
+// unknown job IDs.
 func errGreenhouseJobNotFound(slug, jobID string) error {
 	return fmt.Errorf("greenhouse: job %q not found for company %q; pass a job_id exactly as returned by the job search", jobID, slug)
 }
 
-// dump fetches the full board with content and reshapes it for the filter
-// engine.
+// dump fetches the full content board and reshapes it for the filter engine.
 func (a *GreenhouseAdapter) dump(ctx context.Context, slug string) ([]dumpJob, error) {
 	res, err := a.client.ListJobs(ctx, greenhouse.ListJobsParams{
 		BoardToken: slug,
@@ -135,18 +131,15 @@ func (a *GreenhouseAdapter) dump(ctx context.Context, slug string) ([]dumpJob, e
 			description: greenhouseDescription(j.Content.Value),
 			locations:   strings.Join(append([]string{loc}, offices...), "; "),
 			fields:      fields,
-			// isRemote stays false: Greenhouse has no remote field, and
-			// matchLocation's "remote" query already falls back to
-			// substring-matching the locations text (documented
-			// best-effort in the unified-search spec).
+			// Greenhouse has no remote field; location matching still handles
+			// "remote" as a best-effort text search.
 		})
 	}
 	return jobs, nil
 }
 
-// greenhouseDescription converts the content field — HTML that Greenhouse
-// additionally entity-encodes — to plain text. Falls back to the decoded
-// HTML on conversion failure rather than failing the whole dump.
+// greenhouseDescription decodes and converts HTML content to plain text,
+// falling back to decoded HTML if conversion fails.
 func greenhouseDescription(content string) string {
 	if content == "" {
 		return ""

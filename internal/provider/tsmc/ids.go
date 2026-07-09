@@ -1,9 +1,7 @@
 package tsmc
 
-// Filter value ids observed from the live en_US SearchJobs filter form
-// (2026-07-03). They are opaque numeric form-field values, not derivable
-// from their labels, so a caller (e.g. an MCP tool mapping a location name
-// to a filter) needs a lookup table rather than guessing.
+// These opaque filter IDs were observed from TSMC's live en_US form on
+// 2026-07-03 and cannot be derived from their labels.
 
 // LocationIDs maps a "Location" filter label to its field-1277 value.
 var LocationIDs = map[string]string{
@@ -51,8 +49,7 @@ var CategoryIDs = map[string]string{
 	"Accessibility Inclusion":                       CatAccessibilityInclusion,
 }
 
-// JobTypeIDs maps a "Job Type" (job level) filter label to its field-147
-// value.
+// JobTypeIDs maps a job-level label to its field-147 value.
 var JobTypeIDs = map[string]string{
 	"Technician":                 JobTypeTechnician,
 	"Associate Engineer / Admin": JobTypeAssociateEngineer,
@@ -61,8 +58,7 @@ var JobTypeIDs = map[string]string{
 	"Others":                     JobTypeOthers,
 }
 
-// EmploymentTypeIDs maps an "Employment Type" filter label to its field-542
-// value.
+// EmploymentTypeIDs maps an employment-type label to its field-542 value.
 var EmploymentTypeIDs = map[string]string{
 	"Regular":        EmployRegular,
 	"Temporary":      EmployTemporary,

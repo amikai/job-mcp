@@ -16,8 +16,7 @@ import (
 	cake "github.com/amikai/openings-mcp/internal/provider/cake"
 )
 
-// main issues a single SearchJobs request built entirely from flags, then
-// fetches GetJobDetail for every job the search returned.
+// main searches with the flags and fetches each returned job's detail.
 func main() {
 	fs := ff.NewFlagSet("cake")
 	var (
@@ -107,7 +106,6 @@ func main() {
 	writeReport(os.Stdout, f.keyword, search, details)
 }
 
-// searchFlags carries the parsed flag values into buildSearchRequest.
 type searchFlags struct {
 	keyword        string
 	sort           string
@@ -131,9 +129,8 @@ type searchFlags struct {
 	techLabels     []string
 }
 
-// buildSearchRequest converts flag values into the API request. Enum flags
-// are validated against the generated enum types; empty or zero values leave
-// the corresponding field unset (unfiltered).
+// buildSearchRequest converts flag values into the API request; empty values
+// leave the corresponding filters unset.
 func buildSearchRequest(f searchFlags) (cake.JobSearchRequest, error) {
 	req := cake.JobSearchRequest{
 		Query:  f.keyword,
@@ -198,8 +195,7 @@ func buildSearchRequest(f searchFlags) (cake.JobSearchRequest, error) {
 	return req, nil
 }
 
-// toEnums validates each value against T's enum and converts it. A nil or
-// empty input returns nil, leaving the filter unset.
+// toEnums validates and converts enum values. Empty input leaves the filter unset.
 func toEnums[T interface {
 	~string
 	AllValues() []T
@@ -223,7 +219,7 @@ func toEnums[T interface {
 	return out, nil
 }
 
-// choices converts a generated enum's AllValues into flag choice strings.
+// choices converts enum values into flag choices.
 func choices[T ~string](values []T) []string {
 	out := make([]string, 0, len(values))
 	for _, v := range values {
@@ -232,15 +228,12 @@ func choices[T ~string](values []T) []string {
 	return out
 }
 
-// enumChoices is choices prefixed with "" so an ff.StringEnum flag can
-// default to unset (no filter) instead of silently falling back to the
-// first real value — ffval.Enum's zero Default only survives initialize()
-// if it's itself in the Valid list.
+// enumChoices prepends an empty value so the flag can mean "unset".
 func enumChoices[T ~string](values []T) []string {
 	return append([]string{""}, choices(values)...)
 }
 
-// usageWithChoices appends a comma-separated "one of: ..." list to base.
+// usageWithChoices adds the valid values to flag help.
 func usageWithChoices(base string, choices []string) string {
 	return fmt.Sprintf("%s, one of: %s", base, strings.Join(choices, " | "))
 }

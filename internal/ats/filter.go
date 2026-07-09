@@ -8,10 +8,7 @@ import (
 	"time"
 )
 
-// dumpJob is the filter engine's intermediate shape for one job from a
-// full-dump provider (lever, ashby): the unified summary plus the
-// searchable text and structured fields filtering needs. Adapters build
-// these; the engine never touches provider types.
+// dumpJob is the filter engine's provider-neutral shape for one full-dump job.
 type dumpJob struct {
 	summary     JobSummary
 	sortKey     time.Time         // posting time, for deterministic newest-first ordering
@@ -22,9 +19,6 @@ type dumpJob struct {
 	isRemote    bool
 }
 
-// searchViaDump and filtersViaDump are the whole Search/Filters
-// implementation for full-dump adapters; each adapter contributes only its
-// dump function.
 func searchViaDump(ctx context.Context, dump func(context.Context, string) ([]dumpJob, error), slug string, p SearchParams) (*SearchResult, error) {
 	jobs, err := dump(ctx, slug)
 	if err != nil {
@@ -41,21 +35,16 @@ func filtersViaDump(ctx context.Context, dump func(context.Context, string) ([]d
 	return distinctFilters(jobs), nil
 }
 
-// searchDump filters, ranks, and pages a full board dump. The upstream has
-// no usable server-side search, so this layer IS the search — lossless,
-// since the dump is complete. Ordering is deterministic (rank, then posted
-// desc, then id) because stateless pagination depends on it.
+// searchDump filters and pages a complete board dump. Results are ordered by
+// query rank, posted time, and ID so stateless pagination is deterministic.
 func searchDump(jobs []dumpJob, p SearchParams) (*SearchResult, error) {
 	if err := validateFilterKeys(jobs, p.Filters); err != nil {
 		return nil, err
 	}
-	// Loop-invariant normalizations, hoisted out of the per-job matchers.
 	words := strings.Fields(strings.ToLower(p.Query))
 	loc := strings.ToLower(strings.TrimSpace(p.Location))
 
-	// matched carries pointers plus a precomputed rank: sorting fat dumpJob
-	// values (they hold full JD text) and re-ranking inside the comparator
-	// would dominate the search cost on large boards.
+	// Keep pointers and precomputed ranks so sorting does not copy full job text.
 	type scoredJob struct {
 		job  *dumpJob
 		rank int
@@ -63,8 +52,7 @@ func searchDump(jobs []dumpJob, p SearchParams) (*SearchResult, error) {
 	matched := make([]scoredJob, 0, len(jobs))
 	for i := range jobs {
 		j := &jobs[i]
-		// Cheapest predicates first: map lookups and a small Contains
-		// before matchQuery builds the full-JD search blob.
+		// Run cheap filters before building the full-JD search text.
 		if !matchFilters(j, p.Filters) || !matchLocation(j, loc) || !matchQuery(j, words) {
 			continue
 		}
@@ -92,8 +80,7 @@ func searchDump(jobs []dumpJob, p SearchParams) (*SearchResult, error) {
 	return &SearchResult{Jobs: out, TotalCount: total, Page: page, TotalPages: totalPages(total)}, nil
 }
 
-// matchQuery requires every query word somewhere in the job's text.
-// Ranking (title hits first) happens separately in queryRank.
+// matchQuery requires every query word to occur in the job text.
 func matchQuery(j *dumpJob, words []string) bool {
 	if len(words) == 0 {
 		return true
@@ -102,9 +89,7 @@ func matchQuery(j *dumpJob, words []string) bool {
 	return containsAllWords(blob, words)
 }
 
-// queryRank orders matches: 0 when the title alone satisfies the whole
-// query, 1 otherwise. A title hit is a far stronger signal than a JD-body
-// mention.
+// queryRank prefers matches whose title contains every query word.
 func queryRank(j *dumpJob, words []string) int {
 	if len(words) == 0 || containsAllWords(strings.ToLower(j.summary.Title), words) {
 		return 0
@@ -121,7 +106,6 @@ func containsAllWords(text string, words []string) bool {
 	return true
 }
 
-// matchLocation takes the already-lowercased, trimmed location.
 func matchLocation(j *dumpJob, loc string) bool {
 	if loc == "" {
 		return true
@@ -152,8 +136,7 @@ func matchFilters(j *dumpJob, filters map[string][]string) bool {
 	return true
 }
 
-// validateFilterKeys rejects unknown dimensions up front with a teaching
-// error, instead of silently matching nothing.
+// validateFilterKeys rejects unknown dimensions before matching.
 func validateFilterKeys(jobs []dumpJob, filters map[string][]string) error {
 	if len(filters) == 0 {
 		return nil
@@ -172,9 +155,7 @@ func validateFilterKeys(jobs []dumpJob, filters map[string][]string) error {
 	return nil
 }
 
-// errUnknownFilterKey is the one teaching error both adapter families
-// return for an unknown filter dimension — part of keeping the families
-// indistinguishable to the LLM.
+// errUnknownFilterKey is shared by both adapter families.
 func errUnknownFilterKey(key string, valid map[string]bool) error {
 	keys := make([]string, 0, len(valid))
 	for k := range valid {
@@ -184,8 +165,7 @@ func errUnknownFilterKey(key string, valid map[string]bool) error {
 	return fmt.Errorf("unknown filter key %q; valid keys: %s", key, strings.Join(keys, ", "))
 }
 
-// distinctFilters enumerates a dump's structured dimensions — the
-// full-dump family's implementation of get_filters.
+// distinctFilters enumerates the structured dimensions in a full dump.
 func distinctFilters(jobs []dumpJob) FilterSet {
 	seen := make(map[string]map[string]bool)
 	for i := range jobs {
@@ -202,8 +182,7 @@ func distinctFilters(jobs []dumpJob) FilterSet {
 	return toFilterSet(seen)
 }
 
-// toFilterSet flattens dimension→value sets into the sorted FilterSet both
-// adapter families return.
+// toFilterSet converts dimension/value sets to the sorted public form.
 func toFilterSet(seen map[string]map[string]bool) FilterSet {
 	fs := make(FilterSet, len(seen))
 	for k, values := range seen {
