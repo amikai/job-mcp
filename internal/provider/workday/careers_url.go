@@ -25,18 +25,19 @@ var localeSegment = regexp.MustCompile(`^[a-zA-Z]{2}(?:-[a-zA-Z]{2})?$`)
 // <tenant>.<wd*>.myworkdayjobs.com with a site path segment; locale
 // prefixes and job deep links are tolerated and stripped.
 //
-// KNOWN ISSUE: myworkdaysite.com is listed in the domain check below, but
-// real URLs on that domain carry the tenant in the path, not the host
-// (wd<N>.myworkdaysite.com/<locale?>/recruiting/<tenant>/<site>), so they
-// never survive the four-label check and are always rejected. See
-// https://github.com/amikai/openings-mcp/issues/113 before extending.
+// Workday's other public domain, myworkdaysite.com, is deliberately not
+// supported: its URLs carry the tenant in the path, not the host
+// (wd<N>.myworkdaysite.com/<locale?>/recruiting/<tenant>/<site>), and
+// every tenant investigated is equally reachable through its
+// myworkdayjobs.com form. See
+// https://github.com/amikai/openings-mcp/issues/113 for the evidence.
 func ParseCareersURL(u *url.URL) (CareersSite, bool) {
 	host := strings.ToLower(u.Hostname())
 	labels := strings.Split(host, ".")
 	if len(labels) != 4 {
 		return CareersSite{}, false
 	}
-	if domain := labels[2] + "." + labels[3]; domain != "myworkdayjobs.com" && domain != "myworkdaysite.com" {
+	if labels[2]+"."+labels[3] != "myworkdayjobs.com" {
 		return CareersSite{}, false
 	}
 	if labels[0] == "" || !strings.HasPrefix(labels[1], "wd") {

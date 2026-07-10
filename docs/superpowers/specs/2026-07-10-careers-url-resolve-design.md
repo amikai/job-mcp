@@ -55,7 +55,7 @@ ParseCareersURL(u *url.URL) (slug string, ok bool)
 | Greenhouse | `job-boards.greenhouse.io`、`boards.greenhouse.io` 及其 `.eu` 變體(`job-boards.eu.greenhouse.io`、`boards.eu.greenhouse.io`) | path 第一段 = board token |
 | Lever | `jobs.lever.co`、`jobs.eu.lever.co` | path 第一段 = org |
 | Ashby | `jobs.ashbyhq.com` | path 第一段 = org(URL-decode) |
-| Workday | `<tenant>.<instance>.myworkdayjobs.com`、`<tenant>.<instance>.myworkdaysite.com` | 見下 |
+| Workday | `<tenant>.<instance>.myworkdayjobs.com` | 見下 |
 
 Greenhouse/Lever/Ashby 共同規則:path 第一段之後的內容(職缺深連結、`/jobs` 尾綴等)一律忽略;path 為空(只有 host)視為 parse 失敗。
 
@@ -64,7 +64,9 @@ Workday 的 path 規則:
 1. 跳過開頭的 locale 段:格式 `xx` 或 `xx-XX`(如 `en-US`、`zh-TW`),大小寫不拘。
 2. 下一段是 site;再深的路徑(`/details/...`、`/job/...`)忽略。
 3. host 拆出 tenant(第一段)與 instance(第二段);instance 需以 `wd` 開頭(涵蓋 `wd5`、`wd103`、`wd5-impl` 等形式),否則 parse 失敗。host 必須恰為四段(`tenant.instance.myworkdayjobs.com`),擋掉 `www.myworkdayjobs.com` 這類行銷頁。
-4. tenant(小寫)查 `CompaniesByTenant`:命中回 roster key(如 `"nvidia"`),display name 與現有行為完全一致;miss 回 canonical URL:`https://<host>/<site>`(去 locale、去深路徑、去 query/fragment)。`myworkdaysite.com` 的 host 原樣保留,CxS base URL 從同一 host 組出。
+4. tenant(小寫)查 `CompaniesByTenant`:命中回 roster key(如 `"nvidia"`),display name 與現有行為完全一致;miss 回 canonical URL:`https://<host>/<site>`(去 locale、去深路徑、去 query/fragment)。
+
+決策補充(2026-07-10,PR #112 review 後):Workday 的另一個公開網域 `myworkdaysite.com` **刻意不支援**。它的真實 URL 把 tenant 放在 path(`wd<N>.myworkdaysite.com/<locale?>/recruiting/<tenant>/<site>`)而非 host,且經驗證(4/4,跨 wd1/wd3/wd5)每個發佈 myworkdaysite URL 的 tenant 都同樣可透過 myworkdayjobs.com 形式存取,故不值得為其維護第二套 path 解析。調查紀錄見 issue #113。
 
 Greenhouse/Lever/Ashby 的 parse 不查 roster:slug 兩種形式重合,查了行為也無差。
 

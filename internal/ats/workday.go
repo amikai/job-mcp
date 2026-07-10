@@ -165,11 +165,11 @@ func (a *WorkdayAdapter) Detail(ctx context.Context, slug, jobID string) (*JobDe
 	}, nil
 }
 
-// ParseCareersURL recognizes myworkdayjobs.com / myworkdaysite.com careers
-// URLs. Roster tenants fold back to their roster slug so display names
-// stay identical to name-based resolution; unknown tenants get the
-// canonical URL as a self-describing slug (workday config is three values,
-// which a bare tenant slug can't carry).
+// ParseCareersURL recognizes myworkdayjobs.com careers URLs. Roster
+// tenants fold back to their roster slug so display names stay identical
+// to name-based resolution; unknown tenants get the canonical URL as a
+// self-describing slug (workday config is three values, which a bare
+// tenant slug can't carry).
 func (a *WorkdayAdapter) ParseCareersURL(u *url.URL) (string, bool) {
 	site, ok := workday.ParseCareersURL(u)
 	if !ok {
