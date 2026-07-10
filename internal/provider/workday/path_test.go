@@ -1,6 +1,11 @@
 package workday
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
 
 func TestJobDetailKeyFromPath(t *testing.T) {
 	t.Parallel()
@@ -60,10 +65,9 @@ func TestJobDetailKeyFromPath(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			gotLocation, gotTitle, gotOK := JobDetailKeyFromPath(tc.externalPath)
-			if gotLocation != tc.wantLocation || gotTitle != tc.wantTitle || gotOK != tc.wantOK {
-				t.Errorf("JobDetailKeyFromPath(%q) = (%q, %q, %v), want (%q, %q, %v)",
-					tc.externalPath, gotLocation, gotTitle, gotOK, tc.wantLocation, tc.wantTitle, tc.wantOK)
-			}
+			assert.Equal(t, tc.wantOK, gotOK)
+			assert.Equal(t, tc.wantLocation, gotLocation)
+			assert.Equal(t, tc.wantTitle, gotTitle)
 		})
 	}
 }
@@ -107,17 +111,11 @@ func TestPublicSiteURL(t *testing.T) {
 			t.Parallel()
 			got, err := PublicSiteURL(tc.baseURL)
 			if tc.wantErr {
-				if err == nil {
-					t.Fatalf("PublicSiteURL(%q) = %q, nil; want error", tc.baseURL, got)
-				}
+				assert.Error(t, err)
 				return
 			}
-			if err != nil {
-				t.Fatalf("PublicSiteURL(%q) unexpected error: %v", tc.baseURL, err)
-			}
-			if got != tc.want {
-				t.Errorf("PublicSiteURL(%q) = %q, want %q", tc.baseURL, got, tc.want)
-			}
+			require.NoError(t, err)
+			assert.Equal(t, tc.want, got)
 		})
 	}
 }

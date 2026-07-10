@@ -20,7 +20,9 @@ func newMockServer(t *testing.T) *httptest.Server {
 
 		// Same minimal request as testdata/jobs_req.hurl, which captured jobs_rsp.json.
 		body, err := io.ReadAll(r.Body)
-		require.NoError(t, err)
+		if !assert.NoError(t, err) {
+			return
+		}
 		assert.JSONEq(t, `{"query":"Golang","sort_by":"popularity","filters":{}}`, string(body))
 
 		serveMockJSON(mockJobsRsp)(w, r)

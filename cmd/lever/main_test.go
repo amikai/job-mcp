@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	lever "github.com/amikai/openings-mcp/internal/provider/lever"
 )
@@ -69,7 +70,7 @@ func TestRunSearchMissingSite(t *testing.T) {
 
 func TestRunSearchUnknownSite(t *testing.T) {
 	err := runSearch(t.Context(), "doesnotexist-site-xyz", time.Second, nil, nil, nil, nil, "", 20, 0, "text")
-	assert.ErrorContains(t, err, `site "doesnotexist-site-xyz" not found`)
+	require.ErrorContains(t, err, `site "doesnotexist-site-xyz" not found`)
 	assert.ErrorContains(t, err, "lever companies")
 }
 
@@ -80,7 +81,7 @@ func TestRunGetMissingSite(t *testing.T) {
 
 func TestRunGetUnknownSite(t *testing.T) {
 	err := runGet(t.Context(), "doesnotexist-site-xyz", time.Second, "some-id", "text")
-	assert.ErrorContains(t, err, `site "doesnotexist-site-xyz" not found`)
+	require.ErrorContains(t, err, `site "doesnotexist-site-xyz" not found`)
 	assert.ErrorContains(t, err, "lever companies")
 }
 

@@ -9,6 +9,7 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestErrorLoggingMiddleware(t *testing.T) {
@@ -26,7 +27,7 @@ func TestErrorLoggingMiddleware(t *testing.T) {
 
 	wrapped := middleware(dummyHandler)
 	_, err := wrapped(t.Context(), "test_method", nil)
-	assert.Error(t, err)
+	require.Error(t, err)
 
 	logOutput := buf.String()
 	assert.Contains(t, logOutput, "tool call error")
@@ -46,6 +47,6 @@ func TestErrorLoggingMiddlewareSuccessLogsNothing(t *testing.T) {
 
 	wrapped := middleware(dummyHandler)
 	_, err := wrapped(t.Context(), "test_method", nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Empty(t, buf.String())
 }

@@ -5,10 +5,12 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"slices"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/amikai/openings-mcp/internal/provider/workday"
 )
@@ -23,14 +25,12 @@ func recordingProxy(t *testing.T, inner string) (*httptest.Server, *[][]byte) {
 		body, _ := io.ReadAll(r.Body)
 		bodies = append(bodies, body)
 		req, err := http.NewRequestWithContext(r.Context(), r.Method, inner+r.URL.Path, strings.NewReader(string(body)))
-		if err != nil {
-			t.Errorf("proxy: %v", err)
+		if !assert.NoError(t, err, "proxy") {
 			return
 		}
 		req.Header = r.Header.Clone()
 		rsp, err := http.DefaultClient.Do(req)
-		if err != nil {
-			t.Errorf("proxy: %v", err)
+		if !assert.NoError(t, err, "proxy") {
 			return
 		}
 		defer rsp.Body.Close()
@@ -56,37 +56,27 @@ func TestWorkdayRosterDedupesShareClasses(t *testing.T) {
 	a := NewWorkdayAdapter(http.DefaultClient)
 	seen := map[string]bool{}
 	for _, c := range a.Roster() {
-		if seen[c.Slug] {
-			t.Fatalf("duplicate slug %q in roster", c.Slug)
-		}
+		require.Falsef(t, seen[c.Slug], "duplicate slug %q in roster", c.Slug)
 		seen[c.Slug] = true
 	}
 	// fox and dowjones each occupy two share-class rows in companies.yaml
 	// sharing one tenant; the roster must carry each slug once.
-	if !seen["fox"] || !seen["dowjones"] {
-		t.Fatal("expected fox and dowjones slugs present exactly once")
-	}
+	assert.True(t, seen["fox"], "expected fox slug present exactly once")
+	assert.True(t, seen["dowjones"], "expected dowjones slug present exactly once")
 }
 
 func TestWorkdaySearchPlainIsOneRequest(t *testing.T) {
 	a, bodies := testWorkdayAdapter(t)
 	res, err := a.Search(t.Context(), "nvidia", SearchParams{Query: "golang"})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(*bodies) != 1 {
-		t.Fatalf("plain search should be 1 upstream request, got %d", len(*bodies))
-	}
-	if res.TotalCount != 27 || res.TotalPages != 2 || len(res.Jobs) != 20 {
-		t.Fatalf("got {total %d, pages %d, len %d}, want {27, 2, 20}", res.TotalCount, res.TotalPages, len(res.Jobs))
-	}
+	require.NoError(t, err)
+	require.Len(t, *bodies, 1, "plain search should be 1 upstream request")
+	assert.Equal(t, 27, res.TotalCount)
+	assert.Equal(t, 2, res.TotalPages)
+	assert.Len(t, res.Jobs, 20)
+
 	first := res.Jobs[0]
-	if first.Title != "Software Golang Kubernetes Engineer" {
-		t.Errorf("Title = %q", first.Title)
-	}
-	if first.JobID != "/job/Israel-Tel-Aviv/Software-Golang-Kubernetes-Engineer_JR2020442" {
-		t.Errorf("JobID = %q", first.JobID)
-	}
+	assert.Equal(t, "Software Golang Kubernetes Engineer", first.Title)
+	assert.Equal(t, "/job/Israel-Tel-Aviv/Software-Golang-Kubernetes-Engineer_JR2020442", first.JobID)
 }
 
 func TestWorkdaySearchWithFiltersIsTwoRequests(t *testing.T) {
@@ -94,38 +84,28 @@ func TestWorkdaySearchWithFiltersIsTwoRequests(t *testing.T) {
 	_, err := a.Search(t.Context(), "nvidia", SearchParams{
 		Filters: map[string][]string{"timeType": {"Full time"}},
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(*bodies) != 2 {
-		t.Fatalf("filtered search should probe then search (2 requests), got %d", len(*bodies))
-	}
+	require.NoError(t, err)
+	require.Len(t, *bodies, 2, "filtered search should probe then search")
+
 	var real struct {
 		AppliedFacets map[string][]string `json:"appliedFacets"`
 	}
-	if err := json.Unmarshal((*bodies)[1], &real); err != nil {
-		t.Fatal(err)
-	}
-	if got := real.AppliedFacets["timeType"]; len(got) != 1 || got[0] != "5509c0b5959810ac0029943377d47364" {
-		t.Fatalf("appliedFacets[timeType] = %v, want the Full time GUID", got)
-	}
+	require.NoError(t, json.Unmarshal((*bodies)[1], &real))
+	require.Len(t, real.AppliedFacets["timeType"], 1)
+	assert.Equal(t, "5509c0b5959810ac0029943377d47364", real.AppliedFacets["timeType"][0], "want the Full time GUID")
 }
 
 func TestWorkdaySearchLocationResolvesToFacet(t *testing.T) {
 	a, bodies := testWorkdayAdapter(t)
 	_, err := a.Search(t.Context(), "nvidia", SearchParams{Location: "Tel Aviv"})
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	var real struct {
 		AppliedFacets map[string][]string `json:"appliedFacets"`
 	}
-	if err := json.Unmarshal((*bodies)[1], &real); err != nil {
-		t.Fatal(err)
-	}
-	if got := real.AppliedFacets["locations"]; len(got) != 1 || got[0] != "c7769ee377291036b08490819096b8bf" {
-		t.Fatalf(`appliedFacets[locations] = %v, want the "Israel, Tel Aviv" GUID`, got)
-	}
+	require.NoError(t, json.Unmarshal((*bodies)[1], &real))
+	require.Len(t, real.AppliedFacets["locations"], 1)
+	assert.Equal(t, "c7769ee377291036b08490819096b8bf", real.AppliedFacets["locations"][0], `want the "Israel, Tel Aviv" GUID`)
 }
 
 func TestWorkdayFilterValueNotFoundTeaches(t *testing.T) {
@@ -133,12 +113,7 @@ func TestWorkdayFilterValueNotFoundTeaches(t *testing.T) {
 	_, err := a.Search(t.Context(), "nvidia", SearchParams{
 		Filters: map[string][]string{"timeType": {"Part time"}},
 	})
-	if err == nil {
-		t.Fatal("want error for unknown facet value")
-	}
-	if !strings.Contains(err.Error(), "Full time") {
-		t.Errorf("error should list available values, got: %v", err)
-	}
+	require.ErrorContains(t, err, "Full time", "error should list available values")
 }
 
 func TestWorkdayFilterKeyNotFoundTeaches(t *testing.T) {
@@ -146,48 +121,29 @@ func TestWorkdayFilterKeyNotFoundTeaches(t *testing.T) {
 	_, err := a.Search(t.Context(), "nvidia", SearchParams{
 		Filters: map[string][]string{"bogus": {"x"}},
 	})
-	if err == nil {
-		t.Fatal("want error for unknown facet key")
-	}
-	if !strings.Contains(err.Error(), "jobFamilyGroup") {
-		t.Errorf("error should list valid keys, got: %v", err)
-	}
+	require.ErrorContains(t, err, "jobFamilyGroup", "error should list valid keys")
 }
 
 func TestWorkdayFilters(t *testing.T) {
 	a, _ := testWorkdayAdapter(t)
 	fs, err := a.Filters(t.Context(), "nvidia")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(fs["jobFamilyGroup"]) == 0 || len(fs["timeType"]) == 0 {
-		t.Fatalf("FilterSet missing expected dimensions: %v", fs)
-	}
-	if !slices.Contains(fs["jobFamilyGroup"], "Engineering") {
-		t.Errorf(`fs["jobFamilyGroup"] = %v, want it to contain "Engineering"`, fs["jobFamilyGroup"])
-	}
+	require.NoError(t, err)
+	require.NotEmptyf(t, fs["jobFamilyGroup"], "FilterSet missing expected dimensions: %v", fs)
+	require.NotEmptyf(t, fs["timeType"], "FilterSet missing expected dimensions: %v", fs)
+	assert.Contains(t, fs["jobFamilyGroup"], "Engineering")
 }
 
 func TestWorkdayDetail(t *testing.T) {
 	a, _ := testWorkdayAdapter(t)
 	d, err := a.Detail(t.Context(), "nvidia", "/job/Israel-Tel-Aviv/Software-Golang-Kubernetes-Engineer_JR2020442")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if d.Title != "Senior Software Golang Kubernetes Engineer" {
-		t.Errorf("Title = %q", d.Title)
-	}
-	if strings.Contains(d.Description, "<p>") {
-		t.Errorf("Description should be converted from HTML, got %.80q", d.Description)
-	}
-	if !strings.Contains(d.Description, "NVIDIA Networking") {
-		t.Errorf("Description should carry the fixture text, got %.80q", d.Description)
-	}
+	require.NoError(t, err)
+	assert.Equal(t, "Senior Software Golang Kubernetes Engineer", d.Title)
+	assert.NotContains(t, d.Description, "<p>", "Description should be converted from HTML")
+	assert.Contains(t, d.Description, "NVIDIA Networking", "Description should carry the fixture text")
 }
 
 func TestWorkdayDetailRejectsMalformedJobID(t *testing.T) {
 	a, _ := testWorkdayAdapter(t)
-	if _, err := a.Detail(t.Context(), "nvidia", "garbage"); err == nil {
-		t.Fatal("want error for malformed job_id")
-	}
+	_, err := a.Detail(t.Context(), "nvidia", "garbage")
+	assert.Error(t, err, "want error for malformed job_id")
 }

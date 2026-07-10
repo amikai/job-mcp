@@ -21,7 +21,9 @@ func newMockServer(t *testing.T) *httptest.Server {
 		// Verify request body
 		var req JobsRequest
 		err := json.NewDecoder(r.Body).Decode(&req)
-		require.NoError(t, err)
+		if !assert.NoError(t, err) {
+			return
+		}
 
 		wantReq := JobsRequest{
 			AppliedFacets: AppliedFacets{},

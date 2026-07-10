@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestRunSearchMissingBoard(t *testing.T) {
@@ -14,7 +15,7 @@ func TestRunSearchMissingBoard(t *testing.T) {
 
 func TestRunSearchUnknownBoard(t *testing.T) {
 	err := runSearch(t.Context(), "doesnotexist-board-xyz", time.Second, "", "text")
-	assert.ErrorContains(t, err, `board "doesnotexist-board-xyz" not found`)
+	require.ErrorContains(t, err, `board "doesnotexist-board-xyz" not found`)
 	assert.ErrorContains(t, err, "ashby companies")
 }
 
@@ -30,6 +31,6 @@ func TestRunGetMissingBoard(t *testing.T) {
 
 func TestRunGetUnknownBoard(t *testing.T) {
 	err := runGet(t.Context(), "doesnotexist-board-xyz", time.Second, "some-id", "text")
-	assert.ErrorContains(t, err, `board "doesnotexist-board-xyz" not found`)
+	require.ErrorContains(t, err, `board "doesnotexist-board-xyz" not found`)
 	assert.ErrorContains(t, err, "ashby companies")
 }

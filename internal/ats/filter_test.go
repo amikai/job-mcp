@@ -4,6 +4,9 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func dj(id, title, orgUnit, desc, loc string, posted time.Time, fields map[string]string, remote bool) dumpJob {
@@ -29,87 +32,59 @@ func testJobs() []dumpJob {
 
 func TestSearchDumpQueryANDAcrossWords(t *testing.T) {
 	res, err := searchDump(testJobs(), SearchParams{Query: "go engineer"})
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 	// "go engineer": job a matches both words in title; job b matches
 	// "engineer" in title and "go" only in description — still a match
 	// (AND is across the whole text), but ranked below the title hit.
-	if len(res.Jobs) != 2 {
-		t.Fatalf("got %d jobs, want 2", len(res.Jobs))
-	}
-	if res.Jobs[0].JobID != "a" {
-		t.Errorf("title hit should rank first, got %q", res.Jobs[0].JobID)
-	}
-	if res.TotalCount != 2 {
-		t.Errorf("TotalCount = %d, want 2", res.TotalCount)
-	}
+	require.Len(t, res.Jobs, 2)
+	assert.Equal(t, "a", res.Jobs[0].JobID, "title hit should rank first")
+	assert.Equal(t, 2, res.TotalCount)
 }
 
 func TestSearchDumpSortNewestFirstIDTiebreak(t *testing.T) {
 	res, err := searchDump(testJobs(), SearchParams{})
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 	// No query: rank is uniform, so order is posted desc: b(3rd) c(2nd) a(1st).
 	want := []string{"b", "c", "a"}
-	for i, w := range want {
-		if res.Jobs[i].JobID != w {
-			t.Fatalf("order = %v..., want %v", res.Jobs[i].JobID, want)
-		}
+	got := make([]string, len(res.Jobs))
+	for i, j := range res.Jobs {
+		got[i] = j.JobID
 	}
+	assert.Equal(t, want, got)
 }
 
 func TestSearchDumpLocation(t *testing.T) {
 	res, err := searchDump(testJobs(), SearchParams{Location: "taipei"})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(res.Jobs) != 1 || res.Jobs[0].JobID != "a" {
-		t.Fatalf("location=taipei should match only job a, got %v", res.Jobs)
-	}
+	require.NoError(t, err)
+	require.Len(t, res.Jobs, 1, "location=taipei should match only job a")
+	assert.Equal(t, "a", res.Jobs[0].JobID)
 }
 
 func TestSearchDumpRemoteSpecialCase(t *testing.T) {
 	res, err := searchDump(testJobs(), SearchParams{Location: "remote"})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(res.Jobs) != 1 || res.Jobs[0].JobID != "c" {
-		t.Fatalf("location=remote should match only job c, got %v", res.Jobs)
-	}
+	require.NoError(t, err)
+	require.Len(t, res.Jobs, 1, "location=remote should match only job c")
+	assert.Equal(t, "c", res.Jobs[0].JobID)
 }
 
 func TestSearchDumpFiltersORWithinKeyANDAcrossKeys(t *testing.T) {
 	res, err := searchDump(testJobs(), SearchParams{
 		Filters: map[string][]string{"team": {"Platform", "Web"}, "commitment": {"Full-time"}},
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(res.Jobs) != 2 {
-		t.Fatalf("got %d jobs, want 2 (a and b)", len(res.Jobs))
-	}
+	require.NoError(t, err)
+	assert.Len(t, res.Jobs, 2, "want a and b")
 }
 
 func TestSearchDumpFilterValueCaseInsensitive(t *testing.T) {
 	res, err := searchDump(testJobs(), SearchParams{Filters: map[string][]string{"team": {"platform"}}})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(res.Jobs) != 1 || res.Jobs[0].JobID != "a" {
-		t.Fatalf("got %v, want job a", res.Jobs)
-	}
+	require.NoError(t, err)
+	require.Len(t, res.Jobs, 1, "want job a")
+	assert.Equal(t, "a", res.Jobs[0].JobID)
 }
 
 func TestSearchDumpUnknownFilterKeyTeaches(t *testing.T) {
 	_, err := searchDump(testJobs(), SearchParams{Filters: map[string][]string{"bogus": {"x"}}})
-	if err == nil {
-		t.Fatal("want error for unknown filter key")
-	}
-	if !strings.Contains(err.Error(), "team") {
-		t.Errorf("error should list valid keys, got: %v", err)
-	}
+	require.ErrorContains(t, err, "team", "error should list valid keys")
 }
 
 func TestSearchDumpPagination(t *testing.T) {
@@ -119,35 +94,31 @@ func TestSearchDumpPagination(t *testing.T) {
 		jobs = append(jobs, dj(strings.Repeat("z", 3)+string(rune('a'+i%26))+string(rune('0'+i/26)), "Engineer", "", "", "X", posted, nil, false))
 	}
 	page2, err := searchDump(jobs, SearchParams{Page: 2})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if page2.TotalCount != 45 || page2.TotalPages != 3 || page2.Page != 2 || len(page2.Jobs) != PageSize {
-		t.Fatalf("page2 = {total %d, pages %d, page %d, len %d}", page2.TotalCount, page2.TotalPages, page2.Page, len(page2.Jobs))
-	}
-	page3, _ := searchDump(jobs, SearchParams{Page: 3})
-	if len(page3.Jobs) != 5 {
-		t.Errorf("page3 len = %d, want 5", len(page3.Jobs))
-	}
-	page9, _ := searchDump(jobs, SearchParams{Page: 9})
-	if len(page9.Jobs) != 0 {
-		t.Errorf("past-the-end page should be empty, got %d", len(page9.Jobs))
-	}
+	require.NoError(t, err)
+	assert.Equal(t, 45, page2.TotalCount)
+	assert.Equal(t, 3, page2.TotalPages)
+	assert.Equal(t, 2, page2.Page)
+	assert.Len(t, page2.Jobs, PageSize)
+
+	page3, err := searchDump(jobs, SearchParams{Page: 3})
+	require.NoError(t, err)
+	assert.Len(t, page3.Jobs, 5)
+
+	page9, err := searchDump(jobs, SearchParams{Page: 9})
+	require.NoError(t, err)
+	assert.Empty(t, page9.Jobs, "past-the-end page should be empty")
+
 	// Determinism: two identical calls agree item-for-item.
-	again, _ := searchDump(jobs, SearchParams{Page: 2})
+	again, err := searchDump(jobs, SearchParams{Page: 2})
+	require.NoError(t, err)
 	for i := range page2.Jobs {
-		if page2.Jobs[i].JobID != again.Jobs[i].JobID {
-			t.Fatal("pagination is not deterministic")
-		}
+		assert.Equal(t, page2.Jobs[i].JobID, again.Jobs[i].JobID, "pagination is not deterministic")
 	}
 }
 
 func TestDistinctFilters(t *testing.T) {
 	fs := distinctFilters(testJobs())
-	if got := fs["team"]; len(got) != 3 || got[0] != "ML" {
-		t.Errorf(`fs["team"] = %v, want sorted [ML Platform Web]`, got)
-	}
-	if got := fs["commitment"]; len(got) != 2 {
-		t.Errorf(`fs["commitment"] = %v, want 2 distinct values`, got)
-	}
+	require.Len(t, fs["team"], 3)
+	assert.Equal(t, "ML", fs["team"][0], `fs["team"] should be sorted [ML Platform Web]`)
+	assert.Len(t, fs["commitment"], 2)
 }
