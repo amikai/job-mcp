@@ -4,10 +4,12 @@ import (
 	"cmp"
 	"context"
 	"fmt"
+	"math"
 	"net/http"
 	"net/url"
 	"slices"
 	"strings"
+	"sync"
 
 	"github.com/jaytaylor/html2text"
 
@@ -37,10 +39,7 @@ func NewWorkdayAdapter(hc *http.Client) *WorkdayAdapter {
 
 func (a *WorkdayAdapter) Name() string { return "workday" }
 
-// Roster dedupes by tenant slug: fox and dowjones each hold two
-// share-class rows in companies.yaml sharing one tenant, and the registry
-// treats duplicate slugs as curation bugs.
-func (a *WorkdayAdapter) Roster() []CompanyInfo {
+var buildWorkdayCompanyInfo = sync.OnceValue(func() []CompanyInfo {
 	seen := make(map[string]bool, len(workday.Companies))
 	infos := make([]CompanyInfo, 0, len(workday.Companies))
 	for _, c := range workday.Companies {
@@ -52,6 +51,13 @@ func (a *WorkdayAdapter) Roster() []CompanyInfo {
 		infos = append(infos, CompanyInfo{Slug: slug, Name: c.Name})
 	}
 	return infos
+})
+
+// Roster dedupes by tenant slug: fox and dowjones each hold two
+// share-class rows in companies.yaml sharing one tenant, and the registry
+// treats duplicate slugs as curation bugs.
+func (a *WorkdayAdapter) Roster() []CompanyInfo {
+	return slices.Clone(buildWorkdayCompanyInfo())
 }
 
 func (a *WorkdayAdapter) Search(ctx context.Context, slug string, p SearchParams) (*SearchResult, error) {
@@ -59,6 +65,12 @@ func (a *WorkdayAdapter) Search(ctx context.Context, slug string, p SearchParams
 	if err != nil {
 		return nil, err
 	}
+	page := clampPage(p.Page)
+	pageIndex := page - 1
+	if pageIndex > math.MaxInt/PageSize {
+		return nil, fmt.Errorf("workday: page %d is too large; retry with a smaller page", page)
+	}
+	offset := pageIndex * PageSize
 	applied := workday.AppliedFacets{}
 	if p.Location != "" || len(p.Filters) > 0 {
 		flat, err := a.probeFacets(ctx, client, slug)
@@ -70,11 +82,10 @@ func (a *WorkdayAdapter) Search(ctx context.Context, slug string, p SearchParams
 			return nil, err
 		}
 	}
-	page := clampPage(p.Page)
 	rsp, err := client.SearchJobs(ctx, &workday.JobsRequest{
 		AppliedFacets: applied,
 		Limit:         PageSize,
-		Offset:        (page - 1) * PageSize,
+		Offset:        offset,
 		SearchText:    p.Query,
 	})
 	if err != nil {

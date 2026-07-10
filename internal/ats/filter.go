@@ -62,8 +62,12 @@ func searchDump(jobs []dumpJob, p SearchParams) (*SearchResult, error) {
 
 	page := clampPage(p.Page)
 	total := len(matched)
-	start := min((page-1)*PageSize, total)
-	end := min(start+PageSize, total)
+	pageIndex := page - 1
+	start := total
+	if pageIndex <= total/PageSize {
+		start = pageIndex * PageSize
+	}
+	end := start + min(PageSize, total-start)
 	out := make([]JobSummary, 0, end-start)
 	for _, m := range matched[start:end] {
 		out = append(out, m.job.summary)
@@ -81,14 +85,16 @@ func matchQuery(j *dumpJob, words []string) bool {
 	return containsAllWords(blob, words)
 }
 
-// queryRank orders matches: 0 when the title alone satisfies the whole
-// query, 1 otherwise. A title hit is a far stronger signal than a JD-body
-// mention.
+// queryRank orders matches by the strongest field that alone satisfies the
+// whole query: title first, then organization unit, then the full search blob.
 func queryRank(j *dumpJob, words []string) int {
 	if len(words) == 0 || containsAllWords(strings.ToLower(j.summary.Title), words) {
 		return 0
 	}
-	return 1
+	if containsAllWords(strings.ToLower(j.orgUnit), words) {
+		return 1
+	}
+	return 2
 }
 
 func containsAllWords(text string, words []string) bool {

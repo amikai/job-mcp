@@ -1,6 +1,7 @@
 package ats
 
 import (
+	"math"
 	"strings"
 	"testing"
 	"time"
@@ -41,6 +42,20 @@ func TestSearchDumpQueryANDAcrossWords(t *testing.T) {
 	assert.Equal(t, 2, res.TotalCount)
 }
 
+func TestSearchDumpRanksOrgUnitBeforeDescription(t *testing.T) {
+	older := time.Date(2026, 7, 1, 0, 0, 0, 0, time.UTC)
+	newer := older.Add(24 * time.Hour)
+	jobs := []dumpJob{
+		dj("org", "Engineer", "Platform", "", "Remote", older, nil, true),
+		dj("body", "Engineer", "", "Build the platform", "Remote", newer, nil, true),
+	}
+
+	res, err := searchDump(jobs, SearchParams{Query: "platform"})
+	require.NoError(t, err)
+	require.Len(t, res.Jobs, 2)
+	assert.Equal(t, "org", res.Jobs[0].JobID)
+}
+
 func TestSearchDumpSortNewestFirstIDTiebreak(t *testing.T) {
 	res, err := searchDump(testJobs(), SearchParams{})
 	require.NoError(t, err)
@@ -51,6 +66,20 @@ func TestSearchDumpSortNewestFirstIDTiebreak(t *testing.T) {
 		got[i] = j.JobID
 	}
 	assert.Equal(t, want, got)
+}
+
+func TestSearchDumpSortsByIDWhenRankAndTimeTie(t *testing.T) {
+	posted := time.Date(2026, 7, 1, 0, 0, 0, 0, time.UTC)
+	jobs := []dumpJob{
+		dj("b", "Engineer", "", "", "Remote", posted, nil, true),
+		dj("a", "Engineer", "", "", "Remote", posted, nil, true),
+	}
+
+	res, err := searchDump(jobs, SearchParams{})
+	require.NoError(t, err)
+	require.Len(t, res.Jobs, 2)
+	assert.Equal(t, "a", res.Jobs[0].JobID)
+	assert.Equal(t, "b", res.Jobs[1].JobID)
 }
 
 func TestSearchDumpLocation(t *testing.T) {
@@ -114,6 +143,13 @@ func TestSearchDumpPagination(t *testing.T) {
 	for i := range page2.Jobs {
 		assert.Equal(t, page2.Jobs[i].JobID, again.Jobs[i].JobID, "pagination is not deterministic")
 	}
+}
+
+func TestSearchDumpHugePageDoesNotPanic(t *testing.T) {
+	res, err := searchDump(testJobs(), SearchParams{Page: math.MaxInt})
+	require.NoError(t, err)
+	assert.Empty(t, res.Jobs)
+	assert.Equal(t, math.MaxInt, res.Page)
 }
 
 func TestDistinctFilters(t *testing.T) {

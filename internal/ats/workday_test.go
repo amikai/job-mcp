@@ -3,6 +3,7 @@ package ats
 import (
 	"encoding/json"
 	"io"
+	"math"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -57,6 +58,7 @@ func TestWorkdayRosterDedupesShareClasses(t *testing.T) {
 	a := NewWorkdayAdapter(http.DefaultClient)
 	seen := map[string]bool{}
 	for _, c := range a.Roster() {
+		assert.Equal(t, strings.ToLower(c.Slug), c.Slug)
 		require.Falsef(t, seen[c.Slug], "duplicate slug %q in roster", c.Slug)
 		seen[c.Slug] = true
 	}
@@ -64,6 +66,20 @@ func TestWorkdayRosterDedupesShareClasses(t *testing.T) {
 	// sharing one tenant; the roster must carry each slug once.
 	assert.True(t, seen["fox"], "expected fox slug present exactly once")
 	assert.True(t, seen["dowjones"], "expected dowjones slug present exactly once")
+}
+
+func TestWorkdayRosterBuildsRegistry(t *testing.T) {
+	_, err := NewRegistry(NewWorkdayAdapter(http.DefaultClient))
+	require.NoError(t, err)
+}
+
+func TestWorkdayRosterReturnsIndependentSlice(t *testing.T) {
+	a := NewWorkdayAdapter(http.DefaultClient)
+	roster := a.Roster()
+	require.NotEmpty(t, roster)
+	original := roster[0]
+	roster[0] = CompanyInfo{Slug: "mutated", Name: "Mutated"}
+	assert.Equal(t, original, a.Roster()[0])
 }
 
 func TestWorkdaySearchPlainIsOneRequest(t *testing.T) {
@@ -78,6 +94,13 @@ func TestWorkdaySearchPlainIsOneRequest(t *testing.T) {
 	first := res.Jobs[0]
 	assert.Equal(t, "Software Golang Kubernetes Engineer", first.Title)
 	assert.Equal(t, "/job/Israel-Tel-Aviv/Software-Golang-Kubernetes-Engineer_JR2020442", first.JobID)
+}
+
+func TestWorkdaySearchRejectsHugePage(t *testing.T) {
+	a, bodies := testWorkdayAdapter(t)
+	_, err := a.Search(t.Context(), "nvidia", SearchParams{Page: math.MaxInt})
+	require.ErrorContains(t, err, "smaller page")
+	assert.Empty(t, *bodies)
 }
 
 func TestWorkdaySearchWithFiltersIsTwoRequests(t *testing.T) {
