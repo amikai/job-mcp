@@ -2,8 +2,10 @@ package ats
 
 import (
 	"context"
-	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // fakeAdapter satisfies Adapter with a canned roster; search methods are
@@ -34,53 +36,38 @@ func testRegistry(t *testing.T) *Registry {
 			{Slug: "palantir", Name: "Palantir Technologies"},
 		}},
 	)
-	if err != nil {
-		t.Fatalf("NewRegistry: %v", err)
-	}
+	require.NoError(t, err)
 	return r
 }
 
 func TestResolveBySlug(t *testing.T) {
 	r := testRegistry(t)
 	a, slug, err := r.Resolve("nvidia")
-	if err != nil {
-		t.Fatalf("Resolve: %v", err)
-	}
-	if a.Name() != "workday" || slug != "nvidia" {
-		t.Errorf("got (%s, %s), want (workday, nvidia)", a.Name(), slug)
-	}
+	require.NoError(t, err)
+	assert.Equal(t, "workday", a.Name())
+	assert.Equal(t, "nvidia", slug)
 }
 
 func TestResolveByDisplayName(t *testing.T) {
 	r := testRegistry(t)
 	// Case, punctuation, and spaces must not matter.
 	for _, input := range []string{"NVIDIA Corp", "nvidia corp", "Workday, Inc.", "workday inc"} {
-		if _, _, err := r.Resolve(input); err != nil {
-			t.Errorf("Resolve(%q): %v", input, err)
-		}
+		_, _, err := r.Resolve(input)
+		assert.NoErrorf(t, err, "Resolve(%q)", input)
 	}
 }
 
 func TestResolveUnknownTeaches(t *testing.T) {
 	r := testRegistry(t)
 	_, _, err := r.Resolve("palantir tech")
-	if err == nil {
-		t.Fatal("want error for unknown company")
-	}
-	msg := err.Error()
-	if !strings.Contains(msg, "palantir") {
-		t.Errorf("suggestions should contain %q, got: %s", "palantir", msg)
-	}
-	if !strings.Contains(msg, "3 companies") {
-		t.Errorf("error should state supported count, got: %s", msg)
-	}
+	require.ErrorContains(t, err, "palantir", "suggestions should contain the input")
+	assert.ErrorContains(t, err, "3 companies", "error should state supported count")
 }
 
 func TestResolveEmpty(t *testing.T) {
 	r := testRegistry(t)
-	if _, _, err := r.Resolve("  "); err == nil {
-		t.Fatal("want error for empty company")
-	}
+	_, _, err := r.Resolve("  ")
+	assert.Error(t, err, "want error for empty company")
 }
 
 func TestNewRegistryRejectsDuplicateSlug(t *testing.T) {
@@ -88,7 +75,5 @@ func TestNewRegistryRejectsDuplicateSlug(t *testing.T) {
 		&fakeAdapter{name: "workday", roster: []CompanyInfo{{Slug: "acme", Name: "Acme (Workday)"}}},
 		&fakeAdapter{name: "lever", roster: []CompanyInfo{{Slug: "acme", Name: "Acme (Lever)"}}},
 	)
-	if err == nil {
-		t.Fatal("want error for duplicate slug across adapters")
-	}
+	assert.Error(t, err, "want error for duplicate slug across adapters")
 }

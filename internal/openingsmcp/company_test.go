@@ -2,8 +2,10 @@ package openingsmcp
 
 import (
 	"context"
-	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/amikai/openings-mcp/internal/ats"
 )
@@ -35,9 +37,7 @@ func (s *stubAdapter) Detail(context.Context, string, string) (*ats.JobDetail, e
 func testCompanyRegistry(t *testing.T, stub *stubAdapter) *ats.Registry {
 	t.Helper()
 	r, err := ats.NewRegistry(stub)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 	return r
 }
 
@@ -57,51 +57,40 @@ func TestCompanySearchMapsParamsAndResult(t *testing.T) {
 		Filters:  map[string][]string{"team": {"Platform"}},
 		Page:     2,
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if stub.gotParams.Query != "golang" || stub.gotParams.Page != 2 || stub.gotParams.Filters["team"][0] != "Platform" {
-		t.Errorf("params not forwarded: %+v", stub.gotParams)
-	}
-	if out.TotalCount != 41 || out.Page != 2 || out.TotalPages != 3 || len(out.Data) != 1 {
-		t.Errorf("result not mapped: %+v", out)
-	}
-	if out.Data[0].JobID != "j1" || out.Data[0].URL != "https://x/j1" {
-		t.Errorf("summary not mapped: %+v", out.Data[0])
-	}
+	require.NoError(t, err)
+
+	assert.Equal(t, "golang", stub.gotParams.Query)
+	assert.Equal(t, 2, stub.gotParams.Page)
+	require.Contains(t, stub.gotParams.Filters, "team")
+	assert.Equal(t, "Platform", stub.gotParams.Filters["team"][0])
+
+	assert.Equal(t, 41, out.TotalCount)
+	assert.Equal(t, 2, out.Page)
+	assert.Equal(t, 3, out.TotalPages)
+	require.Len(t, out.Data, 1)
+	assert.Equal(t, "j1", out.Data[0].JobID)
+	assert.Equal(t, "https://x/j1", out.Data[0].URL)
 }
 
 func TestCompanySearchUnknownCompanyTeaches(t *testing.T) {
 	reg := testCompanyRegistry(t, &stubAdapter{})
 	_, err := companySearch(t.Context(), reg, &companySearchInput{Company: "acme corp intl"})
-	if err == nil {
-		t.Fatal("want teaching error")
-	}
-	if !strings.Contains(err.Error(), "acme") {
-		t.Errorf("error should suggest acme, got: %v", err)
-	}
+	require.ErrorContains(t, err, "acme", "want teaching error")
 }
 
 func TestCompanyFilters(t *testing.T) {
 	stub := &stubAdapter{filterSet: ats.FilterSet{"team": {"ML", "Web"}}}
 	reg := testCompanyRegistry(t, stub)
 	out, err := companyFilters(t.Context(), reg, &companyFiltersInput{Company: "acme"})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(out.Filters["team"]) != 2 {
-		t.Errorf("filters not mapped: %+v", out)
-	}
+	require.NoError(t, err)
+	assert.Len(t, out.Filters["team"], 2)
 }
 
 func TestCompanyDetail(t *testing.T) {
 	stub := &stubAdapter{detail: &ats.JobDetail{JobID: "j1", Title: "Engineer", Company: "Acme Corp", Description: "plain text"}}
 	reg := testCompanyRegistry(t, stub)
 	out, err := companyDetail(t.Context(), reg, &companyDetailInput{Company: "acme", JobID: "j1"})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if out.Title != "Engineer" || out.Description != "plain text" {
-		t.Errorf("detail not mapped: %+v", out)
-	}
+	require.NoError(t, err)
+	assert.Equal(t, "Engineer", out.Title)
+	assert.Equal(t, "plain text", out.Description)
 }
