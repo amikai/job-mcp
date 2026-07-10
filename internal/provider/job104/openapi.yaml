@@ -382,13 +382,15 @@ components:
         salaryHigh:
           type: integer
           description: >
-            Upper bound of the salary range, in the unit given by `s10`.
-            9999999 is 104's "no disclosed upper bound" sentinel (e.g. 月薪
-            60000元以上), not an actual figure.
+            Upper bound of the salary range, in TWD (all 104 postings quote
+            新台幣) per the period given by `s10`. 9999999 is 104's "no
+            disclosed upper bound" sentinel (e.g. 月薪60000元以上), not an
+            actual figure.
         salaryLow:
           type: integer
           description: >
-            Lower bound of the salary range, in the unit given by `s10`.
+            Lower bound of the salary range, in TWD per the period given by
+            `s10`.
         s10:
           type: integer
           description: >

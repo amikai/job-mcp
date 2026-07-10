@@ -535,14 +535,16 @@ type JobSummary struct {
 	CustName string         `json:"custName"`
 	CustNo   string         `json:"custNo"`
 	Link     JobSummaryLink `json:"link"`
-	// Upper bound of the salary range, in the unit given by `s10`. 9999999 is 104's "no disclosed upper
-	// bound" sentinel (e.g. 月薪 60000元以上), not an actual figure.
+	// Upper bound of the salary range, in TWD (all 104 postings quote 新台幣) per the period given by
+	// `s10`. 9999999 is 104's "no disclosed upper bound" sentinel (e.g. 月薪60000元以上), not an
+	// actual figure.
 	SalaryHigh int `json:"salaryHigh"`
-	// Lower bound of the salary range, in the unit given by `s10`.
+	// Lower bound of the salary range, in TWD per the period given by `s10`.
 	SalaryLow int `json:"salaryLow"`
 	// Salary type of `salaryLow`/`salaryHigh`: 10 = negotiable (待遇面議; both bounds are 0), 30 =
-	// hourly (時薪), 40 = daily (日薪), 50 = monthly (月薪), 60 = yearly (年薪). Confirmed live
-	// against keyword=時薪 results (salaryLow 220, s10 30).
+	// hourly (時薪), 40 = daily (日薪), 50 = monthly (月薪), 60 = yearly (年薪), 70 = part-time
+	// monthly (部分工時(月薪)). 30 and 70 confirmed live against keyword=時薪 results and their
+	// job-detail salary strings.
 	S10           int    `json:"s10"`
 	JobAddrNoDesc string `json:"jobAddrNoDesc"`
 	AppearDate    string `json:"appearDate"`

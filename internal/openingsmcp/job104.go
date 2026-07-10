@@ -214,8 +214,8 @@ type job104JobSummary struct {
 	CompanyName   string `json:"companyName"`                                       // custName
 	URL           string `json:"url" jsonschema:"Public job posting URL."`          // link.job
 	CompanyURL    string `json:"companyUrl" jsonschema:"Company profile page URL."` // link.cust
-	SalaryHigh    int    `json:"salaryHigh" jsonschema:"Salary upper bound, in salaryType units. 9999999 = no disclosed upper bound, not an actual figure."`
-	SalaryLow     int    `json:"salaryLow" jsonschema:"Salary lower bound, in salaryType units."`
+	SalaryHigh    int    `json:"salaryHigh" jsonschema:"Salary upper bound, in TWD per the salaryType period. 9999999 = no disclosed upper bound, not an actual figure."`
+	SalaryLow     int    `json:"salaryLow" jsonschema:"Salary lower bound, in TWD per the salaryType period."`
 	SalaryType    string `json:"salaryType,omitempty" jsonschema:"Salary period label for salaryLow/salaryHigh: Negotiable (待遇面議; both bounds are 0), Hourly, Daily, Monthly, Yearly, or PartTimeMonthly."` // s10 code → label; unknown code drops the field
 	JobAddrNoDesc string `json:"jobAddrNoDesc"`
 	AppearDate    string `json:"appearDate" jsonschema:"Posting date, YYYYMMDD."`
