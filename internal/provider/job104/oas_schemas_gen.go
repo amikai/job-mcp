@@ -530,16 +530,23 @@ func (s *JobDetailWelfare) SetWelfare(val OptString) {
 
 // Ref: #/components/schemas/JobSummary
 type JobSummary struct {
-	JobNo         string         `json:"jobNo"`
-	JobName       string         `json:"jobName"`
-	CustName      string         `json:"custName"`
-	CustNo        string         `json:"custNo"`
-	Link          JobSummaryLink `json:"link"`
-	SalaryHigh    int            `json:"salaryHigh"`
-	SalaryLow     int            `json:"salaryLow"`
-	JobAddrNoDesc string         `json:"jobAddrNoDesc"`
-	AppearDate    string         `json:"appearDate"`
-	ApplyCnt      int            `json:"applyCnt"`
+	JobNo    string         `json:"jobNo"`
+	JobName  string         `json:"jobName"`
+	CustName string         `json:"custName"`
+	CustNo   string         `json:"custNo"`
+	Link     JobSummaryLink `json:"link"`
+	// Upper bound of the salary range, in the unit given by `s10`. 9999999 is 104's "no disclosed upper
+	// bound" sentinel (e.g. 月薪 60000元以上), not an actual figure.
+	SalaryHigh int `json:"salaryHigh"`
+	// Lower bound of the salary range, in the unit given by `s10`.
+	SalaryLow int `json:"salaryLow"`
+	// Salary type of `salaryLow`/`salaryHigh`: 10 = negotiable (待遇面議; both bounds are 0), 30 =
+	// hourly (時薪), 40 = daily (日薪), 50 = monthly (月薪), 60 = yearly (年薪). Confirmed live
+	// against keyword=時薪 results (salaryLow 220, s10 30).
+	S10           int    `json:"s10"`
+	JobAddrNoDesc string `json:"jobAddrNoDesc"`
+	AppearDate    string `json:"appearDate"`
+	ApplyCnt      int    `json:"applyCnt"`
 	// 0 = not remote; matches the remoteWork request values otherwise. The `remoteWork` request param is a
 	// soft filter — check this field per entry if you need a strict result set (see the `remoteWork`
 	// parameter description on searchJobs).
@@ -589,6 +596,11 @@ func (s *JobSummary) GetSalaryHigh() int {
 // GetSalaryLow returns the value of SalaryLow.
 func (s *JobSummary) GetSalaryLow() int {
 	return s.SalaryLow
+}
+
+// GetS10 returns the value of S10.
+func (s *JobSummary) GetS10() int {
+	return s.S10
 }
 
 // GetJobAddrNoDesc returns the value of JobAddrNoDesc.
@@ -654,6 +666,11 @@ func (s *JobSummary) SetSalaryHigh(val int) {
 // SetSalaryLow sets the value of SalaryLow.
 func (s *JobSummary) SetSalaryLow(val int) {
 	s.SalaryLow = val
+}
+
+// SetS10 sets the value of S10.
+func (s *JobSummary) SetS10(val int) {
+	s.S10 = val
 }
 
 // SetJobAddrNoDesc sets the value of JobAddrNoDesc.
