@@ -102,6 +102,10 @@ func (a *LeverAdapter) dump(ctx context.Context, slug string) ([]dumpJob, error)
 	}
 	jobs := make([]dumpJob, 0, len(postings))
 	for _, p := range postings {
+		description, err := leverDescription(&p)
+		if err != nil {
+			return nil, err
+		}
 		cat := p.Categories.Value
 		fields := map[string]string{}
 		if cat.Team.Value != "" {
@@ -123,7 +127,7 @@ func (a *LeverAdapter) dump(ctx context.Context, slug string) ([]dumpJob, error)
 			},
 			sortKey:     time.UnixMilli(p.CreatedAt.Value).UTC(),
 			orgUnit:     cat.Team.Value + " " + cat.Department.Value,
-			description: p.DescriptionPlain.Value,
+			description: description,
 			locations:   cat.Location.Value + " " + strings.Join(cat.AllLocations, " "),
 			fields:      fields,
 			isRemote:    strings.EqualFold(p.WorkplaceType.Value, "remote"),

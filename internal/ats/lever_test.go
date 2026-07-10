@@ -53,6 +53,22 @@ func TestLeverSearchQuery(t *testing.T) {
 	assert.Equal(t, "AbelsonTaylor Writer", res.Jobs[0].Title, "want AbelsonTaylor Writer first")
 }
 
+func TestLeverSearchQueryMatchesListContent(t *testing.T) {
+	a := testLeverAdapter(t)
+	res, err := a.Search(t.Context(), "leverdemo", SearchParams{Query: "strikethrough"})
+	require.NoError(t, err)
+	require.Len(t, res.Jobs, 1)
+	assert.Equal(t, "AbelsonTaylor Writer", res.Jobs[0].Title)
+}
+
+func TestLeverSearchQueryMatchesAdditionalContent(t *testing.T) {
+	a := testLeverAdapter(t)
+	res, err := a.Search(t.Context(), "leverdemo", SearchParams{Query: "never find a job better"})
+	require.NoError(t, err)
+	require.Len(t, res.Jobs, 1)
+	assert.Equal(t, "AbelsonTaylor Writer", res.Jobs[0].Title)
+}
+
 func TestLeverSearchFilters(t *testing.T) {
 	a := testLeverAdapter(t)
 	res, err := a.Search(t.Context(), "leverdemo", SearchParams{

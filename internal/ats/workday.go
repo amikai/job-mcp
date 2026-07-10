@@ -4,6 +4,7 @@ import (
 	"cmp"
 	"context"
 	"fmt"
+	"math"
 	"net/http"
 	"net/url"
 	"slices"
@@ -59,6 +60,12 @@ func (a *WorkdayAdapter) Search(ctx context.Context, slug string, p SearchParams
 	if err != nil {
 		return nil, err
 	}
+	page := clampPage(p.Page)
+	pageIndex := page - 1
+	if pageIndex > math.MaxInt/PageSize {
+		return nil, fmt.Errorf("workday: page %d is too large; retry with a smaller page", page)
+	}
+	offset := pageIndex * PageSize
 	applied := workday.AppliedFacets{}
 	if p.Location != "" || len(p.Filters) > 0 {
 		flat, err := a.probeFacets(ctx, client, slug)
@@ -70,11 +77,10 @@ func (a *WorkdayAdapter) Search(ctx context.Context, slug string, p SearchParams
 			return nil, err
 		}
 	}
-	page := clampPage(p.Page)
 	rsp, err := client.SearchJobs(ctx, &workday.JobsRequest{
 		AppliedFacets: applied,
 		Limit:         PageSize,
-		Offset:        (page - 1) * PageSize,
+		Offset:        offset,
 		SearchText:    p.Query,
 	})
 	if err != nil {
