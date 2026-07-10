@@ -333,6 +333,30 @@ func TestJob104GetJobDetailUpstreamErrorE2E(t *testing.T) {
 	assert.Equal(t, "upstream error: 404", text.Text)
 }
 
+func TestJob104ExperienceLabel(t *testing.T) {
+	// The annotated periods are real values from live 104 postings, confirmed
+	// against their job-detail pages (see JobSummary.period in openapi.yaml);
+	// the rest pin the remaining bucket boundaries.
+	cases := []struct {
+		period int
+		want   string
+	}{
+		{0, "Under1Year"}, // 經歷不拘
+		{1, "Under1Year"},
+		{2, "1To3Years"}, // 1年以上
+		{3, "1To3Years"},
+		{4, "3To5Years"}, // 3年以上
+		{5, "3To5Years"},
+		{6, "5To10Years"},
+		{10, "5To10Years"},
+		{11, "Over10Years"}, // 10年以上
+		{12, "Over10Years"},
+	}
+	for _, tc := range cases {
+		assert.Equal(t, tc.want, job104ExperienceLabel(tc.period), "period=%d", tc.period)
+	}
+}
+
 func TestJob104HTTPToMCPResponse(t *testing.T) {
 	in := job104.JobsResponse{
 		Data: []job104.JobSummary{
