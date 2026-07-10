@@ -5,6 +5,7 @@ package ats
 
 import (
 	"context"
+	"net/url"
 	"time"
 )
 
@@ -34,6 +35,11 @@ type Adapter interface {
 	Name() string
 	// Roster lists every curated company on this ATS.
 	Roster() []CompanyInfo
+	// ParseCareersURL reports whether u is a careers-page URL on this ATS,
+	// and if so returns the slug that addresses that company. The slug may
+	// be a roster key or a self-describing form (workday returns the
+	// canonical careers URL for tenants outside its roster).
+	ParseCareersURL(u *url.URL) (slug string, ok bool)
 	Search(ctx context.Context, slug string, p SearchParams) (*SearchResult, error)
 	Filters(ctx context.Context, slug string) (FilterSet, error)
 	Detail(ctx context.Context, slug, jobID string) (*JobDetail, error)
