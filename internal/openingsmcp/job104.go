@@ -214,8 +214,9 @@ type job104JobSummary struct {
 	CompanyName   string `json:"companyName"`                                       // custName
 	URL           string `json:"url" jsonschema:"Public job posting URL."`          // link.job
 	CompanyURL    string `json:"companyUrl" jsonschema:"Company profile page URL."` // link.cust
-	SalaryHigh    int    `json:"salaryHigh"`
-	SalaryLow     int    `json:"salaryLow"`
+	SalaryHigh    int    `json:"salaryHigh" jsonschema:"Salary upper bound, in TWD per the salaryType period. 9999999 = no disclosed upper bound, not an actual figure."`
+	SalaryLow     int    `json:"salaryLow" jsonschema:"Salary lower bound, in TWD per the salaryType period."`
+	SalaryType    string `json:"salaryType,omitempty" jsonschema:"Salary period label for salaryLow/salaryHigh: Negotiable (待遇面議; both bounds are 0), Hourly, Daily, Monthly, Yearly, or PartTimeMonthly."` // s10 code → label; unknown code drops the field
 	JobAddrNoDesc string `json:"jobAddrNoDesc"`
 	AppearDate    string `json:"appearDate" jsonschema:"Posting date, YYYYMMDD."`
 	ApplyCnt      int    `json:"applyCnt"`
@@ -251,6 +252,19 @@ var job104RemoteWorkLabels = func() map[job104.SearchJobsRemoteWork]string {
 	}
 	return m
 }()
+
+// job104SalaryTypeLabels maps a JobSummary's raw s10 salary-type code to the
+// salaryType output label, per the code table on JobSummary.s10 in
+// openapi.yaml. There is no matching request parameter, so unlike the maps
+// above there is no ids.go map to invert.
+var job104SalaryTypeLabels = map[int]string{
+	10: "Negotiable",      // 待遇面議
+	30: "Hourly",          // 時薪
+	40: "Daily",           // 日薪
+	50: "Monthly",         // 月薪
+	60: "Yearly",          // 年薪
+	70: "PartTimeMonthly", // 部分工時(月薪)
+}
 
 // job104ExperienceLabel buckets a JobSummary's raw period value into the
 // same labels as the experience input, mirroring the jobexp/period mapping
@@ -291,6 +305,7 @@ func job104HTTPToMCPResponse(resp *job104.JobsResponse) *job104SearchOutput {
 			CompanyURL:    j.Link.Cust,
 			SalaryHigh:    j.SalaryHigh,
 			SalaryLow:     j.SalaryLow,
+			SalaryType:    job104SalaryTypeLabels[j.S10],
 			JobAddrNoDesc: j.JobAddrNoDesc,
 			AppearDate:    j.AppearDate,
 			ApplyCnt:      j.ApplyCnt,

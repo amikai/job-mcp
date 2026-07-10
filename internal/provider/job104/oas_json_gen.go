@@ -1371,6 +1371,10 @@ func (s *JobSummary) encodeFields(e *jx.Encoder) {
 		e.Int(s.SalaryLow)
 	}
 	{
+		e.FieldStart("s10")
+		e.Int(s.S10)
+	}
+	{
 		e.FieldStart("jobAddrNoDesc")
 		e.Str(s.JobAddrNoDesc)
 	}
@@ -1396,7 +1400,7 @@ func (s *JobSummary) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfJobSummary = [13]string{
+var jsonFieldsNameOfJobSummary = [14]string{
 	0:  "jobNo",
 	1:  "jobName",
 	2:  "custName",
@@ -1404,12 +1408,13 @@ var jsonFieldsNameOfJobSummary = [13]string{
 	4:  "link",
 	5:  "salaryHigh",
 	6:  "salaryLow",
-	7:  "jobAddrNoDesc",
-	8:  "appearDate",
-	9:  "applyCnt",
-	10: "remoteWorkType",
-	11: "jobRo",
-	12: "period",
+	7:  "s10",
+	8:  "jobAddrNoDesc",
+	9:  "appearDate",
+	10: "applyCnt",
+	11: "remoteWorkType",
+	12: "jobRo",
+	13: "period",
 }
 
 // Decode decodes JobSummary from json.
@@ -1503,8 +1508,20 @@ func (s *JobSummary) Decode(d *jx.Decoder) error {
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"salaryLow\"")
 			}
-		case "jobAddrNoDesc":
+		case "s10":
 			requiredBitSet[0] |= 1 << 7
+			if err := func() error {
+				v, err := d.Int()
+				s.S10 = int(v)
+				if err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"s10\"")
+			}
+		case "jobAddrNoDesc":
+			requiredBitSet[1] |= 1 << 0
 			if err := func() error {
 				v, err := d.Str()
 				s.JobAddrNoDesc = string(v)
@@ -1516,7 +1533,7 @@ func (s *JobSummary) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"jobAddrNoDesc\"")
 			}
 		case "appearDate":
-			requiredBitSet[1] |= 1 << 0
+			requiredBitSet[1] |= 1 << 1
 			if err := func() error {
 				v, err := d.Str()
 				s.AppearDate = string(v)
@@ -1528,7 +1545,7 @@ func (s *JobSummary) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"appearDate\"")
 			}
 		case "applyCnt":
-			requiredBitSet[1] |= 1 << 1
+			requiredBitSet[1] |= 1 << 2
 			if err := func() error {
 				v, err := d.Int()
 				s.ApplyCnt = int(v)
@@ -1540,7 +1557,7 @@ func (s *JobSummary) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"applyCnt\"")
 			}
 		case "remoteWorkType":
-			requiredBitSet[1] |= 1 << 2
+			requiredBitSet[1] |= 1 << 3
 			if err := func() error {
 				v, err := d.Int()
 				s.RemoteWorkType = int(v)
@@ -1552,7 +1569,7 @@ func (s *JobSummary) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"remoteWorkType\"")
 			}
 		case "jobRo":
-			requiredBitSet[1] |= 1 << 3
+			requiredBitSet[1] |= 1 << 4
 			if err := func() error {
 				v, err := d.Int()
 				s.JobRo = int(v)
@@ -1564,7 +1581,7 @@ func (s *JobSummary) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"jobRo\"")
 			}
 		case "period":
-			requiredBitSet[1] |= 1 << 4
+			requiredBitSet[1] |= 1 << 5
 			if err := func() error {
 				v, err := d.Int()
 				s.Period = int(v)
@@ -1586,7 +1603,7 @@ func (s *JobSummary) Decode(d *jx.Decoder) error {
 	var failures []validate.FieldError
 	for i, mask := range [2]uint8{
 		0b11111111,
-		0b00011111,
+		0b00111111,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.
