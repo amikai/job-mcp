@@ -313,11 +313,11 @@ func runSearch(
 	if format == "json" {
 		enc := json.NewEncoder(os.Stdout)
 		enc.SetIndent("", "  ")
-		return enc.Encode(searchResultJSON{Total: search.Total, Jobs: results})
+		return enc.Encode(searchResultJSON{Total: search.Total.Value, Jobs: results})
 	}
 
 	fmt.Printf("Workday Jobs Report\n")
-	fmt.Printf("Found %d jobs; showing %d\n\n", search.Total, len(results))
+	fmt.Printf("Found %d jobs; showing %d\n\n", search.Total.Value, len(results))
 	for i, r := range results {
 		fmt.Printf("%d. %s\n", i+1, r.Title)
 		if r.PostedOn != "" {
@@ -387,8 +387,8 @@ func fetchJobResult(ctx context.Context, client *workday.TenantClient, tenant, b
 	// Overwrite the summary's title/postedOn only when the detail actually
 	// carries a value — a detail response that omits postedOn (optional) or
 	// returns an empty title must not blank out the good summary value.
-	if info.Title != "" {
-		r.Title = info.Title
+	if info.Title.Value != "" {
+		r.Title = info.Title.Value
 	}
 	if info.PostedOn.Set {
 		r.PostedOn = info.PostedOn.Value
@@ -407,9 +407,9 @@ func fetchJobResult(ctx context.Context, client *workday.TenantClient, tenant, b
 	itemized = append(itemized, info.AdditionalLocations...)
 	setLocations(&r, itemized...)
 
-	description, err := html2text.FromString(info.JobDescription, html2text.Options{})
+	description, err := html2text.FromString(info.JobDescription.Value, html2text.Options{})
 	if err != nil {
-		description = info.JobDescription
+		description = info.JobDescription.Value
 	}
 	r.Description = description
 

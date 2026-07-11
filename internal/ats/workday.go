@@ -130,9 +130,9 @@ func (a *WorkdayAdapter) Search(ctx context.Context, slug string, p SearchParams
 	}
 	return &SearchResult{
 		Jobs:       jobs,
-		TotalCount: rsp.Total,
+		TotalCount: rsp.Total.Value,
 		Page:       page,
-		TotalPages: totalPages(rsp.Total),
+		TotalPages: totalPages(rsp.Total.Value),
 	}, nil
 }
 
@@ -177,7 +177,7 @@ func (a *WorkdayAdapter) Detail(ctx context.Context, slug, jobID string) (*JobDe
 		return nil, fmt.Errorf("workday: fetch job %q for %q: %w", jobID, slug, err)
 	}
 	info := rsp.JobPostingInfo
-	desc, err := html2text.FromString(info.JobDescription, html2text.Options{})
+	desc, err := html2text.FromString(info.JobDescription.Value, html2text.Options{})
 	if err != nil {
 		return nil, fmt.Errorf("workday: convert job description: %w", err)
 	}
@@ -187,7 +187,7 @@ func (a *WorkdayAdapter) Detail(ctx context.Context, slug, jobID string) (*JobDe
 	}
 	return &JobDetail{
 		JobID:       jobID,
-		Title:       info.Title,
+		Title:       info.Title.Value,
 		Company:     name,
 		Location:    location,
 		PostedAt:    info.PostedOn.Value,
