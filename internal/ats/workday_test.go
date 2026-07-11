@@ -96,6 +96,28 @@ func TestWorkdaySearchPlainIsOneRequest(t *testing.T) {
 	assert.Equal(t, "/job/Israel-Tel-Aviv/Software-Golang-Kubernetes-Engineer_JR2020442", first.JobID)
 }
 
+// Workday sometimes sends "externalPath": "" instead of omitting the
+// field; both shapes mean the posting has no fetchable path and must be
+// skipped, or Search would hand out a job_id that Detail rejects.
+func TestWorkdaySearchSkipsEmptyExternalPath(t *testing.T) {
+	rsp := []byte(`{
+		"total": 3,
+		"jobPostings": [
+			{"title": "Kept", "externalPath": "/job/Somewhere/Kept_JR1", "locationsText": "Somewhere", "postedOn": "Posted Today"},
+			{"title": "Empty Path", "externalPath": "", "locationsText": "Somewhere", "postedOn": "Posted Today"},
+			{"title": "No Path", "locationsText": "Somewhere", "postedOn": "Posted Today"}
+		]
+	}`)
+	mock := workday.NewMockServer(rsp, nil)
+	t.Cleanup(mock.Close)
+	a := NewWorkdayAdapter(&http.Client{Timeout: 5 * time.Second})
+	a.baseURL = func(workday.Company) string { return mock.URL }
+	res, err := a.Search(t.Context(), "nvidia", SearchParams{})
+	require.NoError(t, err)
+	require.Len(t, res.Jobs, 1)
+	assert.Equal(t, "/job/Somewhere/Kept_JR1", res.Jobs[0].JobID)
+}
+
 func TestWorkdaySearchRejectsHugePage(t *testing.T) {
 	a, bodies := testWorkdayAdapter(t)
 	_, err := a.Search(t.Context(), "nvidia", SearchParams{Page: math.MaxInt})

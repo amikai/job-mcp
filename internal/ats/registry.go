@@ -63,20 +63,26 @@ func NewRegistry(adapters ...Adapter) (*Registry, error) {
 	return r, nil
 }
 
-// Resolve maps a user-supplied company string to (adapter, slug). Misses
-// return a teaching error carrying the closest slugs, so one retry from the
-// LLM almost always lands.
+// Resolve maps a user-supplied company string to (adapter, slug). The input can
+// be a roster slug, a display name, or a careers URL. The returned slug is not
+// always a roster key: a careers URL for a company outside the roster resolves
+// to whatever slug the owning adapter minted via [Adapter.ParseCareersURL]
+// (Workday mints the canonical careers URL). Misses return a teaching error
+// carrying the closest slugs, so one retry from the LLM almost always lands.
 func (r *Registry) Resolve(company string) (Adapter, string, error) {
 	key := normalize(company)
 	if key == "" {
 		return nil, "", errors.New("company is required")
 	}
+	// 1. match slug
 	if e, ok := r.bySlug[key]; ok {
 		return e.adapter, e.slug, nil
 	}
+	// 2. match company name
 	if e, ok := r.byName[key]; ok {
 		return e.adapter, e.slug, nil
 	}
+	// 3. fallback to careers URL to match url slug
 	if u, ok := parseCareersInput(company); ok {
 		for _, a := range r.adapters {
 			if slug, ok := a.ParseCareersURL(u); ok {

@@ -1,5 +1,4 @@
-// Package ats unifies the ATS-backed providers (workday, greenhouse,
-// lever, ashby) behind one company-parameterized search interface, so MCP
+// Package ats unifies the ATS-backed providers behind one company-parameterized search interface, so MCP
 // clients name a company and never learn which ATS serves it.
 package ats
 
@@ -13,9 +12,8 @@ import (
 // 20 on at least one tenant, so 20 is the largest safe uniform value.
 const PageSize = 20
 
-// clampPage and totalPages centralize the unified pagination contract —
-// 1-based pages, fixed PageSize, ceil-div page count — so adapters can't
-// drift on it.
+// clampPage and totalPages enforce 1-based pages, PageSize, and ceil-div
+// totals.
 func clampPage(p int) int { return max(p, 1) }
 
 func totalPages(total int) int { return (total + PageSize - 1) / PageSize }
@@ -29,19 +27,23 @@ func isoDate(t time.Time) string { return t.UTC().Format("2006-01-02") }
 // indexed by Registry, or one the adapter itself minted via
 // ParseCareersURL for careers-URL input.
 type Adapter interface {
-	// Name identifies the adapter ("workday", "greenhouse", "lever",
-	// "ashby") in logs and error messages only; it never reaches tool
-	// schemas.
+	// Name of the adapter
 	Name() string
 	// Roster lists every curated company on this ATS.
 	Roster() []CompanyInfo
-	// ParseCareersURL reports whether u is a careers-page URL on this ATS,
-	// and if so returns the slug that addresses that company. The slug may
-	// be a roster key or a self-describing form (workday returns the
-	// canonical careers URL for tenants outside its roster).
+	// ParseCareersURL recognizes a careers URL for this ATS and returns a slug
+	// that can be passed to Search, Filters, and Detail. For curated companies,
+	// it returns the roster slug. For example, Workday returns a canonical
+	// careers URL for unlisted tenants, since a tenant name alone cannot
+	// identify its site. It returns ("", false) when u is not a careers URL
+	// for this ATS.
 	ParseCareersURL(u *url.URL) (slug string, ok bool)
+	// Search returns one page of jobs for the company identified by slug.
 	Search(ctx context.Context, slug string, p SearchParams) (*SearchResult, error)
+	// Filters returns the filter dimensions and values available for the company
+	// identified by slug.
 	Filters(ctx context.Context, slug string) (FilterSet, error)
+	// Detail returns the full posting for jobID at the company identified by slug.
 	Detail(ctx context.Context, slug, jobID string) (*JobDetail, error)
 }
 
@@ -56,10 +58,16 @@ type CompanyInfo struct {
 // SearchParams are the unified search inputs. Semantics are identical
 // across adapters; how each maps them upstream is the adapter's business.
 type SearchParams struct {
-	Query    string              // keywords: titles, skills, tech — never locations
-	Location string              // fuzzy text match; full-dump adapters special-case "remote" via their remote fields, workday matches location facet labels
-	Filters  map[string][]string // escape hatch; keys/values come from Filters(); OR within a key, AND across keys
-	Page     int                 // 1-based; values < 1 mean page 1
+	// Query searches titles, skills, and technology. It excludes locations.
+	Query string
+	// Location performs a fuzzy text match. Full-dump adapters use their remote
+	// fields for "remote".
+	Location string
+	// Filters uses keys and values returned by Filters(). Values within a key use
+	// OR semantics; different keys use AND semantics.
+	Filters FilterSet
+	// Page is 1-based. Values below 1 request page 1.
+	Page int
 }
 
 // SearchResult is one page of unified search results.
@@ -73,11 +81,16 @@ type SearchResult struct {
 // JobSummary carries summary fields only — full descriptions are Detail's
 // job, keeping search responses small for the LLM.
 type JobSummary struct {
-	JobID    string // provider-native id (workday externalPath, lever uuid, ashby id)
+	// JobID is the provider-native ID, such as a Workday externalPath, Lever
+	// UUID, or Ashby ID.
+	JobID    string
 	Title    string
 	Location string
-	PostedAt string // ISO 8601 date where the upstream provides one; otherwise its raw text
-	URL      string // human-clickable posting page
+	// PostedAt is an ISO 8601 date when the upstream provides one; otherwise,
+	// it is the upstream's raw text.
+	PostedAt string
+	// URL is the human-clickable posting page.
+	URL string
 }
 
 // FilterSet maps a filter dimension to its currently valid values, as
