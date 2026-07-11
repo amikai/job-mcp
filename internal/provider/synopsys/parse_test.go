@@ -123,6 +123,29 @@ func TestParseJobDetailResponse(t *testing.T) {
 	assert.Equal(t, wantJobDetail, got)
 }
 
+// Pages can carry several JSON-LD blocks; parsing must pick the JobPosting
+// one, not whichever comes first.
+func TestParseJobDetailPicksJobPostingJSONLD(t *testing.T) {
+	page := `<html><head>
+<script type="application/ld+json">{"@type":"Organization","name":"Synopsys"}</script>
+<script type="application/ld+json">{"@type":"JobPosting","title":"Staff Engineer","datePosted":"2026-01-02","identifier":"16567"}</script>
+</head><body></body></html>`
+
+	got, err := parseJobDetail(strings.NewReader(page))
+	require.NoError(t, err)
+	assert.Equal(t, "Staff Engineer", got.Title)
+	assert.Equal(t, "16567", got.DisplayID)
+}
+
+func TestParseJobDetailNoJobPostingErrors(t *testing.T) {
+	page := `<html><head>
+<script type="application/ld+json">{"@type":"Organization","name":"Synopsys"}</script>
+</head><body></body></html>`
+
+	_, err := parseJobDetail(strings.NewReader(page))
+	require.Error(t, err)
+}
+
 func TestStripHTML(t *testing.T) {
 	t.Parallel()
 	cases := []struct {

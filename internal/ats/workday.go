@@ -79,13 +79,16 @@ func (a *WorkdayAdapter) Search(ctx context.Context, slug string, p SearchParams
 		return nil, fmt.Errorf("workday: page %d is too large; retry with a smaller page", page)
 	}
 	offset := pageIndex * PageSize
+	// Trim before deciding whether location filtering is requested: a
+	// whitespace location would otherwise substring-match every facet label.
+	location := strings.TrimSpace(p.Location)
 	var applied workday.AppliedFacets
-	if p.Location != "" || len(p.Filters) > 0 {
+	if location != "" || len(p.Filters) > 0 {
 		flat, err := a.probeFacets(ctx, client, slug)
 		if err != nil {
 			return nil, err
 		}
-		applied, err = resolveFacets(flat, p.Location, p.Filters)
+		applied, err = resolveFacets(flat, location, p.Filters)
 		if err != nil {
 			return nil, err
 		}
@@ -282,19 +285,26 @@ func flattenFacets(nodes []workday.FacetNode) []flatFacet {
 // GUIDs, failing with teaching errors that name the valid alternatives.
 func resolveFacets(flat []flatFacet, location string, filters map[string][]string) (workday.AppliedFacets, error) {
 	applied := workday.AppliedFacets{}
+	locParam := ""
 	if location != "" {
 		param, ids, err := resolveLocationFacet(flat, location)
 		if err != nil {
 			return nil, err
 		}
 		applied[param] = ids
+		locParam = param
 	}
 	for key, values := range filters {
+		// Workday ORs values within one facet, so merging the fuzzy location
+		// IDs with explicit filter IDs would silently broaden the search.
+		if key == locParam {
+			return nil, fmt.Errorf("location %q resolves to the %q facet, which is also set in filters; pass the criteria as explicit %q filter values instead of a location", location, key, key)
+		}
 		ids, err := resolveFacetValues(flat, key, values)
 		if err != nil {
 			return nil, err
 		}
-		applied[key] = append(applied[key], ids...)
+		applied[key] = ids
 	}
 	return applied, nil
 }

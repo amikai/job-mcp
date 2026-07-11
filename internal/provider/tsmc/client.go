@@ -3,10 +3,13 @@ package tsmc
 import (
 	"cmp"
 	"context"
+	"errors"
 	"fmt"
+	"math"
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 
 	"github.com/PuerkitoBio/goquery"
 )
@@ -146,7 +149,18 @@ func (c *Client) jobsURL(p *JobsRequest) (string, error) {
 	}
 	u = u.JoinPath(jobsPath)
 	if p.Keyword != "" {
-		u = u.JoinPath(p.Keyword)
+		// The keyword is free text; JoinPath would treat "/" as a segment
+		// separator and clean "..", so append it as one escaped segment.
+		if strings.Trim(p.Keyword, ".") == "" {
+			return "", fmt.Errorf("invalid keyword %q", p.Keyword)
+		}
+		basePath, baseRaw := u.Path, u.EscapedPath()
+		if !strings.HasSuffix(basePath, "/") {
+			basePath += "/"
+			baseRaw += "/"
+		}
+		u.Path = basePath + p.Keyword
+		u.RawPath = baseRaw + url.PathEscape(p.Keyword)
 	}
 	q := u.Query()
 	q.Set("listFilterMode", "1")
@@ -158,6 +172,9 @@ func (c *Client) jobsURL(p *JobsRequest) (string, error) {
 	q.Set("jobRecordsPerPage", strconv.Itoa(perPage))
 
 	if p.Page > 1 {
+		if p.Page-1 > math.MaxInt/perPage {
+			return "", fmt.Errorf("page %d is too large", p.Page)
+		}
 		q.Set("jobOffset", strconv.Itoa((p.Page-1)*perPage))
 	}
 	for _, v := range p.Locations {
@@ -189,11 +206,17 @@ func (c *Client) Jobs(ctx context.Context, p *JobsRequest) (*JobsResponse, error
 	if err != nil {
 		return nil, fmt.Errorf("search jobs: %w", err)
 	}
-	jobs, total := parseSearchHTML(doc)
+	jobs, total, err := parseSearchHTML(doc)
+	if err != nil {
+		return nil, fmt.Errorf("search jobs: %w", err)
+	}
 	return &JobsResponse{Total: total, Jobs: jobs}, nil
 }
 
 func (c *Client) JobDetail(ctx context.Context, jobID string) (*JobDetailResponse, error) {
+	if jobID == "" {
+		return nil, errors.New("job detail: empty job id")
+	}
 	u := c.baseURL + jobDetailPath + "?jobId=" + url.QueryEscape(jobID) + "&source=External+Career+Site"
 	doc, err := c.getHTML(ctx, u, c.baseURL+jobsPath)
 	if err != nil {
@@ -203,7 +226,11 @@ func (c *Client) JobDetail(ctx context.Context, jobID string) (*JobDetailRespons
 	if !ok {
 		return nil, fmt.Errorf("job detail %q: not found in response", jobID)
 	}
-	detail.ID = jobID
+	// The canonical link names the job the page is actually for; a mismatch
+	// means upstream served different content than requested.
+	if detail.ID != jobID {
+		return nil, fmt.Errorf("job detail %q: response is for job %q", jobID, detail.ID)
+	}
 	return &detail, nil
 }
 

@@ -31,8 +31,30 @@ func TestParseSearchHTML(t *testing.T) {
 	doc, err := goquery.NewDocumentFromReader(f)
 	require.NoError(t, err)
 
-	got := parseJobsHTML(doc)
+	got, err := parseJobsHTML(doc)
+	require.NoError(t, err)
 	assert.Equal(t, wantJobs, got)
+}
+
+// A zero-result search returns an essentially empty fragment (observed live:
+// "<!DOCTYPE html>\n\n<!---->"); that is a valid empty search.
+func TestParseSearchHTMLEmptyFragmentIsNoResults(t *testing.T) {
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader("<!DOCTYPE html>\n\n<!---->"))
+	require.NoError(t, err)
+
+	jobs, err := parseJobsHTML(doc)
+	require.NoError(t, err)
+	assert.Empty(t, jobs)
+}
+
+// A page with content but no job cards is a challenge page or selector
+// drift, not an empty search.
+func TestParseSearchHTMLUnknownPageErrors(t *testing.T) {
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(`<html><body><h1>Sign in to continue</h1></body></html>`))
+	require.NoError(t, err)
+
+	_, err = parseJobsHTML(doc)
+	require.Error(t, err)
 }
 
 // The real fixture carries no remote postings (LinkedIn doesn't expose a
@@ -54,7 +76,8 @@ func TestParseSearchHTMLRemote(t *testing.T) {
 	doc, err := goquery.NewDocumentFromReader(strings.NewReader(cardHTML))
 	require.NoError(t, err)
 
-	got := parseJobsHTML(doc)
+	got, err := parseJobsHTML(doc)
+	require.NoError(t, err)
 
 	want := []Job{{
 		ID:         "999",

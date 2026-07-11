@@ -107,15 +107,18 @@ func (a *LeverAdapter) dump(ctx context.Context, slug string) ([]dumpJob, error)
 			return nil, err
 		}
 		cat := p.Categories.Value
-		fields := map[string]string{}
+		fields := map[string][]string{}
 		if cat.Team.Value != "" {
-			fields["team"] = cat.Team.Value
+			fields["team"] = []string{cat.Team.Value}
+		}
+		if cat.Department.Value != "" {
+			fields["department"] = []string{cat.Department.Value}
 		}
 		if cat.Commitment.Value != "" {
-			fields["commitment"] = cat.Commitment.Value
+			fields["commitment"] = []string{cat.Commitment.Value}
 		}
 		if p.WorkplaceType.Value != "" {
-			fields["workplaceType"] = p.WorkplaceType.Value
+			fields["workplaceType"] = []string{p.WorkplaceType.Value}
 		}
 		jobs = append(jobs, dumpJob{
 			summary: JobSummary{

@@ -111,8 +111,20 @@ func TestGreenhouseFilters(t *testing.T) {
 	for _, key := range []string{"department", "office"} {
 		assert.NotEmptyf(t, fs[key], "FilterSet missing %q: %v", key, fs)
 	}
-	wantDepts := []string{"Data", "Design", "Engineering", "People"}
-	assert.Equal(t, wantDepts, fs["department"])
+	wantDepts := []string{"Data", "Design", "Engineering", "People", "Platform"}
+	assert.Equal(t, wantDepts, fs["department"], "secondary departments must be listed too")
+}
+
+// Job 6100001001 sits in two departments (Engineering, Platform); filtering
+// by the secondary one must still find it.
+func TestGreenhouseSearchFilterSecondaryDepartment(t *testing.T) {
+	a := testGreenhouseAdapter(t)
+	res, err := a.Search(t.Context(), mockGreenhouseBoard, SearchParams{
+		Filters: map[string][]string{"department": {"Platform"}},
+	})
+	require.NoError(t, err)
+	require.Equal(t, 1, res.TotalCount)
+	assert.Equal(t, "6100001001", res.Jobs[0].JobID)
 }
 
 func TestGreenhouseDetail(t *testing.T) {

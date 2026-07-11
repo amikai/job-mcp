@@ -2,6 +2,7 @@ package tsmc
 
 import (
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/PuerkitoBio/goquery"
@@ -49,9 +50,20 @@ func TestParseSearchHTML(t *testing.T) {
 	doc, err := goquery.NewDocumentFromReader(f)
 	require.NoError(t, err)
 
-	gotJobs, gotTotal := parseSearchHTML(doc)
+	gotJobs, gotTotal, err := parseSearchHTML(doc)
+	require.NoError(t, err)
 	assert.Equal(t, 22, gotTotal)
 	assert.Equal(t, wantJobs, gotJobs)
+}
+
+// A bot challenge or redesigned page returns HTTP 200 without the results
+// panel; that must surface as an error, not an empty successful search.
+func TestParseSearchHTMLRejectsUnknownPage(t *testing.T) {
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader("<html><body>Access denied</body></html>"))
+	require.NoError(t, err)
+
+	_, _, err = parseSearchHTML(doc)
+	require.Error(t, err)
 }
 
 func TestParseDetailHTML(t *testing.T) {

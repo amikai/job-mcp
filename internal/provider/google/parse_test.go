@@ -247,8 +247,31 @@ func TestParseSearchHTML(t *testing.T) {
 	doc, err := goquery.NewDocumentFromReader(f)
 	require.NoError(t, err)
 
-	got := parseJobsHTML(doc)
+	got, err := parseJobsHTML(doc)
+	require.NoError(t, err)
 	assert.Equal(t, wantJobs, got)
+}
+
+// A genuine no-results page keeps the "N jobs matched" counter (span.SWhIm)
+// with a zero count; a bot challenge or redesigned page has neither cards
+// nor the counter and must error instead of reading as an empty search.
+func TestParseSearchHTMLNoResultsPage(t *testing.T) {
+	const page = `<html><body><main><div class="rZt9ff"><span class="SWhIm">0</span>  jobs matched</div></main></body></html>`
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(page))
+	require.NoError(t, err)
+
+	jobs, err := parseJobsHTML(doc)
+	require.NoError(t, err)
+	assert.Empty(t, jobs)
+}
+
+func TestParseSearchHTMLUnknownPageErrors(t *testing.T) {
+	const page = `<html><body>unusual response</body></html>`
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(page))
+	require.NoError(t, err)
+
+	_, err = parseJobsHTML(doc)
+	require.Error(t, err)
 }
 
 // Minimal card/detail markup mirroring the live structure of a remote-
@@ -266,7 +289,8 @@ func TestParseSearchHTMLRemoteEligible(t *testing.T) {
 	doc, err := goquery.NewDocumentFromReader(strings.NewReader(cardHTML))
 	require.NoError(t, err)
 
-	got := parseJobsHTML(doc)
+	got, err := parseJobsHTML(doc)
+	require.NoError(t, err)
 
 	want := []Job{{
 		ID:       "123",

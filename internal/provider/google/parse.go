@@ -1,21 +1,28 @@
 package google
 
 import (
+	"errors"
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
 	"golang.org/x/net/html"
 )
 
-// parseJobsHTML parses job cards from search results HTML.
-func parseJobsHTML(doc *goquery.Document) []Job {
+// parseJobsHTML parses job cards from search results HTML. When no cards
+// parse, the "N jobs matched" counter (span.SWhIm) distinguishes a genuine
+// zero-result page from a bot challenge or redesigned page — the latter must
+// error, not read as an empty search.
+func parseJobsHTML(doc *goquery.Document) ([]Job, error) {
 	var jobs []Job
 	for _, li := range doc.Find("li.lLd3Je").EachIter() {
 		if job, ok := parseJobCard(li); ok {
 			jobs = append(jobs, job)
 		}
 	}
-	return jobs
+	if len(jobs) == 0 && doc.Find("span.SWhIm").Length() == 0 {
+		return nil, errors.New("unrecognized search page: no job cards and no results counter")
+	}
+	return jobs, nil
 }
 
 func parseJobCard(li *goquery.Selection) (Job, bool) {

@@ -150,7 +150,11 @@ func (c *Client) Jobs(ctx context.Context, r *JobsRequest) (*JobsResponse, error
 	if err != nil {
 		return nil, fmt.Errorf("search jobs: %w", err)
 	}
-	return &JobsResponse{Jobs: parseJobsHTML(doc)}, nil
+	jobs, err := parseJobsHTML(doc)
+	if err != nil {
+		return nil, fmt.Errorf("search jobs: %w", err)
+	}
+	return &JobsResponse{Jobs: jobs}, nil
 }
 
 func (c *Client) JobDetail(ctx context.Context, jobID string) (*JobDetailResponse, error) {

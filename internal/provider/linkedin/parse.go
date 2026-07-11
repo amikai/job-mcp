@@ -1,6 +1,7 @@
 package linkedin
 
 import (
+	"errors"
 	"net/url"
 	"regexp"
 	"strings"
@@ -25,15 +26,21 @@ func looksRemote(parts ...string) bool {
 }
 
 // parseJobsHTML parses job cards out of the seeMoreJobPostings/search HTML
-// fragment.
-func parseJobsHTML(doc *goquery.Document) []Job {
+// fragment. A zero-result search returns an essentially empty fragment
+// (observed live: "<!DOCTYPE html>\n\n<!---->"), so a page that has content
+// but no cards is a challenge page or selector drift and must error instead
+// of reading as an empty search.
+func parseJobsHTML(doc *goquery.Document) ([]Job, error) {
 	var jobs []Job
 	for _, card := range doc.Find("div.base-search-card").EachIter() {
 		if job, ok := parseJobCard(card); ok {
 			jobs = append(jobs, job)
 		}
 	}
-	return jobs
+	if len(jobs) == 0 && strings.TrimSpace(doc.Text()) != "" {
+		return nil, errors.New("unrecognized search response: page has content but no job cards")
+	}
+	return jobs, nil
 }
 
 func parseJobCard(card *goquery.Selection) (Job, bool) {

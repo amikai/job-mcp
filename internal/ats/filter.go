@@ -15,11 +15,11 @@ import (
 // these; the engine never touches provider types.
 type dumpJob struct {
 	summary     JobSummary
-	sortKey     time.Time         // posting time, for deterministic newest-first ordering
-	orgUnit     string            // query tier 2: team/department text (tier 1 is summary.Title)
-	description string            // query tier 3: full JD plain text
-	locations   string            // every location string joined, for fuzzy matching
-	fields      map[string]string // structured dimensions, e.g. "team" -> "Platform"
+	sortKey     time.Time           // posting time, for deterministic newest-first ordering
+	orgUnit     string              // query tier 2: team/department text (tier 1 is summary.Title)
+	description string              // query tier 3: full JD plain text
+	locations   string              // every location string joined, for fuzzy matching
+	fields      map[string][]string // structured dimensions, e.g. "department" -> all departments
 	isRemote    bool
 }
 
@@ -120,10 +120,13 @@ func matchLocation(j *dumpJob, loc string) bool {
 func matchFilters(j *dumpJob, filters map[string][]string) bool {
 	for key, values := range filters {
 		actual := j.fields[key]
-		if actual == "" {
+		if len(actual) == 0 {
 			return false
 		}
-		if !slices.ContainsFunc(values, func(v string) bool { return strings.EqualFold(actual, v) }) {
+		match := slices.ContainsFunc(values, func(v string) bool {
+			return slices.ContainsFunc(actual, func(a string) bool { return strings.EqualFold(a, v) })
+		})
+		if !match {
 			return false
 		}
 	}
@@ -163,14 +166,16 @@ func errUnknownFilterKey(key string, valid map[string]bool) error {
 func distinctFilters(jobs []dumpJob) FilterSet {
 	seen := make(map[string]map[string]bool)
 	for i := range jobs {
-		for k, v := range jobs[i].fields {
-			if v == "" {
-				continue
+		for k, vs := range jobs[i].fields {
+			for _, v := range vs {
+				if v == "" {
+					continue
+				}
+				if seen[k] == nil {
+					seen[k] = make(map[string]bool)
+				}
+				seen[k][v] = true
 			}
-			if seen[k] == nil {
-				seen[k] = make(map[string]bool)
-			}
-			seen[k][v] = true
 		}
 	}
 	return toFilterSet(seen)

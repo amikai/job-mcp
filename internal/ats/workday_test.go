@@ -154,6 +154,24 @@ func TestWorkdaySearchLocationResolvesToFacet(t *testing.T) {
 	assert.Equal(t, "c7769ee377291036b08490819096b8bf", real.AppliedFacets["locations"][0], `want the "Israel, Tel Aviv" GUID`)
 }
 
+func TestWorkdaySearchWhitespaceLocationIsPlainSearch(t *testing.T) {
+	a, bodies := testWorkdayAdapter(t)
+	res, err := a.Search(t.Context(), "nvidia", SearchParams{Location: "   "})
+	require.NoError(t, err)
+	require.Len(t, *bodies, 1, "whitespace location should not trigger a facet probe")
+	assert.Equal(t, 27, res.TotalCount)
+}
+
+func TestWorkdaySearchLocationConflictingFilterErrors(t *testing.T) {
+	a, bodies := testWorkdayAdapter(t)
+	_, err := a.Search(t.Context(), "nvidia", SearchParams{
+		Location: "Tel Aviv",
+		Filters:  map[string][]string{"locations": {"Israel, Tel Aviv"}},
+	})
+	require.ErrorContains(t, err, "locations", "conflicting location facet should be rejected, not OR-ed")
+	assert.Len(t, *bodies, 1, "the conflict should fail before the real search request")
+}
+
 func TestWorkdayFilterValueNotFoundTeaches(t *testing.T) {
 	a, _ := testWorkdayAdapter(t)
 	_, err := a.Search(t.Context(), "nvidia", SearchParams{
