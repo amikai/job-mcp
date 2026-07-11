@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"log/slog"
 	"net/http"
 	"net/http/cookiejar"
@@ -165,12 +166,28 @@ func runWithTransport(transport mcp.Transport, logger *slog.Logger) error {
 	return nil
 }
 
-// newATSRegistry wires the unified company adapters over one shared
-// connection pool, against the providers' production endpoints. Only
-// Workday is wired in for now; the other ATS adapters (Lever, Ashby,
-// Greenhouse) stay unregistered until they're ready to ship.
+// newATSRegistry wires all unified company adapters over one shared
+// connection pool, against the providers' production endpoints.
 func newATSRegistry(hc *http.Client) (*ats.Registry, error) {
-	return ats.NewRegistry(ats.NewWorkdayAdapter(hc))
+	leverAdapter, err := ats.NewLeverAdapter("https://api.lever.co", hc)
+	if err != nil {
+		return nil, fmt.Errorf("create Lever ATS adapter: %w", err)
+	}
+	ashbyAdapter, err := ats.NewAshbyAdapter("https://api.ashbyhq.com", hc)
+	if err != nil {
+		return nil, fmt.Errorf("create Ashby ATS adapter: %w", err)
+	}
+	greenhouseAdapter, err := ats.NewGreenhouseAdapter("https://boards-api.greenhouse.io/v1", hc)
+	if err != nil {
+		return nil, fmt.Errorf("create Greenhouse ATS adapter: %w", err)
+	}
+
+	return ats.NewRegistry(
+		ats.NewWorkdayAdapter(hc),
+		leverAdapter,
+		ashbyAdapter,
+		greenhouseAdapter,
+	)
 }
 
 func newServer(
