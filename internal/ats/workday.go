@@ -15,6 +15,8 @@ import (
 	"github.com/amikai/openings-mcp/internal/provider/workday"
 )
 
+var _ Adapter = (*WorkdayAdapter)(nil)
+
 // WorkdayAdapter serves Workday CXS tenants. Search runs server-side;
 // location and filters name facet labels, which the adapter resolves to
 // tenant-specific GUIDs via a probe request (appliedFacets wants GUIDs but
@@ -55,8 +57,19 @@ func (a *WorkdayAdapter) Roster() []CompanyInfo {
 	return infos
 }
 
+// Search accepts two slug forms: a roster tenant slug, or the canonical
+// careers URL that ParseCareersURL mints for tenants outside the roster.
+// The URL form exists because addressing a Workday site takes three values
+// (tenant, instance host, site name); the roster stores them for curated
+// tenants, and for everyone else the URL is the only slug that can carry
+// all three across stateless calls. Filters and Detail accept the same two
+// forms.
 func (a *WorkdayAdapter) Search(ctx context.Context, slug string, p SearchParams) (*SearchResult, error) {
-	client, ts, err := a.client(slug)
+	_, base, err := a.resolveSlug(slug)
+	if err != nil {
+		return nil, err
+	}
+	client, err := workday.NewClient(base, workday.WithClient(a.hc))
 	if err != nil {
 		return nil, err
 	}
@@ -66,7 +79,7 @@ func (a *WorkdayAdapter) Search(ctx context.Context, slug string, p SearchParams
 		return nil, fmt.Errorf("workday: page %d is too large; retry with a smaller page", page)
 	}
 	offset := pageIndex * PageSize
-	applied := workday.AppliedFacets{}
+	var applied workday.AppliedFacets
 	if p.Location != "" || len(p.Filters) > 0 {
 		flat, err := a.probeFacets(ctx, client, slug)
 		if err != nil {
@@ -90,20 +103,21 @@ func (a *WorkdayAdapter) Search(ctx context.Context, slug string, p SearchParams
 	// Public posting URLs derive from the tenant's career-site origin;
 	// derivation can fail only on malformed base URLs (e.g. a test mock),
 	// in which case summaries simply omit URLs.
-	publicURL, pubErr := workday.PublicSiteURL(ts.base)
+	publicURL, pubErr := workday.PublicSiteURL(base)
 	jobs := make([]JobSummary, 0, len(rsp.JobPostings))
 	for _, js := range rsp.JobPostings {
-		path := js.ExternalPath.Value
-		if path == "" {
+		path, ok := js.ExternalPath.Get()
+		if !ok {
 			// Transient posting with no fetchable path; skip rather than
 			// hand out a job_id that can't be detailed.
 			continue
 		}
-		url := ""
+		var url string
 		if pubErr == nil {
 			url = publicURL + path
 		}
 		jobs = append(jobs, JobSummary{
+			// use externalPath as the job ID
 			JobID:    path,
 			Title:    js.Title.Value,
 			Location: js.LocationsText.Value,
@@ -120,7 +134,11 @@ func (a *WorkdayAdapter) Search(ctx context.Context, slug string, p SearchParams
 }
 
 func (a *WorkdayAdapter) Filters(ctx context.Context, slug string) (FilterSet, error) {
-	client, _, err := a.client(slug)
+	_, base, err := a.resolveSlug(slug)
+	if err != nil {
+		return nil, err
+	}
+	client, err := workday.NewClient(base, workday.WithClient(a.hc))
 	if err != nil {
 		return nil, err
 	}
@@ -139,7 +157,11 @@ func (a *WorkdayAdapter) Filters(ctx context.Context, slug string) (FilterSet, e
 }
 
 func (a *WorkdayAdapter) Detail(ctx context.Context, slug, jobID string) (*JobDetail, error) {
-	client, ts, err := a.client(slug)
+	name, base, err := a.resolveSlug(slug)
+	if err != nil {
+		return nil, err
+	}
+	client, err := workday.NewClient(base, workday.WithClient(a.hc))
 	if err != nil {
 		return nil, err
 	}
@@ -163,7 +185,7 @@ func (a *WorkdayAdapter) Detail(ctx context.Context, slug, jobID string) (*JobDe
 	return &JobDetail{
 		JobID:       jobID,
 		Title:       info.Title,
-		Company:     ts.name,
+		Company:     name,
 		Location:    location,
 		PostedAt:    info.PostedOn.Value,
 		URL:         info.ExternalUrl.Value,
@@ -189,39 +211,21 @@ func (a *WorkdayAdapter) ParseCareersURL(u *url.URL) (string, bool) {
 	return site.CanonicalURL(), true
 }
 
-// tenantSite is one reachable career site, however the slug named it.
-// name feeds JobDetail.Company; base is the CXS base URL.
-type tenantSite struct {
-	name string
-	base string
-}
-
 // resolveSlug maps a slug to its career site: roster key first, then the
 // canonical-URL form ParseCareersURL hands out for non-roster tenants.
-func (a *WorkdayAdapter) resolveSlug(slug string) (tenantSite, error) {
+// name feeds JobDetail.Company; base is the CXS base URL.
+func (a *WorkdayAdapter) resolveSlug(slug string) (name, base string, err error) {
+	// 1. when slug is company
 	if company, ok := workday.CompaniesByTenant[slug]; ok {
-		return tenantSite{name: company.Name, base: a.baseURL(company)}, nil
+		return company.Name, a.baseURL(company), nil
 	}
+	// 2. when slug is careers URL
 	if u, ok := parseCareersInput(slug); ok {
 		if site, ok := workday.ParseCareersURL(u); ok {
-			return tenantSite{name: site.Tenant, base: a.siteBaseURL(site)}, nil
+			return site.Tenant, a.siteBaseURL(site), nil
 		}
 	}
-	return tenantSite{}, fmt.Errorf("workday: unknown company %q; pass a roster slug or a myworkdayjobs.com careers URL", slug)
-}
-
-// client builds a per-site CXS client on demand. The wrapper is stateless
-// and cheap; connection pooling lives in the shared http.Client.
-func (a *WorkdayAdapter) client(slug string) (*workday.Client, tenantSite, error) {
-	ts, err := a.resolveSlug(slug)
-	if err != nil {
-		return nil, tenantSite{}, err
-	}
-	c, err := workday.NewClient(ts.base, workday.WithClient(a.hc))
-	if err != nil {
-		return nil, tenantSite{}, err
-	}
-	return c, ts, nil
+	return "", "", fmt.Errorf("workday: unknown company %q; pass a roster slug or a myworkdayjobs.com careers URL", slug)
 }
 
 // flatFacet is one facet leaf attributed to its nearest ancestor group
