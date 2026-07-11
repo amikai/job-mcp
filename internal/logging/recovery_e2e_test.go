@@ -23,7 +23,7 @@ func TestRecoveryMiddlewareRealPanicOverTheWire(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(&logBuf, nil))
 
 	server := mcp.NewServer(&mcp.Implementation{Name: "test-server", Version: "v0"}, &mcp.ServerOptions{Logger: logger})
-	server.AddReceivingMiddleware(logging.ErrorLoggingMiddleware(logger))
+	server.AddReceivingMiddleware(logging.LoggingMiddleware(logger))
 	server.AddReceivingMiddleware(logging.RecoveryMiddleware(logger))
 
 	mcp.AddTool(server, &mcp.Tool{Name: "boom", Description: "always panics"},
