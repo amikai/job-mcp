@@ -57,6 +57,7 @@ func main() {
 	fs := ff.NewFlagSet("openings-mcp")
 	var (
 		logFile              = fs.StringLong("log-file", "", "path to the log file (defaults to empty, outputs to stderr)")
+		logLevel             = fs.StringLong("log-level", "info", "minimum log level: debug, info, warn, or error")
 		enableCommandLogging = fs.BoolLong("enable-command-logging", "log raw JSON-RPC traffic to the log output")
 		versionFlag          = fs.BoolLong("version", "print version information and exit")
 	)
@@ -79,6 +80,11 @@ func main() {
 		os.Exit(0)
 	}
 
+	var level slog.Level
+	if err := level.UnmarshalText([]byte(*logLevel)); err != nil {
+		log.Fatalf("invalid log-level %q: %v", *logLevel, err)
+	}
+
 	logOutput := io.Writer(os.Stderr)
 	if *logFile != "" {
 		file, err := os.OpenFile(*logFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o600)
@@ -88,7 +94,7 @@ func main() {
 		defer file.Close()
 		logOutput = file
 	}
-	logger := slog.New(slog.NewTextHandler(logOutput, nil))
+	logger := slog.New(slog.NewTextHandler(logOutput, &slog.HandlerOptions{Level: level}))
 
 	var transport mcp.Transport = &mcp.StdioTransport{}
 	if *enableCommandLogging {
@@ -170,7 +176,7 @@ func newServer(
 	logger *slog.Logger,
 ) *mcp.Server {
 	server := mcp.NewServer(&mcp.Implementation{Name: "openings-mcp", Version: version}, &mcp.ServerOptions{Instructions: serverInstructions, Logger: logger})
-	server.AddReceivingMiddleware(logging.ErrorLoggingMiddleware(logger))
+	server.AddReceivingMiddleware(logging.LoggingMiddleware(logger))
 	// Registered last so it wraps outermost, catching panics from tool
 	// handlers and from other middleware alike.
 	server.AddReceivingMiddleware(logging.RecoveryMiddleware(logger))
