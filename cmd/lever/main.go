@@ -272,7 +272,7 @@ func toPostingJSON(p lever.Posting) postingJSON {
 	cats := p.Categories.Value
 	r := postingJSON{
 		ID:          p.ID,
-		Title:       p.Text,
+		Title:       p.Text.Value,
 		URL:         p.HostedUrl.Value,
 		Team:        cats.Team.Value,
 		Commitment:  cats.Commitment.Value,

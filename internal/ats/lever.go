@@ -82,7 +82,7 @@ func (a *LeverAdapter) Detail(ctx context.Context, slug, jobID string) (*JobDeta
 	}
 	return &JobDetail{
 		JobID:       p.ID,
-		Title:       p.Text,
+		Title:       p.Text.Value,
 		Company:     cmp.Or(lever.CompaniesBySite[slug].Name, slug),
 		Location:    leverLocations(p),
 		PostedAt:    leverPostedAt(p),
@@ -123,7 +123,7 @@ func (a *LeverAdapter) dump(ctx context.Context, slug string) ([]dumpJob, error)
 		jobs = append(jobs, dumpJob{
 			summary: JobSummary{
 				JobID:    p.ID,
-				Title:    p.Text,
+				Title:    p.Text.Value,
 				Location: cat.Location.Value,
 				PostedAt: leverPostedAt(&p),
 				URL:      p.HostedUrl.Value,
@@ -148,11 +148,11 @@ func leverDescription(p *lever.Posting) (string, error) {
 		parts = append(parts, s)
 	}
 	for _, l := range p.Lists {
-		content, err := html2text.FromString(l.Content, html2text.Options{})
+		content, err := html2text.FromString(l.Content.Value, html2text.Options{})
 		if err != nil {
-			return "", fmt.Errorf("lever: convert list section %q: %w", l.Text, err)
+			return "", fmt.Errorf("lever: convert list section %q: %w", l.Text.Value, err)
 		}
-		parts = append(parts, l.Text+"\n"+content)
+		parts = append(parts, l.Text.Value+"\n"+content)
 	}
 	if s := strings.TrimSpace(p.AdditionalPlain.Value); s != "" {
 		parts = append(parts, s)
