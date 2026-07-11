@@ -104,8 +104,6 @@
   board_token: "reddit"
 - company: "Robinhood"
   board_token: "robinhood"
-- company: "RunPod"
-  board_token: "runpod"
 - company: "Safari AI"
   board_token: "safariai"
 - company: "Scale AI"
