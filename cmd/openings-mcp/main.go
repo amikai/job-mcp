@@ -16,6 +16,7 @@ import (
 	"github.com/peterbourgon/ff/v4/ffhelp"
 
 	"github.com/amikai/openings-mcp/internal/ats"
+	"github.com/amikai/openings-mcp/internal/httpcache"
 	"github.com/amikai/openings-mcp/internal/logging"
 	"github.com/amikai/openings-mcp/internal/openingsmcp"
 	"github.com/amikai/openings-mcp/internal/provider/cake"
@@ -116,16 +117,21 @@ func run() int {
 }
 
 func runWithTransport(transport mcp.Transport, logger *slog.Logger) error {
+	// One shared response cache: every provider's transport draws on the
+	// same 1 GiB budget, so a repeated query anywhere is served from
+	// memory for up to an hour instead of re-fetching upstream.
+	cache := httpcache.New(1<<30, 60*time.Minute, logger)
+
 	// One connection pool, with a ceiling so a hung upstream fails that call
 	// instead of stalling the MCP session.
-	hc104 := &http.Client{Timeout: 30 * time.Second, Transport: job104.BrowserTransport{}}
+	hc104 := &http.Client{Timeout: 30 * time.Second, Transport: cache.Wrap(job104.BrowserTransport{})}
 
 	c104, err := job104.NewClient("https://www.104.com.tw", job104.WithClient(hc104))
 	if err != nil {
 		return err
 	}
 
-	hc := &http.Client{Timeout: 30 * time.Second}
+	hc := &http.Client{Timeout: 30 * time.Second, Transport: cache.Wrap(http.DefaultTransport)}
 
 	cCake, err := cake.NewClient("https://api.cake.me", cake.WithClient(hc))
 	if err != nil {
@@ -142,7 +148,7 @@ func runWithTransport(transport mcp.Transport, logger *slog.Logger) error {
 	cGoogle := google.NewClient("https://www.google.com/about/careers/applications", hc)
 
 	jarLinkedin, _ := cookiejar.New(nil)
-	cLinkedin := linkedin.NewClient("https://www.linkedin.com", &http.Client{Timeout: 30 * time.Second, Jar: jarLinkedin})
+	cLinkedin := linkedin.NewClient("https://www.linkedin.com", &http.Client{Timeout: 30 * time.Second, Jar: jarLinkedin, Transport: cache.Wrap(http.DefaultTransport)})
 
 	registry, err := newATSRegistry(hc)
 	if err != nil {
