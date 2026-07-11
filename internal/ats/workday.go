@@ -107,7 +107,7 @@ func (a *WorkdayAdapter) Search(ctx context.Context, slug string, p SearchParams
 	jobs := make([]JobSummary, 0, len(rsp.JobPostings))
 	for _, js := range rsp.JobPostings {
 		path, ok := js.ExternalPath.Get()
-		if !ok {
+		if !ok || path == "" {
 			// Transient posting with no fetchable path; skip rather than
 			// hand out a job_id that can't be detailed.
 			continue
