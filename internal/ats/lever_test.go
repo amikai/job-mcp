@@ -83,6 +83,16 @@ func TestLeverFilters(t *testing.T) {
 	fs, err := a.Filters(t.Context(), "leverdemo")
 	require.NoError(t, err)
 	assert.True(t, slices.Contains(fs["team"], "Professional Services"), `fs["team"] = %v, want it to contain "Professional Services"`, fs["team"])
+	assert.True(t, slices.Contains(fs["department"], "Sales"), `fs["department"] = %v, want it to contain "Sales"`, fs["department"])
+}
+
+func TestLeverSearchFilterDepartment(t *testing.T) {
+	a := testLeverAdapter(t)
+	res, err := a.Search(t.Context(), "leverdemo", SearchParams{
+		Filters: map[string][]string{"department": {"Sales"}},
+	})
+	require.NoError(t, err)
+	assert.Equal(t, 2, res.TotalCount, "both Account Executive postings sit in Sales")
 }
 
 func TestLeverDetail(t *testing.T) {

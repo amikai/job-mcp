@@ -57,6 +57,20 @@ func TestJobs(t *testing.T) {
 	assert.Equal(t, want, got)
 }
 
+// hasJobs=true with zero parseable cards means the results markup changed
+// (or a challenge slipped through); that must not look like an empty search.
+func TestJobsErrorsWhenHasJobsButNoCards(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"filters":"","results":"<section id=\"search-results\"></section>","hasJobs":true,"hasContent":true}`))
+	}))
+	defer srv.Close()
+	c := &Client{httpClient: srv.Client(), baseURL: srv.URL}
+
+	_, err := c.Jobs(t.Context(), &JobsRequest{Keywords: "software"})
+	require.Error(t, err)
+}
+
 func TestJobDetail(t *testing.T) {
 	srv := newMockServer(t)
 	defer srv.Close()

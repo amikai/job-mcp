@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func dj(id, title, orgUnit, desc, loc string, posted time.Time, fields map[string]string, remote bool) dumpJob {
+func dj(id, title, orgUnit, desc, loc string, posted time.Time, fields map[string][]string, remote bool) dumpJob {
 	return dumpJob{
 		summary:     JobSummary{JobID: id, Title: title, Location: loc, PostedAt: posted.Format("2006-01-02"), URL: "https://example.com/" + id},
 		sortKey:     posted,
@@ -25,9 +25,9 @@ func dj(id, title, orgUnit, desc, loc string, posted time.Time, fields map[strin
 func testJobs() []dumpJob {
 	day := func(n int) time.Time { return time.Date(2026, 7, n, 0, 0, 0, 0, time.UTC) }
 	return []dumpJob{
-		dj("a", "Senior Go Engineer", "Platform", "You will write Go services", "Taipei, Taiwan", day(1), map[string]string{"team": "Platform", "commitment": "Full-time"}, false),
-		dj("b", "Frontend Engineer", "Web", "React and TypeScript, some Go tooling", "London, UK", day(3), map[string]string{"team": "Web", "commitment": "Full-time"}, false),
-		dj("c", "Data Scientist", "ML", "Python and statistics", "Remote - US", day(2), map[string]string{"team": "ML", "commitment": "Contract"}, true),
+		dj("a", "Senior Go Engineer", "Platform", "You will write Go services", "Taipei, Taiwan", day(1), map[string][]string{"team": {"Platform"}, "commitment": {"Full-time"}}, false),
+		dj("b", "Frontend Engineer", "Web", "React and TypeScript, some Go tooling", "London, UK", day(3), map[string][]string{"team": {"Web"}, "commitment": {"Full-time"}}, false),
+		dj("c", "Data Scientist", "ML", "Python and statistics", "Remote - US", day(2), map[string][]string{"team": {"ML"}, "commitment": {"Contract"}}, true),
 	}
 }
 
@@ -157,4 +157,29 @@ func TestDistinctFilters(t *testing.T) {
 	require.Len(t, fs["team"], 3)
 	assert.Equal(t, "ML", fs["team"][0], `fs["team"] should be sorted [ML Platform Web]`)
 	assert.Len(t, fs["commitment"], 2)
+}
+
+// A job can carry several values in one dimension (e.g. a Greenhouse job in
+// two departments); a filter must match any of them, and get_filters must
+// list all of them.
+func TestSearchDumpFilterMatchesAnyFieldValue(t *testing.T) {
+	posted := time.Date(2026, 7, 1, 0, 0, 0, 0, time.UTC)
+	jobs := []dumpJob{
+		dj("m", "Engineer", "", "", "X", posted, map[string][]string{"department": {"Engineering", "Platform"}}, false),
+		dj("n", "Designer", "", "", "X", posted, map[string][]string{"department": {"Design"}}, false),
+	}
+
+	res, err := searchDump(jobs, SearchParams{Filters: map[string][]string{"department": {"platform"}}})
+	require.NoError(t, err)
+	require.Len(t, res.Jobs, 1, "secondary department value should match")
+	assert.Equal(t, "m", res.Jobs[0].JobID)
+}
+
+func TestDistinctFiltersListsAllFieldValues(t *testing.T) {
+	posted := time.Date(2026, 7, 1, 0, 0, 0, 0, time.UTC)
+	jobs := []dumpJob{
+		dj("m", "Engineer", "", "", "X", posted, map[string][]string{"department": {"Engineering", "Platform"}}, false),
+	}
+	fs := distinctFilters(jobs)
+	assert.Equal(t, []string{"Engineering", "Platform"}, fs["department"])
 }

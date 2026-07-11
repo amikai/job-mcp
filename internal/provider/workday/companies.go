@@ -21,7 +21,8 @@ var companiesYAML []byte
 // *Two harmless exceptions share a tenant across two rows with an identical
 // instance/site (Fox Corporation's two share classes under "fox", News
 // Corp's two share classes under "dowjones") — both rows resolve to the same
-// BaseURL either way, so which one a lookup returns doesn't matter.
+// BaseURL. Lookups keep the first row so the display name matches the one
+// rosters advertise.
 type Company struct {
 	Name     string `yaml:"company" json:"company"`
 	Tenant   string `yaml:"tenant" json:"tenant"`
@@ -59,7 +60,11 @@ func mustLoadCompanies() []Company {
 func buildTenantIndex(cs []Company) map[string]Company {
 	m := make(map[string]Company, len(cs))
 	for _, c := range cs {
-		m[strings.ToLower(c.Tenant)] = c
+		slug := strings.ToLower(c.Tenant)
+		if _, ok := m[slug]; ok {
+			continue
+		}
+		m[slug] = c
 	}
 	return m
 }

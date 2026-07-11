@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"regexp"
 	"strconv"
@@ -62,6 +61,35 @@ func parseJobCard(li *goquery.Selection) (Job, bool) {
 
 var jsonLDRe = regexp.MustCompile(`(?s)<script[^>]+application/ld\+json[^>]*>(.*?)</script>`)
 
+// jobPostingLD is the JSON-LD JobPosting subset the detail parser reads.
+// @type is any because JSON-LD allows both a string and a list of strings.
+type jobPostingLD struct {
+	Type        any    `json:"@type"`
+	Title       string `json:"title"`
+	DatePosted  string `json:"datePosted"`
+	Identifier  string `json:"identifier"`
+	JobLocation []struct {
+		Address struct {
+			Locality string `json:"addressLocality"`
+			Country  string `json:"addressCountry"`
+		} `json:"address"`
+	} `json:"jobLocation"`
+}
+
+func isJobPostingType(t any) bool {
+	switch v := t.(type) {
+	case string:
+		return v == "JobPosting"
+	case []any:
+		for _, e := range v {
+			if s, ok := e.(string); ok && s == "JobPosting" {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 func parseJobDetail(r io.Reader) (*JobDetailResponse, error) {
 	body, err := io.ReadAll(r)
 	if err != nil {
@@ -69,24 +97,21 @@ func parseJobDetail(r io.Reader) (*JobDetailResponse, error) {
 	}
 
 	// xq -q "script[type='application/ld+json']" --html | jq '{title, datePosted, identifier, jobLocation}'
-	m := jsonLDRe.FindSubmatch(body)
-	if m == nil {
-		return nil, errors.New("no JSON-LD found")
+	// Pages may carry other JSON-LD blocks (Organization, WebSite) before
+	// the posting, so select by @type instead of taking the first block.
+	var ld *jobPostingLD
+	for _, m := range jsonLDRe.FindAllSubmatch(body, -1) {
+		var cand jobPostingLD
+		if json.Unmarshal(m[1], &cand) != nil {
+			continue
+		}
+		if isJobPostingType(cand.Type) && cand.Title != "" {
+			ld = &cand
+			break
+		}
 	}
-
-	var ld struct {
-		Title       string `json:"title"`
-		DatePosted  string `json:"datePosted"`
-		Identifier  string `json:"identifier"`
-		JobLocation []struct {
-			Address struct {
-				Locality string `json:"addressLocality"`
-				Country  string `json:"addressCountry"`
-			} `json:"address"`
-		} `json:"jobLocation"`
-	}
-	if err := json.Unmarshal(m[1], &ld); err != nil {
-		return nil, fmt.Errorf("JSON-LD: %w", err)
+	if ld == nil {
+		return nil, errors.New("no JobPosting JSON-LD found")
 	}
 
 	var locs []string

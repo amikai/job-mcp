@@ -143,12 +143,14 @@ func (a *GreenhouseAdapter) dump(ctx context.Context, slug string) ([]dumpJob, e
 				offices = append(offices, o.Name.Value)
 			}
 		}
-		fields := map[string]string{}
+		// A job can sit in several departments/offices; keep them all so
+		// filters match secondary values and get_filters lists them.
+		fields := map[string][]string{}
 		if len(depts) > 0 {
-			fields["department"] = depts[0]
+			fields["department"] = depts
 		}
 		if len(offices) > 0 {
-			fields["office"] = offices[0]
+			fields["office"] = offices
 		}
 		loc := j.Location.Value.Name.Value
 		jobs = append(jobs, dumpJob{

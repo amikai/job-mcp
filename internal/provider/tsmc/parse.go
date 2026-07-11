@@ -1,6 +1,7 @@
 package tsmc
 
 import (
+	"errors"
 	"net/url"
 	"regexp"
 	"strconv"
@@ -12,7 +13,14 @@ import (
 var totalRE = regexp.MustCompile(`\d+\s*-\s*\d+\s*of\s*(\d+)`)
 
 // parseSearchHTML parses job cards and total count from a search results page.
-func parseSearchHTML(doc *goquery.Document) ([]Job, int) {
+// The results panel wraps both job cards and the "no matching jobs" notice,
+// so its absence means a bot challenge or a redesigned page, not an empty
+// search.
+func parseSearchHTML(doc *goquery.Document) ([]Job, int, error) {
+	if doc.Find("div.results__panel").Length() == 0 {
+		return nil, 0, errors.New("unrecognized search page: results panel missing")
+	}
+
 	total := 0
 	if m := totalRE.FindStringSubmatch(doc.Text()); m != nil {
 		total, _ = strconv.Atoi(m[1])
@@ -27,7 +35,7 @@ func parseSearchHTML(doc *goquery.Document) ([]Job, int) {
 	if total == 0 {
 		total = len(jobs)
 	}
-	return jobs, total
+	return jobs, total, nil
 }
 
 func parseJobCard(article *goquery.Selection) (Job, bool) {

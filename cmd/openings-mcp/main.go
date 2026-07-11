@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"log/slog"
 	"net/http"
 	"net/http/cookiejar"
@@ -54,6 +53,12 @@ Context management:
 - After filtering, fetch details when both hold: the user's criteria include something summaries can't answer (tech stack, remote policy, overtime culture, education requirements written in the posting body, etc.), and the filtered set is small enough to fetch economically (roughly 5-10 postings). If either condition fails, present summaries and let the user decide whether to go deeper.`
 
 func main() {
+	os.Exit(run())
+}
+
+// run carries main's body so the deferred log-file cleanup survives every
+// exit path; only main itself calls os.Exit.
+func run() int {
 	fs := ff.NewFlagSet("openings-mcp")
 	var (
 		logFile              = fs.StringLong("log-file", "", "path to the log file (defaults to empty, outputs to stderr)")
@@ -68,22 +73,23 @@ func main() {
 	if err := cmd.Parse(os.Args[1:]); err != nil {
 		fmt.Fprintln(os.Stderr, ffhelp.Command(cmd))
 		if errors.Is(err, ff.ErrHelp) {
-			os.Exit(0)
+			return 0
 		}
 		fmt.Fprintln(os.Stderr, "err:", err)
-		os.Exit(1)
+		return 1
 	}
 
 	if *versionFlag {
 		fmt.Printf("Version: %s\nCommit: %s\nBuild Date: %s\n", version, commit, date)
-		os.Exit(0)
+		return 0
 	}
 
 	logOutput := io.Writer(os.Stderr)
 	if *logFile != "" {
 		file, err := os.OpenFile(*logFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o600)
 		if err != nil {
-			log.Fatalf("failed to open log file: %v", err)
+			fmt.Fprintf(os.Stderr, "failed to open log file: %v\n", err)
+			return 1
 		}
 		defer file.Close()
 		logOutput = file
@@ -96,8 +102,10 @@ func main() {
 	}
 
 	if err := runWithTransport(transport, logger); err != nil {
-		log.Fatal(err)
+		logger.Error("server terminated", "error", err)
+		return 1
 	}
+	return 0
 }
 
 func runWithTransport(transport mcp.Transport, logger *slog.Logger) error {

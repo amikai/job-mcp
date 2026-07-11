@@ -4,6 +4,7 @@ import (
 	"cmp"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -63,6 +64,11 @@ func (c *Client) Jobs(ctx context.Context, p *JobsRequest) (*JobsResponse, error
 	result, err := parseSearchResults(raw.Results)
 	if err != nil {
 		return nil, fmt.Errorf("search jobs: parse: %w", err)
+	}
+	// hasJobs is upstream's own signal; zero parsed cards despite it means
+	// the results markup changed, not an empty search.
+	if raw.HasJobs && len(result.Jobs) == 0 {
+		return nil, errors.New("search jobs: upstream reports jobs but none parsed from results HTML")
 	}
 	result.HasJobs = raw.HasJobs
 	result.HasContent = raw.HasContent
