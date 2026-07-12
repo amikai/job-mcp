@@ -550,6 +550,7 @@ func decodeSearchJobsParams(args [0]string, argsEscaped bool, r *http.Request) (
 
 		if err := q.HasParam(cfg); err == nil {
 			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				params.Edu = nil
 				return d.DecodeArray(func(d uri.Decoder) error {
 					var paramsDotEduVal SearchJobsEduItem
 					if err := func() error {
@@ -615,6 +616,7 @@ func decodeSearchJobsParams(args [0]string, argsEscaped bool, r *http.Request) (
 
 		if err := q.HasParam(cfg); err == nil {
 			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				params.Jobexp = nil
 				return d.DecodeArray(func(d uri.Decoder) error {
 					var paramsDotJobexpVal SearchJobsJobexpItem
 					if err := func() error {
@@ -736,6 +738,7 @@ func decodeSearchJobsParams(args [0]string, argsEscaped bool, r *http.Request) (
 
 		if err := q.HasParam(cfg); err == nil {
 			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				params.S9 = nil
 				return d.DecodeArray(func(d uri.Decoder) error {
 					var paramsDotS9Val SearchJobsS9Item
 					if err := func() error {
