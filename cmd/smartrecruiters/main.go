@@ -48,6 +48,9 @@ func main() {
 		ShortHelp: "search postings for a company (server-side filters)",
 		Flags:     searchFlags,
 		Exec: func(ctx context.Context, args []string) error {
+			if len(args) > 0 {
+				return fmt.Errorf("search takes no positional arguments, got %v (did you forget a flag name?)", args)
+			}
 			return runSearch(ctx, *company, *timeout, *keyword, *country, *region, *city, *department, *limit, *offset, *format)
 		},
 	}
@@ -61,6 +64,9 @@ func main() {
 		ShortHelp: "print one posting in full (description sections and public URL)",
 		Flags:     getFlags,
 		Exec: func(ctx context.Context, args []string) error {
+			if len(args) > 0 {
+				return fmt.Errorf("get takes no positional arguments, got %v (did you mean --id %s?)", args, args[0])
+			}
 			return runGet(ctx, *company, *timeout, *postingID, *format)
 		},
 	}
@@ -147,6 +153,18 @@ func runSearch(
 ) error {
 	if company == "" {
 		return errors.New("--company is required")
+	}
+	// Matches openapi.yaml's limit (1–100) and offset (>=0) constraints.
+	// The generated client only validates these on the server-decode path,
+	// never on outgoing requests, so an out-of-range value would otherwise
+	// reach the upstream API — which either 400s opaquely (negative
+	// values) or silently returns an empty page (--limit 0) rather than
+	// erroring.
+	if limit < 1 || limit > 100 {
+		return fmt.Errorf("--limit must be between 1 and 100, got %d", limit)
+	}
+	if offset < 0 {
+		return fmt.Errorf("--offset must be >= 0, got %d", offset)
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, timeout)

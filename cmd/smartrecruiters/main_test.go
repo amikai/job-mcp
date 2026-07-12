@@ -60,3 +60,15 @@ func TestRunGetMissingID(t *testing.T) {
 	err := runGet(t.Context(), "equinox", time.Second, "", "text")
 	assert.ErrorContains(t, err, "--id is required")
 }
+
+func TestRunSearchLimitOutOfRange(t *testing.T) {
+	for _, limit := range []int{0, -1, 101} {
+		err := runSearch(t.Context(), "equinox", time.Second, "", "", "", "", "", limit, 0, "text")
+		assert.ErrorContainsf(t, err, "--limit must be between 1 and 100", "limit=%d", limit)
+	}
+}
+
+func TestRunSearchOffsetNegative(t *testing.T) {
+	err := runSearch(t.Context(), "equinox", time.Second, "", "", "", "", "", 20, -1, "text")
+	assert.ErrorContains(t, err, "--offset must be >= 0")
+}
