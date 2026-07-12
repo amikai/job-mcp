@@ -1,8 +1,8 @@
 package ats
 
 import (
+	"cmp"
 	"context"
-	"errors"
 	"fmt"
 	"math"
 	"net/http"
@@ -10,6 +10,8 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+
+	"github.com/jaytaylor/html2text"
 
 	"github.com/amikai/openings-mcp/internal/provider/smartrecruiters"
 )
@@ -275,5 +277,60 @@ func (a *SmartRecruitersAdapter) Filters(ctx context.Context, slug string) (Filt
 }
 
 func (a *SmartRecruitersAdapter) Detail(ctx context.Context, slug, jobID string) (*JobDetail, error) {
-	return nil, errors.New("smartrecruiters: Detail not implemented yet")
+	res, err := a.client.GetPosting(ctx, smartrecruiters.GetPostingParams{
+		CompanyIdentifier: slug,
+		PostingId:         jobID,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("smartrecruiters: fetch job %q for %q: %w", jobID, slug, err)
+	}
+	d, ok := res.(*smartrecruiters.Posting)
+	if !ok {
+		// The only other GetPostingRes variant is the 404
+		// PostingErrorResponse, for an unknown company or posting id.
+		return nil, fmt.Errorf("smartrecruiters: job %q not found for company %q; pass a job_id exactly as returned by the job search", jobID, slug)
+	}
+	_, name := resolveSmartRecruitersCompany(slug)
+	return &JobDetail{
+		JobID:       cmp.Or(d.ID.Value, jobID),
+		Title:       d.Name.Value,
+		Company:     cmp.Or(d.Company.Value.Name.Value, name),
+		Location:    d.Location.Value.FullLocation.Value,
+		PostedAt:    smartRecruitersPostedAt(d.ReleasedDate),
+		URL:         d.PostingUrl.Value,
+		Description: smartRecruitersDescription(d.JobAd),
+	}, nil
+}
+
+// smartRecruitersDescription joins the jobAd's non-empty HTML sections as
+// titled plain-text blocks, in the API's canonical section order.
+func smartRecruitersDescription(jobAd smartrecruiters.OptJobAdSections) string {
+	sections, ok := jobAd.Value.Sections.Get()
+	if !ok {
+		return ""
+	}
+	ordered := []struct {
+		fallbackTitle string
+		sec           smartrecruiters.OptJobAdSection
+	}{
+		{"Company Description", sections.CompanyDescription},
+		{"Job Description", sections.JobDescription},
+		{"Qualifications", sections.Qualifications},
+		{"Additional Information", sections.AdditionalInformation},
+	}
+	var parts []string
+	for _, s := range ordered {
+		sec, ok := s.sec.Get()
+		if !ok || sec.Text.Value == "" {
+			continue
+		}
+		text, err := html2text.FromString(sec.Text.Value, html2text.Options{})
+		if err != nil {
+			// Keep the section as raw HTML rather than dropping it
+			// (mirrors cmd/smartrecruiters's printSection).
+			text = sec.Text.Value
+		}
+		parts = append(parts, cmp.Or(sec.Title.Value, s.fallbackTitle)+":\n"+text)
+	}
+	return strings.Join(parts, "\n\n")
 }

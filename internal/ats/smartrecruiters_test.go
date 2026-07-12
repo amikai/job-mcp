@@ -229,3 +229,30 @@ func TestSmartRecruitersSearchUnknownCompanyIsEmptyNotError(t *testing.T) {
 	assert.Equal(t, 0, res.TotalCount)
 	assert.Empty(t, res.Jobs)
 }
+
+func TestSmartRecruitersDetail(t *testing.T) {
+	a, _ := testSmartRecruitersAdapter(t)
+	d, err := a.Detail(t.Context(), "equinox", "744000137225639")
+	require.NoError(t, err)
+
+	assert.Equal(t, "744000137225639", d.JobID)
+	assert.Equal(t, "Female Locker Room Associate, Houston", d.Title)
+	assert.Equal(t, "Equinox", d.Company)
+	assert.Equal(t, "Houston, TX, United States", d.Location)
+	assert.Equal(t, "2026-07-10", d.PostedAt)
+	assert.Equal(t, "https://jobs.smartrecruiters.com/Equinox/744000137225639-female-locker-room-associate-houston", d.URL)
+
+	// All four jobAd sections joined as titled plain-text blocks, HTML
+	// stripped.
+	assert.Contains(t, d.Description, "Company Description:")
+	assert.Contains(t, d.Description, "Job Description:")
+	assert.Contains(t, d.Description, "Qualifications:")
+	assert.Contains(t, d.Description, "Additional Information:")
+	assert.NotContains(t, d.Description, "<p>")
+}
+
+func TestSmartRecruitersDetailNotFound(t *testing.T) {
+	a, _ := testSmartRecruitersAdapter(t)
+	_, err := a.Detail(t.Context(), "equinox", "000000000000")
+	require.ErrorContains(t, err, "pass a job_id exactly as returned by the job search")
+}
