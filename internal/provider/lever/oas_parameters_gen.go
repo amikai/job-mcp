@@ -471,6 +471,7 @@ func decodeListPostingsParams(args [1]string, argsEscaped bool, r *http.Request)
 
 		if err := q.HasParam(cfg); err == nil {
 			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				params.Location = nil
 				return d.DecodeArray(func(d uri.Decoder) error {
 					var paramsDotLocationVal string
 					if err := func() error {
@@ -514,6 +515,7 @@ func decodeListPostingsParams(args [1]string, argsEscaped bool, r *http.Request)
 
 		if err := q.HasParam(cfg); err == nil {
 			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				params.Commitment = nil
 				return d.DecodeArray(func(d uri.Decoder) error {
 					var paramsDotCommitmentVal string
 					if err := func() error {
@@ -557,6 +559,7 @@ func decodeListPostingsParams(args [1]string, argsEscaped bool, r *http.Request)
 
 		if err := q.HasParam(cfg); err == nil {
 			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				params.Team = nil
 				return d.DecodeArray(func(d uri.Decoder) error {
 					var paramsDotTeamVal string
 					if err := func() error {
@@ -600,6 +603,7 @@ func decodeListPostingsParams(args [1]string, argsEscaped bool, r *http.Request)
 
 		if err := q.HasParam(cfg); err == nil {
 			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				params.Department = nil
 				return d.DecodeArray(func(d uri.Decoder) error {
 					var paramsDotDepartmentVal string
 					if err := func() error {
