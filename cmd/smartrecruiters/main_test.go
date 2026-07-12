@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	smartrecruiters "github.com/amikai/openings-mcp/internal/provider/smartrecruiters"
 )
@@ -71,4 +72,32 @@ func TestRunSearchLimitOutOfRange(t *testing.T) {
 func TestRunSearchOffsetNegative(t *testing.T) {
 	err := runSearch(t.Context(), "equinox", time.Second, "", "", "", "", "", 20, -1, "text")
 	assert.ErrorContains(t, err, "--offset must be >= 0")
+}
+
+func TestNormalizeCompanyUnknown(t *testing.T) {
+	_, err := normalizeCompany("doesnotexist-company-xyz")
+	require.ErrorContains(t, err, `company "doesnotexist-company-xyz" not found`)
+	assert.ErrorContains(t, err, "smartrecruiters companies")
+}
+
+// TestNormalizeCompanyCanonicalCasing guards that a case-insensitive match
+// returns the roster's stored casing (e.g. "Equinox"), not whatever casing
+// the caller typed — the API is case-insensitive, but report output and
+// the params sent upstream should stay consistent with companies.yaml.
+func TestNormalizeCompanyCanonicalCasing(t *testing.T) {
+	got, err := normalizeCompany("equinox")
+	require.NoError(t, err)
+	assert.Equal(t, "Equinox", got)
+}
+
+func TestRunSearchUnknownCompany(t *testing.T) {
+	err := runSearch(t.Context(), "doesnotexist-company-xyz", time.Second, "", "", "", "", "", 20, 0, "text")
+	require.ErrorContains(t, err, `company "doesnotexist-company-xyz" not found`)
+	assert.ErrorContains(t, err, "smartrecruiters companies")
+}
+
+func TestRunGetUnknownCompany(t *testing.T) {
+	err := runGet(t.Context(), "doesnotexist-company-xyz", time.Second, "744000137225639", "text")
+	require.ErrorContains(t, err, `company "doesnotexist-company-xyz" not found`)
+	assert.ErrorContains(t, err, "smartrecruiters companies")
 }

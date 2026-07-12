@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/jaytaylor/html2text"
@@ -28,9 +29,24 @@ func main() {
 	)
 	rootCmd := &ff.Command{
 		Name:  "smartrecruiters",
-		Usage: "smartrecruiters --company COMPANY [FLAGS] <search|get> [FLAGS]",
+		Usage: "smartrecruiters --company COMPANY [FLAGS] <companies|search|get> [FLAGS]",
 		Flags: rootFlags,
 	}
+
+	companiesFlags := ff.NewFlagSet("companies").SetParent(rootFlags)
+	companiesCmd := &ff.Command{
+		Name:      "companies",
+		Usage:     "smartrecruiters companies [--format text|json]",
+		ShortHelp: "list curated SmartRecruiters companies (company name and companyIdentifier)",
+		Flags:     companiesFlags,
+		Exec: func(ctx context.Context, args []string) error {
+			if len(args) > 0 {
+				return fmt.Errorf("companies takes no positional arguments, got %v", args)
+			}
+			return runCompanies(*format)
+		},
+	}
+	rootCmd.Subcommands = append(rootCmd.Subcommands, companiesCmd)
 
 	searchFlags := ff.NewFlagSet("search").SetParent(rootFlags)
 	var (
@@ -83,7 +99,7 @@ func main() {
 
 	if rootCmd.GetSelected() == rootCmd {
 		fmt.Fprintln(os.Stderr, ffhelp.Command(rootCmd))
-		fmt.Fprintln(os.Stderr, "err: a subcommand (search or get) is required")
+		fmt.Fprintln(os.Stderr, "err: a subcommand (companies, search, or get) is required")
 		os.Exit(1)
 	}
 
@@ -91,6 +107,41 @@ func main() {
 		fmt.Fprintln(os.Stderr, "err:", err)
 		os.Exit(1)
 	}
+}
+
+// normalizeCompany requires --company to be a curated company — same
+// policy as cmd/greenhouse's --board and cmd/lever's --site — and returns
+// the roster's canonically-cased companyIdentifier rather than whatever
+// casing the caller typed, since the roster (and this CLI's own report
+// output) isn't consistently lowercase like Greenhouse's board tokens are
+// (e.g. "Equinox", "AECOM2").
+func normalizeCompany(company string) (string, error) {
+	if company == "" {
+		return "", errors.New("--company is required")
+	}
+	c, ok := smartrecruiters.CompaniesByIdentifier[strings.ToLower(company)]
+	if !ok {
+		return "", fmt.Errorf("company %q not found; run 'smartrecruiters companies' to see supported companies", company)
+	}
+	return c.CompanyIdentifier, nil
+}
+
+// runCompanies lists every curated SmartRecruiters company embedded in the
+// CLI (internal/provider/smartrecruiters/companies.yaml), sorted by company
+// name. It makes no network call.
+func runCompanies(format string) error {
+	cs := smartrecruiters.Companies
+
+	if format == "json" {
+		enc := json.NewEncoder(os.Stdout)
+		enc.SetIndent("", "  ")
+		return enc.Encode(cs)
+	}
+
+	for _, c := range cs {
+		fmt.Printf("%s (%s)\n", c.Name, c.CompanyIdentifier)
+	}
+	return nil
 }
 
 // postingSummaryJSON is the --format json shape for one search result: the
@@ -151,8 +202,9 @@ func runSearch(
 	limit, offset int,
 	format string,
 ) error {
-	if company == "" {
-		return errors.New("--company is required")
+	company, err := normalizeCompany(company)
+	if err != nil {
+		return err
 	}
 	// Matches openapi.yaml's limit (1–100) and offset (>=0) constraints.
 	// The generated client only validates these on the server-decode path,
@@ -226,8 +278,9 @@ func runSearch(
 // endpoint, which — unlike the list endpoint — 404s for an unknown id
 // rather than returning an empty result.
 func runGet(ctx context.Context, company string, timeout time.Duration, postingID, format string) error {
-	if company == "" {
-		return errors.New("--company is required")
+	company, err := normalizeCompany(company)
+	if err != nil {
+		return err
 	}
 	if postingID == "" {
 		return errors.New("--id is required (take it from a search result's ID)")
