@@ -3,8 +3,11 @@ package ats
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/url"
+	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/amikai/openings-mcp/internal/provider/smartrecruiters"
@@ -70,8 +73,71 @@ func (a *SmartRecruitersAdapter) Search(ctx context.Context, slug string, p Sear
 	return nil, errors.New("smartrecruiters: Search not implemented yet")
 }
 
+// smartRecruitersDepartment is one non-archived, labeled department: the
+// id the API's department query param takes and the display label
+// Filters() reports.
+type smartRecruitersDepartment struct {
+	id    string
+	label string
+}
+
+// departments fetches the company's departments, dropping archived and
+// unlabeled entries. DepartmentId is a string-or-int sum (the API returns
+// both); ids normalize to their decimal string form either way.
+func (a *SmartRecruitersAdapter) departments(ctx context.Context, slug string) ([]smartRecruitersDepartment, error) {
+	rsp, err := a.client.ListDepartments(ctx, smartrecruiters.ListDepartmentsParams{CompanyIdentifier: slug})
+	if err != nil {
+		return nil, fmt.Errorf("smartrecruiters: list departments for %q: %w", slug, err)
+	}
+	deps := make([]smartRecruitersDepartment, 0, len(rsp.Content))
+	for _, d := range rsp.Content {
+		if d.Archived.Or(false) || d.Label.Value == "" {
+			continue
+		}
+		id, ok := smartRecruitersDepartmentID(d.ID)
+		if !ok {
+			continue
+		}
+		deps = append(deps, smartRecruitersDepartment{id: id, label: d.Label.Value})
+	}
+	return deps, nil
+}
+
+func smartRecruitersDepartmentID(opt smartrecruiters.OptDepartmentId) (string, bool) {
+	v, ok := opt.Get()
+	if !ok {
+		return "", false
+	}
+	if s, ok := v.GetString(); ok {
+		return s, s != ""
+	}
+	if n, ok := v.GetInt(); ok {
+		return strconv.Itoa(n), true
+	}
+	return "", false
+}
+
 func (a *SmartRecruitersAdapter) Filters(ctx context.Context, slug string) (FilterSet, error) {
-	return nil, errors.New("smartrecruiters: Filters not implemented yet")
+	deps, err := a.departments(ctx, slug)
+	if err != nil {
+		return nil, err
+	}
+	// location_type is a static API enum, not tenant data.
+	fs := FilterSet{"location_type": []string{"Hybrid", "Onsite", "Remote"}}
+	seen := make(map[string]bool, len(deps))
+	labels := make([]string, 0, len(deps))
+	for _, d := range deps {
+		if seen[d.label] {
+			continue
+		}
+		seen[d.label] = true
+		labels = append(labels, d.label)
+	}
+	if len(labels) > 0 {
+		slices.Sort(labels)
+		fs["department"] = labels
+	}
+	return fs, nil
 }
 
 func (a *SmartRecruitersAdapter) Detail(ctx context.Context, slug, jobID string) (*JobDetail, error) {
