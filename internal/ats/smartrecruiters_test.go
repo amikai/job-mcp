@@ -2,6 +2,7 @@ package ats
 
 import (
 	"io"
+	"math"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -122,4 +123,109 @@ func TestSmartRecruitersParseCareersURL(t *testing.T) {
 			assert.Equal(t, tt.slug, slug)
 		})
 	}
+}
+
+func TestSmartRecruitersSearch(t *testing.T) {
+	a, _ := testSmartRecruitersAdapter(t)
+	res, err := a.Search(t.Context(), "equinox", SearchParams{})
+	require.NoError(t, err)
+
+	assert.Equal(t, 662, res.TotalCount)
+	assert.Equal(t, 1, res.Page)
+	assert.Equal(t, 34, res.TotalPages) // ceil(662/20)
+	require.NotEmpty(t, res.Jobs)
+
+	first := res.Jobs[0]
+	assert.Equal(t, "744000137225639", first.JobID)
+	assert.Equal(t, "Female Locker Room Associate, Houston", first.Title)
+	assert.Equal(t, "Houston, TX, United States", first.Location)
+	assert.Equal(t, "2026-07-10", first.PostedAt)
+	// Roster casing in the derived public URL; slug-less posting URLs
+	// resolve fine on jobs.smartrecruiters.com.
+	assert.Equal(t, "https://jobs.smartrecruiters.com/Equinox/744000137225639", first.URL)
+}
+
+func TestSmartRecruitersSearchQueryReachesUpstream(t *testing.T) {
+	a, _ := testSmartRecruitersAdapter(t)
+	// The mock serves the filtered fixture only for exactly q=trainer,
+	// proving the query passes through server-side.
+	res, err := a.Search(t.Context(), "equinox", SearchParams{Query: "trainer"})
+	require.NoError(t, err)
+	assert.Equal(t, 138, res.TotalCount)
+	assert.Len(t, res.Jobs, 3)
+}
+
+func TestSmartRecruitersSearchFoldsLocationIntoQ(t *testing.T) {
+	a, urls := testSmartRecruitersAdapter(t)
+	_, err := a.Search(t.Context(), "equinox", SearchParams{Query: "trainer", Location: "Houston"})
+	require.NoError(t, err)
+	assert.Equal(t, "trainer Houston", lastQueryParams(t, *urls).Get("q"))
+
+	_, err = a.Search(t.Context(), "equinox", SearchParams{Location: "  Houston  "})
+	require.NoError(t, err)
+	assert.Equal(t, "Houston", lastQueryParams(t, *urls).Get("q"))
+}
+
+func TestSmartRecruitersSearchPagination(t *testing.T) {
+	a, urls := testSmartRecruitersAdapter(t)
+	res, err := a.Search(t.Context(), "equinox", SearchParams{Page: 3})
+	require.NoError(t, err)
+	assert.Equal(t, 3, res.Page)
+	q := lastQueryParams(t, *urls)
+	assert.Equal(t, "20", q.Get("limit"))
+	assert.Equal(t, "40", q.Get("offset"))
+
+	_, err = a.Search(t.Context(), "equinox", SearchParams{Page: math.MaxInt})
+	require.ErrorContains(t, err, "too large")
+}
+
+func TestSmartRecruitersSearchResolvesDepartmentFilter(t *testing.T) {
+	a, urls := testSmartRecruitersAdapter(t)
+	_, err := a.Search(t.Context(), "equinox", SearchParams{
+		Filters: FilterSet{"department": []string{"Club - Staff", "club - sales"}},
+	})
+	require.NoError(t, err)
+	// Two upstream calls: the departments probe, then the search.
+	require.Len(t, *urls, 2)
+	// Comma-joined ids OR together (verified live against Equinox).
+	assert.Equal(t, "660916,660882", lastQueryParams(t, *urls).Get("department"))
+}
+
+func TestSmartRecruitersSearchLocationTypeFilter(t *testing.T) {
+	a, urls := testSmartRecruitersAdapter(t)
+	_, err := a.Search(t.Context(), "equinox", SearchParams{
+		Filters: FilterSet{"location_type": []string{"Remote", "hybrid"}},
+	})
+	require.NoError(t, err)
+	// No departments probe for location_type alone.
+	require.Len(t, *urls, 1)
+	assert.Equal(t, []string{"REMOTE", "HYBRID"}, lastQueryParams(t, *urls)["locationType"])
+}
+
+func TestSmartRecruitersSearchFilterErrors(t *testing.T) {
+	a, _ := testSmartRecruitersAdapter(t)
+
+	_, err := a.Search(t.Context(), "equinox", SearchParams{
+		Filters: FilterSet{"office": []string{"HQ"}},
+	})
+	require.ErrorContains(t, err, `unknown filter key "office"; valid keys: department, location_type`)
+
+	_, err = a.Search(t.Context(), "equinox", SearchParams{
+		Filters: FilterSet{"department": []string{"Nonexistent Dept"}},
+	})
+	require.ErrorContains(t, err, `filter value "Nonexistent Dept" not found for "department"`)
+	require.ErrorContains(t, err, "…", "long label lists must truncate")
+
+	_, err = a.Search(t.Context(), "equinox", SearchParams{
+		Filters: FilterSet{"location_type": []string{"underwater"}},
+	})
+	require.ErrorContains(t, err, `filter value "underwater" not found for "location_type"; available: Hybrid, Onsite, Remote`)
+}
+
+func TestSmartRecruitersSearchUnknownCompanyIsEmptyNotError(t *testing.T) {
+	a, _ := testSmartRecruitersAdapter(t)
+	res, err := a.Search(t.Context(), smartrecruiters.MockUnknownCompany, SearchParams{})
+	require.NoError(t, err)
+	assert.Equal(t, 0, res.TotalCount)
+	assert.Empty(t, res.Jobs)
 }

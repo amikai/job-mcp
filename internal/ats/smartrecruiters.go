@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 	"net/http"
 	"net/url"
 	"slices"
@@ -70,7 +71,140 @@ func resolveSmartRecruitersCompany(slug string) (identifier, name string) {
 }
 
 func (a *SmartRecruitersAdapter) Search(ctx context.Context, slug string, p SearchParams) (*SearchResult, error) {
-	return nil, errors.New("smartrecruiters: Search not implemented yet")
+	page := clampPage(p.Page)
+	pageIndex := page - 1
+	if pageIndex > math.MaxInt/PageSize {
+		return nil, fmt.Errorf("smartrecruiters: page %d is too large; retry with a smaller page", page)
+	}
+	params := smartrecruiters.ListPostingsParams{
+		CompanyIdentifier: slug,
+		Limit:             smartrecruiters.NewOptInt(PageSize),
+		Offset:            smartrecruiters.NewOptInt(pageIndex * PageSize),
+	}
+	// q full-text matches titles and location text upstream, so the
+	// unified Location folds into it rather than guessing among the
+	// exact-match country/region/city params.
+	if q := strings.TrimSpace(strings.TrimSpace(p.Query) + " " + strings.TrimSpace(p.Location)); q != "" {
+		params.Q = smartrecruiters.NewOptString(q)
+	}
+	if err := a.applyFilters(ctx, slug, p.Filters, &params); err != nil {
+		return nil, err
+	}
+	rsp, err := a.client.ListPostings(ctx, params)
+	if err != nil {
+		return nil, fmt.Errorf("smartrecruiters: search %q: %w", slug, err)
+	}
+	identifier, _ := resolveSmartRecruitersCompany(slug)
+	jobs := make([]JobSummary, 0, len(rsp.Content))
+	for _, it := range rsp.Content {
+		id := it.ID.Value
+		if id == "" {
+			// A posting with no id can't be detailed; skip rather than
+			// hand out an unusable job_id.
+			continue
+		}
+		jobs = append(jobs, JobSummary{
+			JobID:    id,
+			Title:    it.Name.Value,
+			Location: it.Location.Value.FullLocation.Value,
+			PostedAt: smartRecruitersPostedAt(it.ReleasedDate),
+			URL:      smartRecruitersPostingURL(identifier, id),
+		})
+	}
+	return &SearchResult{
+		Jobs:       jobs,
+		TotalCount: rsp.TotalFound,
+		Page:       page,
+		TotalPages: totalPages(rsp.TotalFound),
+	}, nil
+}
+
+// smartRecruitersLocationTypes maps the location_type filter's display
+// values to the API's locationType enum.
+var smartRecruitersLocationTypes = map[string]smartrecruiters.ListPostingsLocationTypeItem{
+	"remote": smartrecruiters.ListPostingsLocationTypeItemREMOTE,
+	"hybrid": smartrecruiters.ListPostingsLocationTypeItemHYBRID,
+	"onsite": smartrecruiters.ListPostingsLocationTypeItemONSITE,
+}
+
+// applyFilters maps unified filters onto the list endpoint's query params,
+// failing with teaching errors that name the valid alternatives.
+func (a *SmartRecruitersAdapter) applyFilters(ctx context.Context, slug string, filters FilterSet, params *smartrecruiters.ListPostingsParams) error {
+	for key, values := range filters {
+		switch key {
+		case "department":
+			ids, err := a.resolveDepartments(ctx, slug, values)
+			if err != nil {
+				return err
+			}
+			// Comma-joined ids OR together (verified live against Equinox:
+			// 129 + 23 postings filter to 152).
+			params.Department = smartrecruiters.NewOptString(strings.Join(ids, ","))
+		case "location_type":
+			for _, v := range values {
+				lt, ok := smartRecruitersLocationTypes[strings.ToLower(strings.TrimSpace(v))]
+				if !ok {
+					return fmt.Errorf("filter value %q not found for %q; available: Hybrid, Onsite, Remote", v, key)
+				}
+				params.LocationType = append(params.LocationType, lt)
+			}
+		default:
+			return errUnknownFilterKey(key, map[string]bool{"department": true, "location_type": true})
+		}
+	}
+	return nil
+}
+
+// resolveDepartments maps department display labels to ids via one
+// departments call, matching labels case-insensitively.
+func (a *SmartRecruitersAdapter) resolveDepartments(ctx context.Context, slug string, values []string) ([]string, error) {
+	deps, err := a.departments(ctx, slug)
+	if err != nil {
+		return nil, err
+	}
+	byLabel := make(map[string]string, len(deps))
+	labels := make([]string, 0, len(deps))
+	for _, d := range deps {
+		lower := strings.ToLower(d.label)
+		if _, ok := byLabel[lower]; !ok {
+			byLabel[lower] = d.id
+			labels = append(labels, d.label)
+		}
+	}
+	ids := make([]string, 0, len(values))
+	for _, v := range values {
+		id, ok := byLabel[strings.ToLower(strings.TrimSpace(v))]
+		if !ok {
+			slices.Sort(labels)
+			const maxListed = 20
+			listed := labels
+			suffix := ""
+			if len(listed) > maxListed {
+				listed = listed[:maxListed]
+				suffix = ", …"
+			}
+			return nil, fmt.Errorf("filter value %q not found for %q; available: %s%s", v, "department", strings.Join(listed, ", "), suffix)
+		}
+		ids = append(ids, id)
+	}
+	return ids, nil
+}
+
+// smartRecruitersPostedAt guards a present-but-missing releasedDate:
+// OptDateTime's zero Value would otherwise format as a fake date.
+func smartRecruitersPostedAt(t smartrecruiters.OptDateTime) string {
+	v, ok := t.Get()
+	if !ok {
+		return ""
+	}
+	return isoDate(v)
+}
+
+// smartRecruitersPostingURL derives the public posting page. List items
+// carry no postingUrl; slug-less URLs (no title suffix) resolve fine on
+// jobs.smartrecruiters.com.
+func smartRecruitersPostingURL(identifier, id string) string {
+	return "https://jobs.smartrecruiters.com/" + url.PathEscape(identifier) + "/" + url.PathEscape(id)
 }
 
 // smartRecruitersDepartment is one non-archived, labeled department: the
