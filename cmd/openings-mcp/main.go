@@ -20,6 +20,7 @@ import (
 	"github.com/amikai/openings-mcp/internal/openingsmcp"
 	"github.com/amikai/openings-mcp/internal/provider/cake"
 	"github.com/amikai/openings-mcp/internal/provider/google"
+	"github.com/amikai/openings-mcp/internal/provider/googlejobs"
 	"github.com/amikai/openings-mcp/internal/provider/job104"
 	"github.com/amikai/openings-mcp/internal/provider/linkedin"
 	"github.com/amikai/openings-mcp/internal/provider/nvidia"
@@ -36,18 +37,19 @@ var (
 // serverInstructions carries the cross-tool guidance for host LLMs: provider
 // routing and the shared search→detail flow. Per-tool behavior stays in each
 // tool's description.
-const serverInstructions = `openings-mcp exposes job-search tools in two families: (1) per-provider tools for the job boards 104 and Cake.me (Taiwan-centric) and LinkedIn (global), plus the careers sites of Google, NVIDIA, and TSMC; (2) unified company tools — search_jobs_by_company, get_filters_by_company, get_job_detail_by_company — covering hundreds of companies behind one company parameter.
+const serverInstructions = `openings-mcp exposes job-search tools in two families: (1) per-provider tools for the job boards 104 and Cake.me (Taiwan-centric), LinkedIn (global), and Google Jobs (cross-company aggregation), plus the careers sites of Google, NVIDIA, and TSMC; (2) unified company tools — search_jobs_by_company, get_filters_by_company, get_job_detail_by_company — covering hundreds of companies behind one company parameter.
 
 Tool selection:
 - When the user names a specific company, try search_jobs_by_company first; it covers hundreds of companies and its error message suggests close matches when a name isn't recognized. Fall back to the per-provider tools (linkedin, 104, ...) when the company isn't covered.
 - When the user names a site or company, use that provider's tools.
-- When the user has no target in mind, offer them the provider choices; if they don't pick one, start with the job boards (104, Cake.me, and LinkedIn) rather than a single company's careers site.
+- When the user has no target in mind, offer them the provider choices; if they don't pick one, start with the job boards (104, Cake.me, LinkedIn, and Google Jobs) rather than a single company's careers site.
 - search_jobs_by_company also accepts a company's public careers-page URL. When a company isn't in the supported list, find its careers page URL (e.g. via web search) and pass that URL as the company argument.
 
 Query construction:
 - Listen carefully to the user's stated criteria and map each one onto a search parameter when a matching parameter exists; enforce criteria the parameters cannot express by filtering the results yourself.
 - Keep the keyword parameter to role titles, skills, or technologies. Location, job type, seniority, and other constraints go in their dedicated parameters, never embedded in the keyword string.
-- Every provider follows the same search-then-detail flow: <provider>_search_jobs returns summaries carrying an identifier (job code, ID, or path), and <provider>_get_job_detail exchanges that identifier for the full posting. Identifiers are provider-specific and not interchangeable. The detail step is conditional, not automatic: when a summary from the search step fails the user's criteria, drop it and never call get_job_detail for it.
+- Google Jobs is the exception when using google_search_term: it is a complete Google query copied from a precise Google Jobs search and overrides search_term, location, job_type, remote, and hours_old instead of combining with them.
+- Most providers follow the same search-then-detail flow: <provider>_search_jobs returns summaries carrying an identifier (job code, ID, or path), and <provider>_get_job_detail exchanges that identifier for the full posting. Identifiers are provider-specific and not interchangeable. The detail step is conditional, not automatic: when a summary from the search step fails the user's criteria, drop it and never call get_job_detail for it. Google Jobs is the exception: google_jobs_search already returns each description and source posting URL, so it has no detail tool.
 
 Context management:
 - Search results are paginated; fetch additional pages rather than broadening the query.
@@ -141,6 +143,24 @@ func runWithTransport(transport mcp.Transport, logger *slog.Logger) error {
 
 	cGoogle := google.NewClient("https://www.google.com/about/careers/applications", hc)
 
+	jarGoogleJobs, err := cookiejar.New(nil)
+	if err != nil {
+		return fmt.Errorf("create Google Jobs cookie jar: %w", err)
+	}
+	hcGoogleJobs := &http.Client{
+		Timeout:   30 * time.Second,
+		Jar:       jarGoogleJobs,
+		Transport: googlejobs.BrowserTransport{},
+	}
+	cGoogleJobs, err := googlejobs.NewClient("https://www.google.com", googlejobs.WithClient(hcGoogleJobs))
+	if err != nil {
+		return fmt.Errorf("create Google Jobs generated client: %w", err)
+	}
+	sGoogleJobs, err := googlejobs.NewScraper(cGoogleJobs)
+	if err != nil {
+		return fmt.Errorf("create Google Jobs scraper: %w", err)
+	}
+
 	jarLinkedin, _ := cookiejar.New(nil)
 	cLinkedin := linkedin.NewClient("https://www.linkedin.com", &http.Client{Timeout: 30 * time.Second, Jar: jarLinkedin})
 
@@ -155,6 +175,7 @@ func runWithTransport(transport mcp.Transport, logger *slog.Logger) error {
 		cNvidia,
 		cTsmc,
 		cGoogle,
+		sGoogleJobs,
 		cLinkedin,
 		registry,
 		logger,
@@ -197,6 +218,7 @@ func newServer(
 	cNvidia *nvidia.Client,
 	cTsmc *tsmc.Client,
 	cGoogle *google.Client,
+	sGoogleJobs *googlejobs.Scraper,
 	cLinkedin *linkedin.Client,
 	registry *ats.Registry,
 	logger *slog.Logger,
@@ -211,6 +233,7 @@ func newServer(
 	openingsmcp.RegisterNvidia(server, cNvidia)
 	openingsmcp.RegisterTsmc(server, cTsmc)
 	openingsmcp.RegisterGoogle(server, cGoogle)
+	openingsmcp.RegisterGoogleJobs(server, sGoogleJobs)
 	openingsmcp.RegisterLinkedin(server, cLinkedin)
 	openingsmcp.RegisterCompany(server, registry)
 	return server

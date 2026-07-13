@@ -4,6 +4,7 @@ OPENAPI_SPECS := \
 	internal/provider/ashby/openapi.yaml \
 	internal/provider/cake/openapi.yaml \
 	internal/provider/google/openapi.yaml \
+	internal/provider/googlejobs/openapi.yaml \
 	internal/provider/greenhouse/openapi.yaml \
 	internal/provider/job104/openapi.yaml \
 	internal/provider/lever/openapi.yaml \

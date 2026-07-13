@@ -8,7 +8,8 @@
 sites from any MCP client: Claude Code, Codex, Gemini CLI, and others.
 
 - **Job boards**: **[104](https://www.104.com.tw)**, **[Cake](https://www.cake.me)**,
-  and **[LinkedIn](https://www.linkedin.com)** (public search).
+  **[LinkedIn](https://www.linkedin.com)** (public search), and
+  **[Google Jobs](https://www.google.com/search?udm=8)** (cross-company aggregation).
 - **Company career sites**: 2,000+ companies hosted on the
   **[Workday](https://www.workday.com)**, **[Ashby](https://www.ashbyhq.com)**,
   **[Greenhouse](https://www.greenhouse.com)**, **[Lever](https://www.lever.co)**,
@@ -114,6 +115,11 @@ Inspired by these MCP job-search servers:
 - [jobspy-mcp-server](https://github.com/borgius/jobspy-mcp-server)
 - [mcp-jobs](https://github.com/mergedao/mcp-jobs)
 - [104-mcp-server](https://github.com/bigbrainw/104-mcp-server)
+
+The Google Jobs provider's query construction, cursor flow, and positional
+array mapping are derived from the
+[JobSpy GitHub repository](https://github.com/cullenwatson/JobSpy), which is
+the upstream reference implementation for that provider.
 
 Company roster data cross-referenced from:
 

@@ -9,6 +9,7 @@ import (
 
 	"github.com/amikai/openings-mcp/internal/provider/cake"
 	"github.com/amikai/openings-mcp/internal/provider/google"
+	"github.com/amikai/openings-mcp/internal/provider/googlejobs"
 	"github.com/amikai/openings-mcp/internal/provider/job104"
 	"github.com/amikai/openings-mcp/internal/provider/linkedin"
 	"github.com/amikai/openings-mcp/internal/provider/nvidia"
@@ -34,10 +35,14 @@ func TestServerListsJobTools(t *testing.T) {
 	require.NoError(t, err)
 	cTsmc := tsmc.NewClient("https://careers.tsmc.com", http.DefaultClient)
 	cGoogle := google.NewClient("https://www.google.com/about/careers/applications", http.DefaultClient)
+	cGoogleJobs, err := googlejobs.NewClient("https://www.google.com", googlejobs.WithClient(http.DefaultClient))
+	require.NoError(t, err)
+	sGoogleJobs, err := googlejobs.NewScraper(cGoogleJobs)
+	require.NoError(t, err)
 	cLinkedin := linkedin.NewClient("https://www.linkedin.com", http.DefaultClient)
 	registry, err := newATSRegistry(http.DefaultClient)
 	require.NoError(t, err)
-	server := newServer(c104, cCake, cNvidia, cTsmc, cGoogle, cLinkedin, registry, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	server := newServer(c104, cCake, cNvidia, cTsmc, cGoogle, sGoogleJobs, cLinkedin, registry, slog.New(slog.NewTextHandler(io.Discard, nil)))
 	client := mcp.NewClient(&mcp.Implementation{Name: "smoke", Version: "v0"}, nil)
 	serverTransport, clientTransport := mcp.NewInMemoryTransports()
 	serverSession, err := server.Connect(ctx, serverTransport, nil)
@@ -64,6 +69,7 @@ func TestServerListsJobTools(t *testing.T) {
 		"tsmc_get_job_detail",
 		"google_search_jobs",
 		"google_get_job_detail",
+		"google_jobs_search",
 		"linkedin_search_jobs",
 		"linkedin_get_job_detail",
 		"search_jobs_by_company",

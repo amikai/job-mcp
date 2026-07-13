@@ -1,0 +1,255 @@
+openapi: 3.1.0
+
+info:
+  title: Google Jobs Search (JobSpy-derived)
+  version: "1.0.0"
+  description: |
+    Client-side specification for the undocumented Google Jobs search surface
+    used by JobSpy. This is distinct from the Google Careers provider: Google
+    Jobs aggregates postings from many employers and job boards through regular
+    Google Search.
+
+    The upstream reference implementation is JobSpy on GitHub:
+    https://github.com/cullenwatson/JobSpy/tree/master/jobspy/google. This spec
+    records that implementation's observed wire protocol; it is not an official
+    Google API contract and Google may change it without notice.
+
+    ## Architecture
+
+    Search is a two-stage, server-rendered HTML flow:
+
+    1. `GET /search?q=...&udm=8` returns the first batch of jobs and may embed a
+       forward cursor in `data-async-fc`.
+    2. `GET /async/callback:550` exchanges that cursor for another batch and the
+       next cursor. Repeat until the cursor or results are exhausted.
+
+    Neither response is a stable JSON resource. Job data is embedded in private,
+    positional arrays under the numeric key `520084652`; pagination responses
+    additionally wrap JSON strings inside a text envelope. A generated OpenAPI
+    client can model the HTTP calls, but extraction of jobs and cursors still
+    requires a custom parser.
+
+    ## JobSpy Query Construction
+
+    JobSpy maps its higher-level search options to the initial `q` value. Starting
+    with `<search_term> jobs`, it appends these phrases in order:
+
+    - job type: `Full time`, `Part time`, `Internship`, or `Contract`
+    - location: `near <location>`
+    - age: `since yesterday` for up to 24 hours, `in the last 3 days` for up to
+      72 hours, `in the last week` for up to 168 hours, otherwise
+      `in the last month`
+    - remote work: `remote`
+
+    If `google_search_term` is present, it replaces the complete synthesized
+    query. None of `search_term`, job type, location, age, or remote is retained.
+    This override is intentional: JobSpy recommends constructing a precise query
+    in Google Jobs and passing that complete search string unchanged.
+
+    ## Key Behaviors
+
+    - The initial page contains approximately 10 jobs. Absence of a forward cursor
+      is ambiguous: it can mean there are at most 10 results, the query needs to be
+      changed, or Google returned an unexpected page.
+    - JobSpy caps `results_wanted` at 900 before making requests.
+    - `offset` is not sent to Google. JobSpy fetches until it has enough unique
+      result URLs for `results_wanted + offset`, then applies the offset and limit
+      locally.
+    - Results are deduplicated by job URL across all pages. A missing URL therefore
+      also participates in deduplication and can suppress later URL-less results.
+    - Relative posting text is converted to a date whenever it contains an integer.
+      JobSpy ignores the unit and subtracts that integer as days, so `3 hours ago`
+      is treated as three days ago. Text without a number, such as `today`, produces
+      no date.
+    - Remote status, email addresses, and job type are inferred from the extracted
+      description rather than returned as explicit transport fields.
+    - The async endpoint requires an opaque `async` bootstrap value copied from the
+      Google frontend. JobSpy stores a snapshot in source; it contains versioned
+      JavaScript/CSS identifiers and must be treated as volatile, not generated or
+      validated by clients.
+    - Both endpoints expect browser-like request headers. Bot challenges, consent
+      pages, localization, markup changes, or rate limiting can produce HTTP 200
+      responses that do not contain parseable jobs.
+  x-upstream:
+    name: JobSpy
+    url: https://github.com/cullenwatson/JobSpy
+    source: https://github.com/cullenwatson/JobSpy/tree/master/jobspy/google
+
+externalDocs:
+  description: Upstream JobSpy Google scraper
+  url: https://github.com/cullenwatson/JobSpy/tree/master/jobspy/google
+
+servers:
+  - url: https://www.google.com
+    description: Google Search (undocumented jobs surface)
+
+paths:
+  /search:
+    get:
+      operationId: searchJobsInitial
+      summary: Load the initial Google Jobs search page
+      description: |
+        Returns the first Google Jobs result page and, when more results are
+        available, a forward cursor in a `data-async-fc` HTML attribute.
+
+        The caller must construct `q` before making this request. The higher-level
+        JobSpy query synthesis documented above is client behavior and is not a set
+        of independent server-side filters.
+      parameters:
+        - name: q
+          in: query
+          required: true
+          description: |
+            Complete Google Jobs query. Pass either JobSpy's synthesized phrase or
+            `google_search_term` unchanged when that override is supplied.
+          schema:
+            type: string
+            minLength: 1
+          example: "software engineer jobs Full time near Taiwan in the last week remote"
+
+        - name: udm
+          in: query
+          required: true
+          description: |
+            Selects Google's Jobs result mode. JobSpy always sends the literal `8`.
+            Other values select different Google search verticals and are outside
+            this specification.
+          schema:
+            type: string
+            enum:
+              - "8"
+          example: "8"
+
+        - $ref: "#/components/parameters/AcceptLanguage"
+        - $ref: "#/components/parameters/UserAgent"
+
+      responses:
+        "200":
+          description: |
+            Full Google Search HTML page. JobSpy extracts:
+
+            - zero or more private positional job arrays found below the numeric
+              key `520084652`
+            - an optional forward cursor from
+              `<div jsname="Yust4d" data-async-fc="...">`
+
+            A successful HTTP status does not guarantee this structure is present.
+            If the cursor is absent, return any jobs parsed from the initial page and
+            stop rather than treating the response as a hard transport failure.
+          content:
+            text/html:
+              schema:
+                type: string
+                description: Server-rendered Google Search HTML with embedded job arrays.
+        default:
+          $ref: "#/components/responses/UnexpectedResponse"
+
+  "/async/callback:550":
+    get:
+      operationId: searchJobsNextPage
+      summary: Load the next Google Jobs cursor page
+      description: |
+        Exchanges the forward cursor from the preceding response for another job
+        batch and an optional next cursor. JobSpy repeats this operation while a
+        cursor exists and more unique result URLs are needed.
+
+        The response is a private text envelope rather than a normal JSON document.
+        JobSpy locates the outer `[[[ ... ]]]` segment, JSON-decodes it, then
+        JSON-decodes nested strings and recursively searches each value for the
+        numeric key `520084652`.
+      parameters:
+        - name: fc
+          in: query
+          required: true
+          description: |
+            Opaque forward cursor copied exactly from the preceding response's
+            `data-async-fc` attribute. Do not decode or modify it.
+          schema:
+            type: string
+            minLength: 1
+
+        - name: fcv
+          in: query
+          required: true
+          description: Cursor protocol version. JobSpy always sends the literal `3`.
+          schema:
+            type: string
+            enum:
+              - "3"
+          example: "3"
+
+        - name: async
+          in: query
+          required: true
+          description: |
+            Opaque Google frontend bootstrap descriptor. The JobSpy upstream keeps
+            a literal snapshot containing `_basejs`, `_basecss`, `_basecomb`, and
+            formatting identifiers. Copy the current upstream value exactly. It is
+            versioned frontend state, not a durable API token; when it expires or
+            Google deploys new assets, the client implementation may need updating.
+          schema:
+            type: string
+            minLength: 1
+
+        - $ref: "#/components/parameters/AcceptLanguage"
+        - $ref: "#/components/parameters/UserAgent"
+
+      responses:
+        "200":
+          description: |
+            Google async text envelope containing zero or more nested job arrays and
+            optionally another `data-async-fc` cursor. Stop pagination when no jobs
+            parse, no next cursor exists, or the requested unique-result count has
+            been reached. Parser failures should not be interpreted as an empty
+            result set because bot or consent pages can also return HTTP 200.
+          content:
+            text/plain:
+              schema:
+                type: string
+                description: Private Google async envelope containing nested JSON strings.
+            text/html:
+              schema:
+                type: string
+                description: HTML or challenge response returned instead of the expected envelope.
+        default:
+          $ref: "#/components/responses/UnexpectedResponse"
+
+components:
+  parameters:
+    AcceptLanguage:
+      name: Accept-Language
+      in: header
+      required: false
+      description: |
+        Preferred response language. JobSpy sends `en-US,en;q=0.9`; parser-visible
+        labels and relative dates can change when another locale is used.
+      schema:
+        type: string
+      example: "en-US,en;q=0.9"
+
+    UserAgent:
+      name: User-Agent
+      in: header
+      required: false
+      description: |
+        Browser user agent. JobSpy sends a desktop Chromium identity together with
+        additional browser client-hint and fetch-metadata headers. Those volatile
+        headers are intentionally not enumerated as a stable API contract.
+      schema:
+        type: string
+      example: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/130.0.0.0 Safari/537.36"
+
+  responses:
+    UnexpectedResponse:
+      description: |
+        Unexpected HTTP response, rate limit, bot challenge, consent page, or
+        frontend protocol change. Google does not expose a stable error schema for
+        this private surface; callers should retain status, content type, and a
+        bounded body sample for diagnosis.
+      content:
+        text/html:
+          schema:
+            type: string
+        text/plain:
+          schema:
+            type: string
