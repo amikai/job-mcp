@@ -29,8 +29,9 @@ item to the shared `dumpJob` engine:
 - distinct `city`, `region`, and `country` address values -> structured filters;
 - `date_published` -> deterministic newest-first sort key.
 
-The feed does not expose Teamtailor's department, role, or division fields, so
-the adapter does not invent them.
+The feed does not expose Teamtailor's department, role, division, or remote
+status fields, so the adapter does not invent them. A `location=remote` search
+is rejected as unsupported instead of returning a misleading result set.
 
 Detail refetches the dump and selects the exact item ID. The feed title supplies
 the company display name even for non-roster hosted sites. Missing items and

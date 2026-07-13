@@ -100,6 +100,12 @@ func TestTeamtailorSearchQueryLocationAndFilters(t *testing.T) {
 	assert.Equal(t, 2, filtered.TotalCount)
 }
 
+func TestTeamtailorSearchRejectsRemoteLocation(t *testing.T) {
+	a, _ := testTeamtailorAdapter(t)
+	_, err := a.Search(t.Context(), teamtailor.MockHost, SearchParams{Location: " REMOTE "})
+	require.ErrorContains(t, err, "remote location search is unsupported")
+}
+
 func TestTeamtailorSearchRejectsUnknownFilter(t *testing.T) {
 	a, _ := testTeamtailorAdapter(t)
 	_, err := a.Search(t.Context(), teamtailor.MockHost, SearchParams{
