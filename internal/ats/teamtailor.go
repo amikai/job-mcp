@@ -81,11 +81,6 @@ func (a *TeamtailorAdapter) Search(
 	slug string,
 	p SearchParams,
 ) (*SearchResult, error) {
-	if strings.EqualFold(strings.TrimSpace(p.Location), "remote") {
-		return nil, fmt.Errorf(
-			"teamtailor: remote location search is unsupported because the public jobs feed does not expose remote status",
-		)
-	}
 	jobs, err := a.dump(ctx, slug)
 	if err != nil {
 		return nil, err
