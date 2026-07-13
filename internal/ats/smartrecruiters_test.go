@@ -69,6 +69,7 @@ type smartRecruitersTestPosting struct {
 	id       string
 	title    string
 	location string
+	remote   bool
 }
 
 const (
@@ -96,7 +97,12 @@ func smartRecruitersSearchServer(
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		urls = append(urls, r.URL.String())
 		query := r.URL.Query()
-		postings := byQuery[query.Get("q")]
+		postings := slices.Clone(byQuery[query.Get("q")])
+		if slices.Equal(query["locationType"], []string{"REMOTE"}) {
+			postings = slices.DeleteFunc(postings, func(posting smartRecruitersTestPosting) bool {
+				return !posting.remote
+			})
+		}
 		limit, err := strconv.Atoi(query.Get("limit"))
 		if !assert.NoError(t, err) {
 			return
@@ -115,7 +121,7 @@ func smartRecruitersSearchServer(
 				"releasedDate": "2026-07-10T12:00:00Z",
 				"location": map[string]any{
 					"fullLocation":                   posting.location,
-					smartRecruitersTestRemoteJSONKey: false,
+					smartRecruitersTestRemoteJSONKey: posting.remote,
 				},
 			})
 		}
@@ -300,6 +306,52 @@ func TestSmartRecruitersSearchCombinesQueryAndLocationWithAND(t *testing.T) {
 	assert.NotContains(t, queries, smartRecruitersTestQueryTrainer+" "+smartRecruitersTestHouston)
 }
 
+func TestSmartRecruitersSearchRemoteLocationUsesLocationType(t *testing.T) {
+	t.Run("location only", func(t *testing.T) {
+		server, urls := smartRecruitersSearchServer(t, map[string][]smartRecruitersTestPosting{
+			"": {
+				{id: "remote", title: "Rider Growth Analyst", location: "Angeles, Central Luzon, Philippines", remote: true},
+				{id: "onsite", title: "Remote Operations Manager", location: "Berlin, Germany"},
+			},
+		}, nil)
+		a := newSmartRecruitersSearchAdapter(t, server.URL)
+
+		res, err := a.Search(t.Context(), "deliveryhero", SearchParams{Location: "  remote  "})
+		require.NoError(t, err)
+		require.Len(t, res.Jobs, 1)
+		assert.Equal(t, "remote", res.Jobs[0].JobID)
+		require.Len(t, *urls, 1)
+		params := lastQueryParams(t, *urls)
+		assert.Empty(t, params.Get("q"))
+		assert.Equal(t, []string{"REMOTE"}, params["locationType"])
+	})
+
+	t.Run("query and location", func(t *testing.T) {
+		server, urls := smartRecruitersSearchServer(t, map[string][]smartRecruitersTestPosting{
+			smartRecruitersTestQueryTrainer: {
+				{id: "remote-trainer", title: smartRecruitersTestTrainerTitle, location: "Angeles, Central Luzon, Philippines", remote: true},
+				{id: "onsite-trainer", title: smartRecruitersTestTrainerTitle, location: "New York, NY"},
+			},
+			"remote": {
+				{id: "remote-text", title: smartRecruitersTestFrontDesk, location: "Remote", remote: true},
+			},
+		}, nil)
+		a := newSmartRecruitersSearchAdapter(t, server.URL)
+
+		res, err := a.Search(t.Context(), "deliveryhero", SearchParams{
+			Query:    smartRecruitersTestQueryTrainer,
+			Location: "remote",
+		})
+		require.NoError(t, err)
+		require.Len(t, res.Jobs, 1)
+		assert.Equal(t, "remote-trainer", res.Jobs[0].JobID)
+		require.Len(t, *urls, 1)
+		params := lastQueryParams(t, *urls)
+		assert.Equal(t, smartRecruitersTestQueryTrainer, params.Get("q"))
+		assert.Equal(t, []string{"REMOTE"}, params["locationType"])
+	})
+}
+
 func TestSmartRecruitersSearchPagesAfterResidualFiltering(t *testing.T) {
 	postings := make([]smartRecruitersTestPosting, 0, 105)
 	for i := range 25 {
@@ -426,6 +478,23 @@ func TestSmartRecruitersDetail(t *testing.T) {
 	assert.Contains(t, d.Description, "Qualifications:")
 	assert.Contains(t, d.Description, "Additional Information:")
 	assert.NotContains(t, d.Description, "<p>")
+}
+
+func TestSmartRecruitersDetailFallsBackToDerivedPostingURL(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		err := json.NewEncoder(w).Encode(map[string]any{
+			"id":   "posting-without-url",
+			"name": "Role without postingUrl",
+		})
+		assert.NoError(t, err)
+	}))
+	t.Cleanup(server.Close)
+	a := newSmartRecruitersSearchAdapter(t, server.URL)
+
+	detail, err := a.Detail(t.Context(), "equinox", "posting-without-url")
+	require.NoError(t, err)
+	assert.Equal(t, "https://jobs.smartrecruiters.com/Equinox/posting-without-url", detail.URL)
 }
 
 func TestSmartRecruitersDetailNotFound(t *testing.T) {

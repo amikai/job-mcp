@@ -84,6 +84,15 @@ func (a *SmartRecruitersAdapter) Search(ctx context.Context, slug string, p Sear
 	}
 	query := strings.TrimSpace(p.Query)
 	location := strings.TrimSpace(p.Location)
+	if strings.EqualFold(location, "remote") {
+		if len(params.LocationType) > 0 && !slices.Contains(params.LocationType, smartrecruiters.ListPostingsLocationTypeItemREMOTE) {
+			return &SearchResult{Page: clampPage(p.Page)}, nil
+		}
+		params.LocationType = []smartrecruiters.ListPostingsLocationTypeItem{
+			smartrecruiters.ListPostingsLocationTypeItemREMOTE,
+		}
+		location = ""
+	}
 	if query == "" && location == "" {
 		return a.searchSmartRecruitersPage(ctx, slug, p.Page, params)
 	}
@@ -456,14 +465,14 @@ func (a *SmartRecruitersAdapter) Detail(ctx context.Context, slug, jobID string)
 		// PostingErrorResponse, for an unknown company or posting id.
 		return nil, fmt.Errorf("smartrecruiters: job %q not found for company %q; pass a job_id exactly as returned by the job search", jobID, slug)
 	}
-	_, name := resolveSmartRecruitersCompany(slug)
+	identifier, name := resolveSmartRecruitersCompany(slug)
 	return &JobDetail{
 		JobID:       cmp.Or(d.ID.Value, jobID),
 		Title:       d.Name.Value,
 		Company:     cmp.Or(d.Company.Value.Name.Value, name),
 		Location:    d.Location.Value.FullLocation.Value,
 		PostedAt:    smartRecruitersPostedAt(d.ReleasedDate),
-		URL:         d.PostingUrl.Value,
+		URL:         cmp.Or(d.PostingUrl.Value, smartRecruitersPostingURL(identifier, jobID)),
 		Description: smartRecruitersDescription(d.JobAd),
 	}, nil
 }
