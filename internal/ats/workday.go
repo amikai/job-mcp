@@ -149,12 +149,12 @@ func (a *WorkdayAdapter) Filters(ctx context.Context, slug string) (FilterSet, e
 	if err != nil {
 		return nil, err
 	}
-	seen := make(map[string]map[string]bool)
+	seen := make(map[string]map[string]struct{})
 	for _, f := range flat {
 		if seen[f.param] == nil {
-			seen[f.param] = make(map[string]bool)
+			seen[f.param] = make(map[string]struct{})
 		}
-		seen[f.param][f.label] = true
+		seen[f.param][f.label] = struct{}{}
 	}
 	return toFilterSet(seen), nil
 }
