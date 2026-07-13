@@ -182,9 +182,15 @@ func (a *TeamtailorAdapter) dump(ctx context.Context, slug string) ([]dumpJob, e
 }
 
 type teamtailorLocation struct {
-	fields  map[string][]string
+	// fields holds deduped facet values keyed by "city", "region", "country"
+	// (only keys with at least one value are present), for filter matching.
+	fields map[string][]string
+	// display is the human-readable location, preferring city, then region,
+	// then country, joined with "; " when a posting has multiple places.
 	display string
-	search  string
+	// search is every address component across all places joined with "; ",
+	// for broad free-text location matching.
+	search string
 }
 
 func teamtailorLocations(places []teamtailor.Place) teamtailorLocation {
