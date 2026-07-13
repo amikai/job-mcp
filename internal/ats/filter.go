@@ -164,7 +164,7 @@ func errUnknownFilterKey(key string, valid map[string]bool) error {
 // distinctFilters enumerates a dump's structured dimensions — the
 // full-dump family's implementation of get_filters.
 func distinctFilters(jobs []dumpJob) FilterSet {
-	seen := make(map[string]map[string]bool)
+	seen := make(map[string]map[string]struct{})
 	for i := range jobs {
 		for k, vs := range jobs[i].fields {
 			for _, v := range vs {
@@ -172,9 +172,9 @@ func distinctFilters(jobs []dumpJob) FilterSet {
 					continue
 				}
 				if seen[k] == nil {
-					seen[k] = make(map[string]bool)
+					seen[k] = make(map[string]struct{})
 				}
-				seen[k][v] = true
+				seen[k][v] = struct{}{}
 			}
 		}
 	}
@@ -183,7 +183,7 @@ func distinctFilters(jobs []dumpJob) FilterSet {
 
 // toFilterSet flattens dimension→value sets into the sorted FilterSet both
 // adapter families return.
-func toFilterSet(seen map[string]map[string]bool) FilterSet {
+func toFilterSet(seen map[string]map[string]struct{}) FilterSet {
 	fs := make(FilterSet, len(seen))
 	for k, values := range seen {
 		fs[k] = slices.Sorted(maps.Keys(values))
