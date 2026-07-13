@@ -13,6 +13,8 @@ import (
 	"github.com/amikai/openings-mcp/internal/provider/recruitee"
 )
 
+const remoteLocation = "remote"
+
 func testRecruiteeAdapter(t *testing.T) (*RecruiteeAdapter, string) {
 	t.Helper()
 	srv := recruitee.NewMockServer()
@@ -95,6 +97,60 @@ func TestRecruiteeSearchQueryLocationAndFilters(t *testing.T) {
 	assert.NotEmpty(t, filtered.Jobs)
 }
 
+func TestRecruiteeSearchSecondaryLocationFilters(t *testing.T) {
+	a, _ := testRecruiteeAdapter(t)
+
+	tests := []struct {
+		name  string
+		key   string
+		value string
+	}{
+		{name: "secondary city", key: "city", value: "Amsterdam"},
+		{name: "secondary country", key: "country", value: "Netherlands"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assertSearchContainsJobID(
+				t,
+				a,
+				SearchParams{Filters: FilterSet{tt.key: {tt.value}}},
+				"2675345",
+			)
+		})
+	}
+}
+
+func TestRecruiteeUnknownLocationIsNotRemote(t *testing.T) {
+	srv := recruitee.NewNullMockServer()
+	t.Cleanup(srv.Close)
+	a := NewRecruiteeAdapter(&http.Client{Timeout: 5 * time.Second})
+	a.baseURL = func(string) string { return srv.URL }
+
+	remote, err := a.Search(t.Context(), "minimal", SearchParams{Location: remoteLocation})
+	require.NoError(t, err)
+	assert.Zero(t, remote.TotalCount)
+	assert.Empty(t, remote.Jobs)
+
+	all, err := a.Search(t.Context(), "minimal", SearchParams{})
+	require.NoError(t, err)
+	require.Len(t, all.Jobs, 1)
+	assert.Empty(t, all.Jobs[0].Location)
+}
+
+func TestRecruiteeDepartmentMapsToOrganizationUnit(t *testing.T) {
+	a, _ := testRecruiteeAdapter(t)
+	jobs, err := a.dump(t.Context(), recruitee.MockSlug)
+	require.NoError(t, err)
+
+	for _, job := range jobs {
+		if job.summary.JobID == "2675345" {
+			assert.Equal(t, "Support & Operations", job.orgUnit)
+			return
+		}
+	}
+	t.Fatal("fixture job 2675345 not found")
+}
+
 func TestRecruiteeSearchRejectsUnknownFilter(t *testing.T) {
 	a, _ := testRecruiteeAdapter(t)
 	_, err := a.Search(t.Context(), recruitee.MockSlug, SearchParams{
@@ -158,4 +214,27 @@ func TestRecruiteeSearchIsDeterministic(t *testing.T) {
 		assert.Equal(t, first.Jobs[i].JobID, second.Jobs[i].JobID)
 	}
 	assert.True(t, strings.HasPrefix(first.Jobs[0].PostedAt, "20"))
+}
+
+func assertSearchContainsJobID(
+	t *testing.T,
+	a *RecruiteeAdapter,
+	params SearchParams,
+	jobID string,
+) {
+	t.Helper()
+	for page := 1; ; page++ {
+		params.Page = page
+		result, err := a.Search(t.Context(), recruitee.MockSlug, params)
+		require.NoError(t, err)
+		for _, job := range result.Jobs {
+			if job.JobID == jobID {
+				return
+			}
+		}
+		if page >= result.TotalPages {
+			assert.Failf(t, "job not found", "job %s missing from filtered results", jobID)
+			return
+		}
+	}
 }

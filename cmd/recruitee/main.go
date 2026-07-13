@@ -37,7 +37,10 @@ func main() {
 		Usage:     "recruitee companies [--format text|json]",
 		ShortHelp: "list confirmed Recruitee subdomains (company name and slug)",
 		Flags:     companiesFlags,
-		Exec: func(ctx context.Context, args []string) error {
+		Exec: func(_ context.Context, args []string) error {
+			if len(args) > 0 {
+				return fmt.Errorf("companies takes no positional arguments, got %v", args)
+			}
 			return runCompanies(*format)
 		},
 	}
@@ -51,6 +54,9 @@ func main() {
 		ShortHelp: "list a board's jobs as summaries (client-side keyword filter)",
 		Flags:     searchFlags,
 		Exec: func(ctx context.Context, args []string) error {
+			if len(args) > 0 {
+				return fmt.Errorf("search takes no positional arguments, got %v (did you forget a flag name?)", args)
+			}
 			return runSearch(ctx, *board, *timeout, *keyword, *format)
 		},
 	}
@@ -64,6 +70,9 @@ func main() {
 		ShortHelp: "print one job in full (description)",
 		Flags:     getFlags,
 		Exec: func(ctx context.Context, args []string) error {
+			if len(args) > 0 {
+				return fmt.Errorf("get takes no positional arguments, got %v (did you mean --id %s?)", args, args[0])
+			}
 			return runGet(ctx, *board, *timeout, *jobID, *format)
 		},
 	}
@@ -134,12 +143,12 @@ func fetchOffers(ctx context.Context, board string, timeout time.Duration) (*rec
 }
 
 type jobSummaryJSON struct {
-	ID          int      `json:"id"`
-	Title       string   `json:"title"`
-	Department  string   `json:"department,omitempty"`
-	Location    string   `json:"location,omitempty"`
-	PublishedAt string   `json:"publishedAt"`
-	URL         string   `json:"url"`
+	ID          int    `json:"id"`
+	Title       string `json:"title"`
+	Department  string `json:"department,omitempty"`
+	Location    string `json:"location,omitempty"`
+	PublishedAt string `json:"publishedAt"`
+	URL         string `json:"url"`
 }
 
 type searchResultJSON struct {

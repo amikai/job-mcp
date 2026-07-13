@@ -150,46 +150,12 @@ func (a *RecruiteeAdapter) dump(ctx context.Context, slug string) ([]dumpJob, er
 		}
 
 		postedTime, postedDateStr := recruiteeParseDate(o.PublishedAt.Or(o.CreatedAt.Or("")))
-
-		// Parse location
-		var locParts []string
-		if len(o.Locations) > 0 {
-			for _, loc := range o.Locations {
-				var part string
-				city := loc.City.Or("")
-				country := loc.Country.Or("")
-				if city != "" && country != "" {
-					part = city + ", " + country
-				} else if city != "" {
-					part = city
-				} else if country != "" {
-					part = country
-				} else if loc.Name.Set {
-					part = loc.Name.Value
-				}
-				if part != "" {
-					locParts = appendDistinct(locParts, part)
-				}
-			}
-		}
-		if len(locParts) == 0 && o.Location.Set && o.Location.Value != "" {
-			locParts = append(locParts, o.Location.Value)
-		}
-		displayLocation := strings.Join(locParts, "; ")
-		if displayLocation == "" {
-			displayLocation = "Remote"
-		}
+		location := recruiteeLocations(o)
 
 		// Structured fields
-		fields := make(map[string][]string)
+		fields := location.fields
 		if o.Department.Set && o.Department.Value != "" {
 			fields["department"] = []string{o.Department.Value}
-		}
-		if o.City.Set && o.City.Value != "" {
-			fields["city"] = []string{o.City.Value}
-		}
-		if o.Country.Set && o.Country.Value != "" {
-			fields["country"] = []string{o.Country.Value}
 		}
 		if o.EmploymentTypeCode.Set && o.EmploymentTypeCode.Value != "" {
 			fields["employmentType"] = []string{o.EmploymentTypeCode.Value}
@@ -207,31 +173,94 @@ func (a *RecruiteeAdapter) dump(ctx context.Context, slug string) ([]dumpJob, er
 		}
 		descriptionText := recruiteeDescription(fullHTML)
 
-		// Remote policy
-		isRemote := false
-		if o.Remote.Set && o.Remote.Value {
-			isRemote = true
-		} else if strings.Contains(strings.ToLower(displayLocation), "remote") {
-			isRemote = true
-		}
-
 		jobs = append(jobs, dumpJob{
 			summary: JobSummary{
 				JobID:    strconv.Itoa(o.ID),
 				Title:    title,
-				Location: displayLocation,
+				Location: location.display,
 				PostedAt: postedDateStr,
 				URL:      jobURL,
 			},
 			sortKey:     postedTime,
+			orgUnit:     o.Department.Or(""),
 			description: descriptionText,
-			locations:   strings.Join(locParts, "; "),
+			locations:   location.search,
 			fields:      fields,
-			isRemote:    isRemote,
+			isRemote:    location.isRemote,
 		})
 	}
 
 	return jobs, nil
+}
+
+type recruiteeLocation struct {
+	fields   map[string][]string
+	display  string
+	search   string
+	isRemote bool
+}
+
+func recruiteeLocations(o recruitee.Offer) recruiteeLocation {
+	cities := make([]string, 0, len(o.Locations)+1)
+	countries := make([]string, 0, len(o.Locations)+1)
+	displayParts := make([]string, 0, len(o.Locations))
+	for _, loc := range o.Locations {
+		city := loc.City.Or("")
+		country := loc.Country.Or("")
+		cities = appendDistinct(cities, city)
+		countries = appendDistinct(countries, country)
+		displayParts = appendDistinct(
+			displayParts,
+			recruiteeLocationPart(city, country, loc.Name.Or("")),
+		)
+	}
+
+	topCity := o.City.Or("")
+	topCountry := o.Country.Or("")
+	cities = appendDistinct(cities, topCity)
+	countries = appendDistinct(countries, topCountry)
+	if len(displayParts) == 0 {
+		displayParts = appendDistinct(displayParts, o.Location.Or(""))
+	}
+	if len(displayParts) == 0 {
+		displayParts = appendDistinct(
+			displayParts,
+			recruiteeLocationPart(topCity, topCountry, ""),
+		)
+	}
+
+	display := strings.Join(displayParts, "; ")
+	isRemote := o.Remote.Or(false) || strings.Contains(strings.ToLower(display), "remote")
+	if display == "" && isRemote {
+		display = "Remote"
+	}
+
+	fields := make(map[string][]string, 2)
+	if len(cities) > 0 {
+		fields["city"] = cities
+	}
+	if len(countries) > 0 {
+		fields["country"] = countries
+	}
+	return recruiteeLocation{
+		fields:   fields,
+		display:  display,
+		search:   display,
+		isRemote: isRemote,
+	}
+}
+
+func recruiteeLocationPart(city, country, name string) string {
+	switch {
+	case city != "" && country != "":
+		return city + ", " + country
+	case city != "":
+		return city
+	case country != "":
+		return country
+	default:
+		return name
+	}
 }
 
 func recruiteeParseDate(s string) (time.Time, string) {
