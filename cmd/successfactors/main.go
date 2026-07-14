@@ -25,7 +25,7 @@ func main() {
 	)
 	rootCmd := &ff.Command{
 		Name:  "successfactors",
-		Usage: "successfactors --company COMPANY [FLAGS] <companies|search|detail> [FLAGS]",
+		Usage: "successfactors --company COMPANY [FLAGS] <companies|search|facets|detail> [FLAGS]",
 		Flags: rootFlags,
 	}
 
@@ -199,13 +199,22 @@ func runSearch(ctx context.Context, f searchFlags) error {
 	ctx, cancel := context.WithTimeout(ctx, f.timeout)
 	defer cancel()
 
+	filters := make(map[string]string, 3)
+	if f.department != "" {
+		filters["department"] = f.department
+	}
+	if f.careerStatus != "" {
+		filters["customfield3"] = f.careerStatus
+	}
+	if f.country != "" {
+		filters["country"] = f.country
+	}
+
 	client := successfactors.NewClient("https://"+c.Host, nil)
 	res, err := client.Search(ctx, &successfactors.SearchRequest{
 		Query:          f.keyword,
 		LocationSearch: f.location,
-		Department:     f.department,
-		CareerStatus:   f.careerStatus,
-		Country:        f.country,
+		Filters:        filters,
 		StartRow:       f.startRow,
 	})
 	if err != nil {

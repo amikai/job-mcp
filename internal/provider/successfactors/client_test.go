@@ -1,6 +1,8 @@
 package successfactors
 
 import (
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -26,9 +28,11 @@ func TestSearchFiltered(t *testing.T) {
 	c := NewClient(srv.URL, srv.Client())
 
 	got, err := c.Search(t.Context(), &SearchRequest{
-		Query:      "engineer",
-		Department: "Software-Design and Development",
-		Country:    "DE",
+		Query: "engineer",
+		Filters: map[string]string{
+			"department": "Software-Design and Development",
+			"country":    "DE",
+		},
 	})
 	require.NoError(t, err)
 	assert.NotEmpty(t, got.Jobs)
@@ -66,7 +70,22 @@ func TestJobDetailNotFound(t *testing.T) {
 	c := NewClient(srv.URL, srv.Client())
 
 	_, err := c.JobDetail(t.Context(), "999999999")
+	require.ErrorIs(t, err, ErrJobNotFound)
+}
+
+// TestJobDetailOperationalFailureIsNotErrJobNotFound proves a 5xx (or any
+// non-parse failure) is a distinct error from ErrJobNotFound, so callers
+// checking errors.Is don't mistake an outage for an expired job ID.
+func TestJobDetailOperationalFailureIsNotErrJobNotFound(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+	defer srv.Close()
+	c := NewClient(srv.URL, srv.Client())
+
+	_, err := c.JobDetail(t.Context(), "1")
 	require.Error(t, err)
+	assert.NotErrorIs(t, err, ErrJobNotFound)
 }
 
 func TestFacetValues(t *testing.T) {

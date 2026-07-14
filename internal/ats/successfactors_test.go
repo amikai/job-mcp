@@ -2,6 +2,7 @@ package ats
 
 import (
 	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
@@ -106,12 +107,64 @@ func TestSuccessFactorsFilterValueNotFoundTeaches(t *testing.T) {
 	require.ErrorContains(t, err, "Germany", "error should list available values")
 }
 
-func TestSuccessFactorsFilterMultipleValuesRejected(t *testing.T) {
-	a := testSuccessFactorsAdapter(t)
-	_, err := a.Search(t.Context(), "jobs.sap.com", SearchParams{
+// TestSuccessFactorsFilterMultipleValuesFansOutAndMerges proves OR
+// semantics within one filter key: upstream's optionsFacetsDD_country
+// dropdown is single-select, so two OR'd values ("Germany", "United
+// States") must become two upstream requests whose results the adapter
+// unions and dedupes — not a single request that drops one value, and not
+// an error rejecting the valid unified-contract input.
+func TestSuccessFactorsFilterMultipleValuesFansOutAndMerges(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/services/jobs/options/facetValues/", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"facets":{"map":{"country":[
+			{"translated":"Germany","name":"DE","count":1},
+			{"translated":"United States","name":"US","count":1}
+		]}}}`))
+	})
+	mux.HandleFunc("/search/", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		switch r.URL.Query().Get("optionsFacetsDD_country") {
+		case "DE":
+			w.Write([]byte(successFactorsFanoutFixture("1000000001", "Berlin Job", "Berlin, DE")))
+		case "US":
+			w.Write([]byte(successFactorsFanoutFixture("1000000002", "Austin Job", "Austin, US")))
+		default:
+			t.Errorf("unexpected country filter in request %s", r.URL)
+		}
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	a := NewSuccessFactorsAdapter(&http.Client{Timeout: 5 * time.Second})
+	a.baseURL = func(string) string { return srv.URL }
+
+	res, err := a.Search(t.Context(), "jobs.sap.com", SearchParams{
 		Filters: FilterSet{"country": {"Germany", "United States"}},
 	})
-	require.ErrorContains(t, err, "one value")
+	require.NoError(t, err)
+	require.Len(t, res.Jobs, 2, "must merge both filter values' results, not just one")
+	assert.Equal(t, 2, res.TotalCount)
+	ids := []string{res.Jobs[0].JobID, res.Jobs[1].JobID}
+	assert.ElementsMatch(t, []string{"1000000001", "1000000002"}, ids)
+}
+
+// successFactorsFanoutFixture renders one minimal search-results page
+// carrying a single job row, with the markup parseSearchHTML requires: the
+// keyword-search icon (the "this is a real search form" sentinel), a
+// data-row with the job's title link, and a pagination label reporting one
+// total match.
+func successFactorsFanoutFixture(id, title, location string) string {
+	return `<html><body>
+<span class="keywordsearch-icon"></span>
+<span class="paginationLabel">Results <b>1 – 1</b> of <b>1</b></span>
+<table><tbody>
+<tr class="data-row">
+<td class="colTitle"><a class="jobTitle-link" href="/job/x/` + id + `/">` + title + `</a></td>
+<td class="colLocation"><span class="jobLocation">` + location + `</span></td>
+</tr>
+</tbody></table>
+</body></html>`
 }
 
 func TestSuccessFactorsDetail(t *testing.T) {
@@ -131,6 +184,30 @@ func TestSuccessFactorsDetailNotFound(t *testing.T) {
 	a := testSuccessFactorsAdapter(t)
 	_, err := a.Detail(t.Context(), "jobs.sap.com", "999999999")
 	require.ErrorContains(t, err, "not found")
+}
+
+// TestSuccessFactorsDetailOperationalFailureIsNotMislabeledNotFound proves
+// a 5xx (or any non-parse failure) surfaces as what it is — the original
+// error wrapped with context — rather than being collapsed into the same
+// "job not found; pass a job_id exactly as returned" message a genuinely
+// expired ID gets. Conflating the two would tell a caller retrying after a
+// timeout or upstream outage that the job simply doesn't exist.
+func TestSuccessFactorsDetailOperationalFailureIsNotMislabeledNotFound(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/job/", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	a := NewSuccessFactorsAdapter(&http.Client{Timeout: 5 * time.Second})
+	a.baseURL = func(string) string { return srv.URL }
+
+	_, err := a.Detail(t.Context(), "jobs.sap.com", "123")
+	require.Error(t, err)
+	assert.NotContains(t, err.Error(), "not found",
+		"a 500 must not be reported as an expired/unknown job id")
+	assert.ErrorContains(t, err, "500")
 }
 
 func TestSuccessFactorsUnknownSlugTeaches(t *testing.T) {

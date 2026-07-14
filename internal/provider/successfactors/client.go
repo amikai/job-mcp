@@ -7,6 +7,7 @@ import (
 	"cmp"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -14,6 +15,14 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 )
+
+// ErrJobNotFound indicates the requested job ID doesn't resolve to a
+// posting: the parser found no itemprop="title" marker on the final page.
+// An unknown or expired ID 302s to /errorpage/, which itself renders 200
+// without that marker (see openapi.yaml) — this is the only condition
+// JobDetail wraps as ErrJobNotFound; any other failure (network, timeout,
+// non-200, malformed HTML) is returned unwrapped by it.
+var ErrJobNotFound = errors.New("successfactors: job not found")
 
 const (
 	searchPath = "/search/"
@@ -33,15 +42,18 @@ func NewClient(baseURL string, httpClient *http.Client) *Client {
 }
 
 // SearchRequest mirrors the /search/ query parameters documented in
-// openapi.yaml. Department, CareerStatus, and Country must be raw facet
-// `name` values (e.g. country codes like "DE"), not translated labels.
+// openapi.yaml.
 type SearchRequest struct {
 	Query          string
 	LocationSearch string
-	Department     string
-	CareerStatus   string
-	Country        string
-	StartRow       int
+	// Filters maps a facet dimension name (e.g. "department", "country",
+	// or any tenant-defined dimension reported by FacetValuesResponse) to
+	// a single raw facet `name` value (e.g. a country code like "DE", not
+	// a translated label), sent as optionsFacetsDD_<dimension>=<value>.
+	// Each dimension is a single-select dropdown upstream, so this holds
+	// at most one value per dimension per request.
+	Filters  map[string]string
+	StartRow int
 }
 
 type SearchResponse struct {
@@ -97,9 +109,9 @@ func (c *Client) Search(ctx context.Context, req *SearchRequest) (*SearchRespons
 	q := u.Query()
 	q.Set("q", req.Query)
 	q.Set("locationsearch", req.LocationSearch)
-	q.Set("optionsFacetsDD_department", req.Department)
-	q.Set("optionsFacetsDD_customfield3", req.CareerStatus)
-	q.Set("optionsFacetsDD_country", req.Country)
+	for dimension, value := range req.Filters {
+		q.Set("optionsFacetsDD_"+dimension, value)
+	}
 	if req.StartRow > 0 {
 		q.Set("startrow", strconv.Itoa(req.StartRow))
 	} else {
@@ -138,7 +150,7 @@ func (c *Client) JobDetail(ctx context.Context, id string) (*JobDetailResponse, 
 	}
 	detail, ok := parseJobDetailHTML(doc, id)
 	if !ok {
-		return nil, fmt.Errorf("job detail %q: not found upstream", id)
+		return nil, fmt.Errorf("job detail %q: %w", id, ErrJobNotFound)
 	}
 	return detail, nil
 }
@@ -151,13 +163,14 @@ func (c *Client) FacetValues(ctx context.Context, req *SearchRequest) (*FacetVal
 	u = u.JoinPath(facetsPath)
 	u.Path += "/"
 
-	body, err := json.Marshal(map[string]string{
-		"q":                            req.Query,
-		"locationsearch":               req.LocationSearch,
-		"optionsFacetsDD_department":   req.Department,
-		"optionsFacetsDD_customfield3": req.CareerStatus,
-		"optionsFacetsDD_country":      req.Country,
-	})
+	bodyFields := map[string]string{
+		"q":              req.Query,
+		"locationsearch": req.LocationSearch,
+	}
+	for dimension, value := range req.Filters {
+		bodyFields["optionsFacetsDD_"+dimension] = value
+	}
+	body, err := json.Marshal(bodyFields)
 	if err != nil {
 		return nil, fmt.Errorf("marshal facetValues request: %w", err)
 	}
