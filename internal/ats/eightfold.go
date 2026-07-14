@@ -2,6 +2,7 @@ package ats
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -184,16 +185,43 @@ func (a *EightfoldAdapter) Filters(ctx context.Context, slug string) (FilterSet,
 // eightfoldFacets concatenates smartFilters and allFilters into one facet
 // list. allFilters is a second, usually-disjoint facet list some tenants
 // (observed: Eaton, Infineon, Qualcomm) populate instead of smartFilters —
-// both use the same SmartFilter shape, so Filters and resolveFilters treat
-// them as one combined set.
+// normalized to the SmartFilter shape so Filters and resolveFilters treat
+// both as one combined set.
 func eightfoldFacets(fd eightfold.FilterDef) []eightfold.SmartFilter {
-	if len(fd.AllFilters) == 0 {
-		return fd.SmartFilters
-	}
 	facets := make([]eightfold.SmartFilter, 0, len(fd.SmartFilters)+len(fd.AllFilters))
 	facets = append(facets, fd.SmartFilters...)
-	facets = append(facets, fd.AllFilters...)
+	for _, af := range fd.AllFilters {
+		if sf, ok := normalizeAllFilter(af); ok {
+			facets = append(facets, sf)
+		}
+	}
 	return facets
+}
+
+// normalizeAllFilter converts one allFilters entry to the SmartFilter shape,
+// dropping any option whose label isn't a JSON string. Live-verified on
+// 2026-07-14: Eaton's and Qualcomm's "latlong" facets (latlong_non_remote)
+// send an integer nearby-postings count as label instead of a name — not a
+// pickable filter value, and AllFilterOption leaves label untyped
+// specifically so decoding the rest of the response doesn't fail because
+// of it. Reports ok=false when every option was dropped this way (or
+// options was null to begin with), same as SmartFilter's null-options case.
+func normalizeAllFilter(af eightfold.AllFilter) (eightfold.SmartFilter, bool) {
+	if len(af.Options) == 0 {
+		return eightfold.SmartFilter{}, false
+	}
+	opts := make([]eightfold.SmartFilterOption, 0, len(af.Options))
+	for _, o := range af.Options {
+		var label string
+		if err := json.Unmarshal(o.Label, &label); err != nil {
+			continue
+		}
+		opts = append(opts, eightfold.SmartFilterOption{Label: label, Value: o.Value})
+	}
+	if len(opts) == 0 {
+		return eightfold.SmartFilter{}, false
+	}
+	return eightfold.SmartFilter{FilterName: af.FilterName, Title: af.Title, Options: opts}, true
 }
 
 func (a *EightfoldAdapter) Detail(ctx context.Context, slug, jobID string) (*JobDetail, error) {

@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/go-faster/jx"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -98,6 +99,46 @@ func TestEightfoldSearchWithAllFiltersOnlyFacetResolvesLabelToValue(t *testing.T
 		Filters: map[string][]string{"country": {"Taiwan"}},
 	})
 	require.NoError(t, err)
+}
+
+// TestNormalizeAllFilterDropsNonStringLabels covers a bug found by hitting
+// the live API (not the mock fixtures): Eaton's and Qualcomm's
+// latlong_non_remote facet sends an integer nearby-postings count as
+// label, e.g. {"label": 72, "value": "47.49,19.02"} — decoding that
+// straight into a string field failed the entire search response, not
+// just that one facet. normalizeAllFilter must drop the bad option without
+// erroring, and keep any well-formed ones alongside it.
+func TestNormalizeAllFilterDropsNonStringLabels(t *testing.T) {
+	af := eightfold.AllFilter{
+		FilterName: "latlong_non_remote",
+		Title:      "LatLong",
+		Options: []eightfold.AllFilterOption{
+			{Label: jx.Raw("72"), Value: "47.4941076,19.0247849"},
+			{Label: jx.Raw(`"United States of America"`), Value: "United States of America"},
+		},
+	}
+	sf, ok := normalizeAllFilter(af)
+	require.True(t, ok, "facet should survive since one option had a valid string label")
+	require.Len(t, sf.Options, 1)
+	assert.Equal(t, "United States of America", sf.Options[0].Label)
+}
+
+// TestNormalizeAllFilterAllNonStringLabelsDrop covers the case where every
+// option in a facet has a non-string label (e.g. Eaton's
+// latlong_non_remote, where all 662 observed options are integer counts) —
+// the whole facet must behave like a null-options SmartFilter, not surface
+// as an empty, unusable entry.
+func TestNormalizeAllFilterAllNonStringLabelsDrop(t *testing.T) {
+	af := eightfold.AllFilter{
+		FilterName: "latlong_non_remote",
+		Title:      "LatLong",
+		Options: []eightfold.AllFilterOption{
+			{Label: jx.Raw("72"), Value: "47.4941076,19.0247849"},
+			{Label: jx.Raw("67"), Value: "18.508934,73.92591019999999"},
+		},
+	}
+	_, ok := normalizeAllFilter(af)
+	assert.False(t, ok)
 }
 
 // TestEightfoldSearchWithFilterResolvesLabelToValue proves a display label
