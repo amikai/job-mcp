@@ -1,11 +1,8 @@
 package ats
 
 import (
-	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"strconv"
-	"strings"
 	"testing"
 	"time"
 
@@ -110,151 +107,21 @@ func TestSuccessFactorsFilterValueNotFoundTeaches(t *testing.T) {
 	require.ErrorContains(t, err, "Germany", "error should list available values")
 }
 
-// TestSuccessFactorsFilterMultipleValuesFansOutAndMerges proves OR
-// semantics within one filter key: upstream's optionsFacetsDD_country
-// dropdown is single-select, so two OR'd values ("Germany", "United
-// States") must become two upstream requests whose results the adapter
-// unions and dedupes — not a single request that drops one value, and not
-// an error rejecting the valid unified-contract input.
-func TestSuccessFactorsFilterMultipleValuesFansOutAndMerges(t *testing.T) {
-	mux := http.NewServeMux()
-	mux.HandleFunc("/services/jobs/options/facetValues/", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{"facets":{"map":{"country":[
-			{"translated":"Germany","name":"DE","count":1},
-			{"translated":"United States","name":"US","count":1}
-		]}}}`))
-	})
-	mux.HandleFunc("/search/", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "text/html")
-		switch r.URL.Query().Get("optionsFacetsDD_country") {
-		case "DE":
-			w.Write([]byte(successFactorsFanoutFixture("1000000001", "Berlin Job", "Berlin, DE")))
-		case "US":
-			w.Write([]byte(successFactorsFanoutFixture("1000000002", "Austin Job", "Austin, US")))
-		default:
-			t.Errorf("unexpected country filter in request %s", r.URL)
-		}
-	})
-	srv := httptest.NewServer(mux)
-	defer srv.Close()
-
-	a := NewSuccessFactorsAdapter(&http.Client{Timeout: 5 * time.Second})
-	a.baseURL = func(string) string { return srv.URL }
-
-	res, err := a.Search(t.Context(), "jobs.sap.com", SearchParams{
+// TestSuccessFactorsFilterMultipleValuesRejected proves multi-value input
+// for one key is refused with a teaching error, rather than silently
+// picking one value or fanning out several upstream requests to honor OR
+// semantics: each optionsFacetsDD_<dimension> is a single-select dropdown
+// upstream, and SF tenants have shown rate-limit-like empty responses
+// under rapid repeated requests in manual testing, so a caller wanting
+// several values for one key is told to issue one search per value
+// instead of this adapter doing it for them.
+func TestSuccessFactorsFilterMultipleValuesRejected(t *testing.T) {
+	a := testSuccessFactorsAdapter(t)
+	_, err := a.Search(t.Context(), "jobs.sap.com", SearchParams{
 		Filters: FilterSet{"country": {"Germany", "United States"}},
 	})
-	require.NoError(t, err)
-	require.Len(t, res.Jobs, 2, "must merge both filter values' results, not just one")
-	assert.Equal(t, 2, res.TotalCount)
-	ids := []string{res.Jobs[0].JobID, res.Jobs[1].JobID}
-	assert.ElementsMatch(t, []string{"1000000001", "1000000002"}, ids)
-}
-
-func TestFilterCombinationsRejectsOversizedProductBeforeExpansion(t *testing.T) {
-	values := make([]string, maxFilterCombinations+1)
-	for i := range values {
-		values[i] = fmt.Sprintf("value-%d", i)
-	}
-
-	_, err := filterCombinations(map[string][]string{"country": values})
-	require.ErrorContains(t, err, "more than 12 combinations")
-}
-
-func TestFilterCombinationsDeduplicatesValues(t *testing.T) {
-	got, err := filterCombinations(map[string][]string{
-		"country": {"DE", "DE", "US"},
-	})
-	require.NoError(t, err)
-	assert.Equal(t, []map[string]string{{"country": "DE"}, {"country": "US"}}, got)
-}
-
-func TestSuccessFactorsFanoutDoesNotFetchAllLargeCombinations(t *testing.T) {
-	requests := make(map[string][]string)
-	mux := http.NewServeMux()
-	mux.HandleFunc("/services/jobs/options/facetValues/", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{"facets":{"map":{"customfield3":[
-			{"name":"Professional","count":300},
-			{"name":"Student","count":1}
-		]}}}`))
-	})
-	mux.HandleFunc("/search/", func(w http.ResponseWriter, r *http.Request) {
-		filter := r.URL.Query().Get("optionsFacetsDD_customfield3")
-		startRow := r.URL.Query().Get("startrow")
-		requests[filter] = append(requests[filter], startRow)
-		start, err := strconv.Atoi(startRow)
-		if err != nil {
-			t.Errorf("invalid startrow %q", startRow)
-		}
-		w.Header().Set("Content-Type", "text/html")
-		switch filter {
-		case "Professional":
-			w.Write([]byte(successFactorsFanoutPageFixture(start, min(25, 300-start), 300, "Professional")))
-		case "Student":
-			w.Write([]byte(successFactorsFanoutPageFixture(start, min(1, 1-start), 1, "Student")))
-		default:
-			t.Errorf("unexpected filter in request %s", r.URL)
-		}
-	})
-	srv := httptest.NewServer(mux)
-	defer srv.Close()
-
-	a := NewSuccessFactorsAdapter(&http.Client{Timeout: 5 * time.Second})
-	a.baseURL = func(string) string { return srv.URL }
-	res, err := a.Search(t.Context(), "jobs.sap.com", SearchParams{
-		Filters: FilterSet{"customfield3": {"Professional", "Student"}},
-	})
-	require.NoError(t, err)
-	assert.Equal(t, 301, res.TotalCount)
-	assert.Len(t, res.Jobs, pageSize)
-	assert.Equal(t, []string{"0"}, requests["Professional"])
-	assert.Equal(t, []string{"0"}, requests["Student"])
-
-	res, err = a.Search(t.Context(), "jobs.sap.com", SearchParams{
-		Page:    14,
-		Filters: FilterSet{"customfield3": {"Professional", "Student"}},
-	})
-	require.NoError(t, err)
-	assert.Equal(t, 301, res.TotalCount)
-	assert.Len(t, res.Jobs, pageSize)
-	assert.Equal(t, []string{"0", "0", "260"}, requests["Professional"])
-	assert.Equal(t, []string{"0", "0"}, requests["Student"])
-}
-
-// successFactorsFanoutFixture renders one minimal search-results page
-// carrying a single job row, with the markup parseSearchHTML requires: the
-// keyword-search icon (the "this is a real search form" sentinel), a
-// data-row with the job's title link, and a pagination label reporting one
-// total match.
-func successFactorsFanoutFixture(id, title, location string) string {
-	return `<html><body>
-<span class="keywordsearch-icon"></span>
-<span class="paginationLabel">Results <b>1 – 1</b> of <b>1</b></span>
-<table><tbody>
-<tr class="data-row">
-<td class="colTitle"><a class="jobTitle-link" href="/job/x/` + id + `/">` + title + `</a></td>
-<td class="colLocation"><span class="jobLocation">` + location + `</span></td>
-</tr>
-</tbody></table>
-</body></html>`
-}
-
-func successFactorsFanoutPageFixture(start, count, total int, titlePrefix string) string {
-	var b strings.Builder
-	fmt.Fprintf(&b, `<html><body>
-<span class="keywordsearch-icon"></span>
-<span class="paginationLabel">Results <b>%d – %d</b> of <b>%d</b></span>
-<table><tbody>`, start+1, start+count, total)
-	for i := start; i < start+count; i++ {
-		fmt.Fprintf(&b, `<tr class="data-row">
-<td class="colTitle"><a class="jobTitle-link" href="/job/x/%d/">%s %d</a></td>
-<td class="colLocation"><span class="jobLocation">Remote</span></td>
-</tr>`, 2_000_000_000-i, titlePrefix, i)
-	}
-	b.WriteString(`</tbody></table></body></html>`)
-	return b.String()
+	require.ErrorContains(t, err, "one value per search")
+	require.ErrorContains(t, err, "issue one search per value")
 }
 
 func TestSuccessFactorsDetail(t *testing.T) {
