@@ -51,11 +51,12 @@ func main() {
 		department   = searchFS.StringLong("department", "", "department facet raw value from 'facets' (not the translated label)")
 		careerStatus = searchFS.StringLong("career-status", "", "career-status facet raw value from 'facets'")
 		country      = searchFS.StringLong("country", "", "ISO 3166-1 alpha-2 country code, e.g. DE")
+		filters      = searchFS.StringListLong("filter", "tenant facet as name=value (repeatable; run 'facets' for valid names and values)")
 		startRow     = searchFS.IntLong("start-row", 0, "zero-based result offset")
 	)
 	searchCmd := &ff.Command{
 		Name:      "search",
-		Usage:     "successfactors --company COMPANY search [--keyword TEXT] [--location TEXT] [--department VALUE] [--career-status VALUE] [--country CC] [--start-row N] [--format text|json]",
+		Usage:     "successfactors --company COMPANY search [--keyword TEXT] [--location TEXT] [--filter NAME=VALUE]... [--department VALUE] [--career-status VALUE] [--country CC] [--start-row N] [--format text|json]",
 		ShortHelp: "search postings for a company (server-side filters)",
 		Flags:     searchFS,
 		Exec: func(ctx context.Context, args []string) error {
@@ -70,6 +71,7 @@ func main() {
 				department:   *department,
 				careerStatus: *careerStatus,
 				country:      *country,
+				filters:      *filters,
 				startRow:     *startRow,
 				format:       *format,
 			})
@@ -183,6 +185,7 @@ type searchFlags struct {
 	department   string
 	careerStatus string
 	country      string
+	filters      []string
 	startRow     int
 	format       string
 }
@@ -195,20 +198,13 @@ func runSearch(ctx context.Context, f searchFlags) error {
 	if f.startRow < 0 {
 		return fmt.Errorf("--start-row must be >= 0, got %d", f.startRow)
 	}
+	filters, err := buildSearchFilters(f)
+	if err != nil {
+		return err
+	}
 
 	ctx, cancel := context.WithTimeout(ctx, f.timeout)
 	defer cancel()
-
-	filters := make(map[string]string, 3)
-	if f.department != "" {
-		filters["department"] = f.department
-	}
-	if f.careerStatus != "" {
-		filters["customfield3"] = f.careerStatus
-	}
-	if f.country != "" {
-		filters["country"] = f.country
-	}
 
 	client := successfactors.NewClient("https://"+c.Host, nil)
 	res, err := client.Search(ctx, &successfactors.SearchRequest{
@@ -242,6 +238,42 @@ func runSearch(ctx context.Context, f searchFlags) error {
 		fmt.Printf("ID: %s\n\n", j.ID)
 	}
 	return nil
+}
+
+func buildSearchFilters(f searchFlags) (map[string]string, error) {
+	filters := make(map[string]string, len(f.filters)+3)
+	for _, raw := range f.filters {
+		name, value, ok := strings.Cut(raw, "=")
+		name = strings.TrimSpace(name)
+		value = strings.TrimSpace(value)
+		if !ok || name == "" || value == "" {
+			return nil, fmt.Errorf("--filter %q must be name=value", raw)
+		}
+		if _, exists := filters[name]; exists {
+			return nil, fmt.Errorf("filter %q was specified more than once", name)
+		}
+		filters[name] = value
+	}
+
+	legacy := []struct {
+		name  string
+		value string
+		flag  string
+	}{
+		{name: "department", value: f.department, flag: "--department"},
+		{name: "customfield3", value: f.careerStatus, flag: "--career-status"},
+		{name: "country", value: f.country, flag: "--country"},
+	}
+	for _, filter := range legacy {
+		if filter.value == "" {
+			continue
+		}
+		if _, exists := filters[filter.name]; exists {
+			return nil, fmt.Errorf("filter %q conflicts with %s", filter.name, filter.flag)
+		}
+		filters[filter.name] = filter.value
+	}
+	return filters, nil
 }
 
 // facetsFlags carries the parsed "facets" subcommand flags into runFacets.

@@ -12,16 +12,15 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 
 	"github.com/PuerkitoBio/goquery"
 )
 
-// ErrJobNotFound indicates the requested job ID doesn't resolve to a
-// posting: the parser found no itemprop="title" marker on the final page.
-// An unknown or expired ID 302s to /errorpage/, which itself renders 200
-// without that marker (see openapi.yaml) — this is the only condition
-// JobDetail wraps as ErrJobNotFound; any other failure (network, timeout,
-// non-200, malformed HTML) is returned unwrapped by it.
+// ErrJobNotFound indicates the requested job ID redirected to the platform's
+// /errorpage/. A 200 page with an unrecognized template remains a distinct
+// parsing error so outages and bot/login pages aren't mislabeled as missing
+// jobs.
 var ErrJobNotFound = errors.New("successfactors: job not found")
 
 const (
@@ -119,7 +118,7 @@ func (c *Client) Search(ctx context.Context, req *SearchRequest) (*SearchRespons
 	}
 	u.RawQuery = q.Encode()
 
-	doc, err := c.getHTML(ctx, u.String())
+	doc, _, err := c.getHTML(ctx, u.String())
 	if err != nil {
 		return nil, fmt.Errorf("search jobs: %w", err)
 	}
@@ -144,13 +143,16 @@ func (c *Client) JobDetail(ctx context.Context, id string) (*JobDetailResponse, 
 	u = u.JoinPath("job", id, id)
 	u.Path += "/"
 
-	doc, err := c.getHTML(ctx, u.String())
+	doc, finalURL, err := c.getHTML(ctx, u.String())
 	if err != nil {
 		return nil, fmt.Errorf("job detail %q: %w", id, err)
 	}
+	if isErrorPageURL(finalURL) {
+		return nil, fmt.Errorf("job detail %q: %w", id, ErrJobNotFound)
+	}
 	detail, ok := parseJobDetailHTML(doc, id)
 	if !ok {
-		return nil, fmt.Errorf("job detail %q: %w", id, ErrJobNotFound)
+		return nil, fmt.Errorf("job detail %q: unrecognized detail page", id)
 	}
 	return detail, nil
 }
@@ -201,10 +203,10 @@ func (c *Client) FacetValues(ctx context.Context, req *SearchRequest) (*FacetVal
 
 const userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
 
-func (c *Client) getHTML(ctx context.Context, rawURL string) (*goquery.Document, error) {
+func (c *Client) getHTML(ctx context.Context, rawURL string) (*goquery.Document, *url.URL, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, rawURL, nil)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	req.Header.Set("User-Agent", userAgent)
 	req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
@@ -212,16 +214,20 @@ func (c *Client) getHTML(ctx context.Context, rawURL string) (*goquery.Document,
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("HTTP %d", resp.StatusCode)
+		return nil, resp.Request.URL, fmt.Errorf("HTTP %d", resp.StatusCode)
 	}
 
 	doc, err := goquery.NewDocumentFromReader(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("parse html: %w", err)
+		return nil, resp.Request.URL, fmt.Errorf("parse html: %w", err)
 	}
-	return doc, nil
+	return doc, resp.Request.URL, nil
+}
+
+func isErrorPageURL(u *url.URL) bool {
+	return u != nil && strings.EqualFold(strings.Trim(u.Path, "/"), "errorpage")
 }

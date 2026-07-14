@@ -1,15 +1,14 @@
 package ats
 
 import (
-	"cmp"
 	"context"
 	"errors"
 	"fmt"
 	"maps"
+	"math"
 	"net/http"
 	"net/url"
 	"slices"
-	"strconv"
 	"strings"
 	"time"
 
@@ -25,20 +24,11 @@ var _ Adapter = (*SuccessFactorsAdapter)(nil)
 // "Mon Jul 13 00:00:00 UTC 2026").
 const successFactorsDateLayout = "Mon Jan 2 15:04:05 MST 2006"
 
-// successFactorsUpstreamPageSize is the fixed row count the /search/ table
-// always returns per request, independent of startRow (see openapi.yaml).
-const successFactorsUpstreamPageSize = 25
-
 // maxFilterCombinations caps the cartesian product of OR'd filter values
 // across dimensions (see searchWithFanout) so a broad selection fails
 // loudly, asking the caller to narrow it, instead of firing an unbounded
 // number of upstream requests.
 const maxFilterCombinations = 12
-
-// maxPagesPerCombination caps how many upstream pages searchWithFanout
-// fetches for any single filter combination (25 * 10 = 250 jobs) before
-// erroring rather than silently returning a partial merge.
-const maxPagesPerCombination = 10
 
 // SuccessFactorsAdapter serves SAP SuccessFactors Career Site Builder
 // tenants. Search and detail are server-rendered HTML pages (see
@@ -92,7 +82,10 @@ func (a *SuccessFactorsAdapter) Search(ctx context.Context, slug string, p Searc
 	if err != nil {
 		return nil, err
 	}
-	combos := filterCombinations(filterValues)
+	combos, err := filterCombinations(filterValues)
+	if err != nil {
+		return nil, err
+	}
 
 	client := successfactors.NewClient(a.baseURL(c.Host), a.hc)
 	base := successfactors.SearchRequest{Query: p.Query, LocationSearch: strings.TrimSpace(p.Location)}
@@ -123,19 +116,12 @@ func (a *SuccessFactorsAdapter) Search(ctx context.Context, slug string, p Searc
 		}, nil
 	}
 
-	merged, err := searchWithFanout(ctx, client, base, combos)
+	jobs, total, err := searchWithFanout(ctx, client, base, combos, page)
 	if err != nil {
 		return nil, fmt.Errorf("successfactors: search %q: %w", c.Host, err)
 	}
-	total := len(merged)
-	pageIndex := page - 1
-	start := total
-	if pageIndex <= total/pageSize {
-		start = pageIndex * pageSize
-	}
-	end := start + min(pageSize, total-start)
 	return &SearchResult{
-		Jobs:       successFactorsJobSummaries(merged[start:end], c.Host),
+		Jobs:       successFactorsJobSummaries(jobs, c.Host),
 		TotalCount: total,
 		Page:       page,
 		TotalPages: totalPages(total),
@@ -148,17 +134,50 @@ func (a *SuccessFactorsAdapter) Search(ctx context.Context, slug string, p Searc
 // {d1:a,d2:x} and {d1:b,d2:x} — the union of those two requests' results is
 // exactly "(d1=a OR d1=b) AND d2=x". Always returns at least one (possibly
 // nil-map) combination, so callers don't special-case the no-filter case.
-func filterCombinations(filterValues map[string][]string) []map[string]string {
+// It validates the product before allocating the result slice, preventing a
+// malicious or accidental high-dimensional selection from exhausting memory.
+func filterCombinations(filterValues map[string][]string) ([]map[string]string, error) {
 	if len(filterValues) == 0 {
-		return []map[string]string{nil}
+		return []map[string]string{nil}, nil
 	}
 	dims := slices.Sorted(maps.Keys(filterValues))
-
-	combos := []map[string]string{{}}
+	valuesByDimension := make(map[string][]string, len(dims))
+	combinationCount := 1
 	for _, dim := range dims {
-		next := make([]map[string]string, 0, len(combos)*len(filterValues[dim]))
+		remainingCapacity := maxFilterCombinations / combinationCount
+		initialCapacity := min(len(filterValues[dim]), remainingCapacity+1)
+		seen := make(map[string]struct{}, initialCapacity)
+		values := make([]string, 0, initialCapacity)
+		for _, value := range filterValues[dim] {
+			if _, ok := seen[value]; ok {
+				continue
+			}
+			if len(values) == remainingCapacity {
+				return nil, fmt.Errorf(
+					"filter selection expands to more than %d combinations; narrow the OR'd values",
+					maxFilterCombinations,
+				)
+			}
+			seen[value] = struct{}{}
+			values = append(values, value)
+		}
+		if len(values) == 0 {
+			continue
+		}
+		combinationCount *= len(values)
+		valuesByDimension[dim] = values
+	}
+
+	combos := make([]map[string]string, 1, combinationCount)
+	combos[0] = map[string]string{}
+	for _, dim := range dims {
+		values := valuesByDimension[dim]
+		if len(values) == 0 {
+			continue
+		}
+		next := make([]map[string]string, 0, len(combos)*len(values))
 		for _, combo := range combos {
-			for _, v := range filterValues[dim] {
+			for _, v := range values {
 				c := make(map[string]string, len(combo)+1)
 				maps.Copy(c, combo)
 				c[dim] = v
@@ -167,68 +186,72 @@ func filterCombinations(filterValues map[string][]string) []map[string]string {
 		}
 		combos = next
 	}
-	return combos
+	return combos, nil
 }
 
-// searchWithFanout runs one upstream request per filter combination,
-// paginating each one fully, then unions and dedupes the results by job
-// ID before the caller applies its own page — the same fetch-all-then-
-// paginate-locally shape searchDump uses for full-dump providers, just
-// assembled from several already-server-filtered upstream calls instead of
-// one full board dump. Bounded by maxFilterCombinations and
-// maxPagesPerCombination so a broad OR selection fails loudly instead of
-// silently returning a partial merge.
+// searchWithFanout treats the disjoint filter combinations as one logical,
+// combination-major result stream. It probes each combination once to get its
+// count, but fetches only the slice intersecting the requested unified page.
+// This keeps work bounded even when one valid filter has thousands of jobs.
 func searchWithFanout(
 	ctx context.Context,
 	client *successfactors.Client,
 	base successfactors.SearchRequest,
 	combos []map[string]string,
-) ([]successfactors.Job, error) {
-	if len(combos) > maxFilterCombinations {
-		return nil, fmt.Errorf(
-			"filter selection expands to %d combinations (max %d); narrow the OR'd values",
-			len(combos), maxFilterCombinations,
-		)
-	}
-
-	seen := make(map[string]successfactors.Job)
+	page int,
+) ([]successfactors.Job, int, error) {
+	pageStart, pageEnd := successFactorsPageBounds(page)
+	jobs := make([]successfactors.Job, 0, pageSize)
+	total := 0
 	for _, combo := range combos {
-		for page := range maxPagesPerCombination {
-			req := base
-			req.Filters = combo
-			req.StartRow = page * successFactorsUpstreamPageSize
-			res, err := client.Search(ctx, &req)
-			if err != nil {
-				return nil, err
-			}
-			for _, j := range res.Jobs {
-				seen[j.ID] = j
-			}
-			if len(res.Jobs) == 0 || (page+1)*successFactorsUpstreamPageSize >= res.TotalCount {
-				break
-			}
-			if page == maxPagesPerCombination-1 {
-				return nil, fmt.Errorf(
-					"filter combination %v has more than %d results; narrow the search",
-					combo, maxPagesPerCombination*successFactorsUpstreamPageSize,
-				)
-			}
+		req := base
+		req.Filters = combo
+		res, err := client.Search(ctx, &req)
+		if err != nil {
+			return nil, 0, err
 		}
-	}
+		if res.TotalCount < 0 || res.TotalCount > math.MaxInt-total {
+			return nil, 0, fmt.Errorf("invalid total count %d for filter combination %v", res.TotalCount, combo)
+		}
 
-	merged := make([]successfactors.Job, 0, len(seen))
-	for _, j := range seen {
-		merged = append(merged, j)
-	}
-	slices.SortFunc(merged, func(a, b successfactors.Job) int {
-		ai, aErr := strconv.ParseInt(a.ID, 10, 64)
-		bi, bErr := strconv.ParseInt(b.ID, 10, 64)
-		if aErr == nil && bErr == nil {
-			return cmp.Compare(bi, ai) // descending = newest first, matching this platform's ID scheme
+		comboStart := total
+		comboEnd := comboStart + res.TotalCount
+		total = comboEnd
+		if pageStart >= comboEnd || pageEnd <= comboStart {
+			continue
 		}
-		return strings.Compare(b.ID, a.ID)
-	})
-	return merged, nil
+
+		localStart := max(0, pageStart-comboStart)
+		localEnd := min(res.TotalCount, pageEnd-comboStart)
+		need := localEnd - localStart
+		pageJobs := res.Jobs
+		if localStart+need > len(pageJobs) {
+			req.StartRow = localStart
+			res, err = client.Search(ctx, &req)
+			if err != nil {
+				return nil, 0, err
+			}
+			pageJobs = res.Jobs
+			localStart = 0
+		}
+		if localStart+need > len(pageJobs) {
+			return nil, 0, fmt.Errorf(
+				"filter combination %v returned %d jobs for a requested slice of %d",
+				combo, len(pageJobs)-localStart, need,
+			)
+		}
+		jobs = append(jobs, pageJobs[localStart:localStart+need]...)
+	}
+	return jobs, total, nil
+}
+
+func successFactorsPageBounds(page int) (int, int) {
+	pageIndex := page - 1
+	if pageIndex > (math.MaxInt-pageSize)/pageSize {
+		return math.MaxInt - pageSize, math.MaxInt
+	}
+	start := pageIndex * pageSize
+	return start, start + pageSize
 }
 
 func (a *SuccessFactorsAdapter) Filters(ctx context.Context, slug string) (FilterSet, error) {

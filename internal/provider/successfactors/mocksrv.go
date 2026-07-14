@@ -28,15 +28,12 @@ var mockFacetValuesRsp []byte
 // Career Site Builder tenant with canned fixture responses, keyed off the
 // request's job ID / query so tests never hit a live site. The caller owns
 // the server and must Close it.
-//
-// It serves the not-found detail fixture directly with HTTP 200, rather
-// than replaying the live 302-to-/errorpage/ redirect: parseJobDetailHTML
-// only ever sees the page a real client lands on after following that
-// redirect (net/http follows redirects by default), so that's the only
-// behavior worth exercising here.
 func NewMockServer() *httptest.Server {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/job/999999999/999999999/", serveMockHTML(mockJobDetailNotFoundRsp))
+	mux.HandleFunc("/job/999999999/999999999/", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/errorpage/?errortype=Exception", http.StatusFound)
+	})
+	mux.HandleFunc("/errorpage/", serveMockHTML(mockJobDetailNotFoundRsp))
 	mux.HandleFunc("/job/1414343333/1414343333/", serveMockHTML(mockJobDetailRsp))
 	mux.HandleFunc("/search/", func(w http.ResponseWriter, r *http.Request) {
 		q := r.URL.Query()

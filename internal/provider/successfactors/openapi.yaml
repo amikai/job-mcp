@@ -54,9 +54,10 @@ info:
       `/job/{id}/` segment (no slug at all) is rejected.
     - **Not-found is a redirect, not a 404**: an unknown or expired job ID
       302s to `/errorpage/?errortype=Exception`, which itself renders 200.
-      Callers must detect "not found" from the *absence* of the
-      `itemprop="title"` job-posting marker in the final page, not from the
-      HTTP status.
+      Callers must detect "not found" from the final `/errorpage/` URL, not
+      merely from the absence of the `itemprop="title"` job-posting marker:
+      maintenance, bot-challenge, and changed-template pages may also omit
+      that marker.
     - **Search-result fields are stable; detail-page fields are not**: the
       results table's Title and Location columns are a fixed system layout
       present on every tenant observed. The detail page's extra fields
@@ -168,8 +169,9 @@ paths:
         Returns an SSR HTML page for one posting. `{slug}` is ignored by the
         server — pass the numeric ID again in its place when only the ID is
         known (`/job/{id}/{id}/`). A missing or expired ID 302s to
-        `/errorpage/?errortype=Exception`, itself a 200 page lacking the
-        `itemprop="title"` marker.
+        `/errorpage/?errortype=Exception`, itself a 200 page. Clients should
+        inspect the final redirect URL to distinguish that case from another
+        unrecognized 200 HTML page.
       parameters:
         - name: slug
           in: path

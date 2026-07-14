@@ -88,6 +88,19 @@ func TestJobDetailOperationalFailureIsNotErrJobNotFound(t *testing.T) {
 	assert.NotErrorIs(t, err, ErrJobNotFound)
 }
 
+func TestJobDetailUnrecognized200IsNotErrJobNotFound(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		w.Write([]byte(`<html><title>Maintenance</title><body>Try again later</body></html>`))
+	}))
+	defer srv.Close()
+	c := NewClient(srv.URL, srv.Client())
+
+	_, err := c.JobDetail(t.Context(), "1")
+	require.ErrorContains(t, err, "unrecognized detail page")
+	assert.NotErrorIs(t, err, ErrJobNotFound)
+}
+
 func TestFacetValues(t *testing.T) {
 	srv := NewMockServer()
 	defer srv.Close()
