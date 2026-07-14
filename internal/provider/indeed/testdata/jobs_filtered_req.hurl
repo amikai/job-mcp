@@ -8,9 +8,35 @@ accept-language: en-US,en;q=0.9
 user-agent: Mozilla/5.0 (iPhone; CPU iPhone OS 16_6_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 Indeed App 193.1
 indeed-app-info: appv=193.1; appid=com.indeed.jobsearch; osv=16.6.1; os=ios; dtype=phone
 indeed-co: TW
-{
-  "query": "query GetJobData { jobSearch(what: \"software engineer\", location: {where: \"Taipei\", radius: 25, radiusUnit: MILES}, limit: 5, sort: RELEVANCE, filters: { date: { field: \"dateOnIndeed\", start: \"24h\" } }) { pageInfo { nextCursor } results { trackingKey job { key title datePublished location { countryCode admin1Code city formatted { long } } compensation { estimated { currencyCode baseSalary { unitOfWork range { ... on Range { min max } } } } baseSalary { unitOfWork range { ... on Range { min max } } } currencyCode } attributes { key label } employer { relativeCompanyPageUrl name } } } } }"
+```graphql
+query GetJobData {
+  jobSearch(
+    what: "software engineer"
+    location: {where: "Taipei", radius: 25, radiusUnit: MILES}
+    limit: 5
+    sort: RELEVANCE
+    filters: { date: { field: "dateOnIndeed", start: "24h" } }
+  ) {
+    pageInfo { nextCursor }
+    results {
+      trackingKey
+      job {
+        key
+        title
+        datePublished
+        location { countryCode admin1Code city formatted { long } }
+        compensation {
+          estimated { currencyCode baseSalary { unitOfWork range { ... on Range { min max } } } }
+          baseSalary { unitOfWork range { ... on Range { min max } } }
+          currencyCode
+        }
+        attributes { key label }
+        employer { relativeCompanyPageUrl name }
+      }
+    }
+  }
 }
+```
 
 HTTP 200
 
