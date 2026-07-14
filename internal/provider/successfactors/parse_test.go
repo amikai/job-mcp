@@ -26,6 +26,40 @@ func TestParseSearchHTML(t *testing.T) {
 	assert.Equal(t, Job{ID: "1414343333", Title: "Developer Associate", Location: "Bangalore, IN, 560066"}, jobs[0])
 }
 
+// parseResultsTotal must not hardcode the English connector word between
+// the two <b> tags: RWE's site defaults to German ("Ergebnisse <b>1 – 25</b>
+// von <b>205</b>"), observed live returning total=0 before this was fixed
+// to just take the last <b>-tagged number regardless of locale text.
+func TestParseSearchHTMLGermanLocale(t *testing.T) {
+	const page = `<html><body>
+<span class="keywordsearch-icon"></span>
+<span class="paginationLabel" aria-label="Ergebnisse 1 – 25">Ergebnisse <b>1 – 25</b> von <b>205</b></span>
+</body></html>`
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(page))
+	require.NoError(t, err)
+
+	_, total, err := parseSearchHTML(doc)
+	require.NoError(t, err)
+	assert.Equal(t, 205, total)
+}
+
+// A tenant that configures no department dropdown at all (observed live on
+// Borealis and E.ON) must not be mistaken for an unrecognized page — only
+// the keyword search icon is a reliable "this is the search form" signal.
+func TestParseSearchHTMLNoDepartmentDropdown(t *testing.T) {
+	const page = `<html><body>
+<span class="keywordsearch-icon"></span>
+<select id="optionsFacetsDD_country"></select>
+</body></html>`
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(page))
+	require.NoError(t, err)
+
+	jobs, total, err := parseSearchHTML(doc)
+	require.NoError(t, err)
+	assert.Empty(t, jobs)
+	assert.Equal(t, 0, total)
+}
+
 // A genuine zero-result page keeps the search form (and its department
 // dropdown) but has no result rows and no pagination label; that must read
 // as an empty search, not an error.

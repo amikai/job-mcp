@@ -11,9 +11,14 @@ import (
 
 // parseSearchHTML parses the results table (tr.data-row) and the
 // "Results X – Y of N" pagination label. A page with the search form but no
-// rows and no label is a genuine zero-result search, not a parse failure;
-// a page missing the search form entirely (the department dropdown marker)
-// is unrecognized and must error.
+// rows and no label is a genuine zero-result search, not a parse failure; a
+// page missing the search form entirely is unrecognized and must error.
+//
+// The sentinel for "the search form rendered" is the keyword box's icon
+// (span.keywordsearch-icon), not any one optionsFacetsDD_* filter dropdown:
+// which filter dimensions a tenant configures is arbitrary (observed:
+// Borealis and E.ON have no department dropdown at all), but every tenant's
+// search form keeps the keyword box.
 func parseSearchHTML(doc *goquery.Document) ([]Job, int, error) {
 	var jobs []Job
 	for _, row := range doc.Find("tr.data-row").EachIter() {
@@ -25,7 +30,7 @@ func parseSearchHTML(doc *goquery.Document) ([]Job, int, error) {
 	}
 
 	total := parseResultsTotal(doc)
-	if len(jobs) == 0 && total == 0 && doc.Find("#optionsFacetsDD_department").Length() == 0 {
+	if len(jobs) == 0 && total == 0 && doc.Find(".keywordsearch-icon").Length() == 0 {
 		return nil, 0, errors.New("unrecognized search page: no job rows, no results count, and no search form")
 	}
 	return jobs, total, nil
@@ -56,9 +61,13 @@ func jobIDFromHref(href string) string {
 	return m[1]
 }
 
-// resultsTotalPattern matches the pagination label's "of <N>" bold total,
-// e.g. `Results <b>1 – 25</b> of <b>633</b>`.
-var resultsTotalPattern = regexp.MustCompile(`of\s*<b>([\d,]+)</b>`)
+// resultsTotalPattern extracts every bold number in the pagination label,
+// e.g. `Results <b>1 – 25</b> of <b>633</b>` (English) or
+// `Ergebnisse <b>1 – 25</b> von <b>205</b>` (German, observed on RWE's
+// default-German site). The connector word between the two <b> tags is
+// locale text ("of", "von", ...) that isn't worth matching per-locale; the
+// total is always the last <b>-tagged number regardless of language.
+var resultsTotalPattern = regexp.MustCompile(`<b>([\d,]+)</b>`)
 
 func parseResultsTotal(doc *goquery.Document) int {
 	label := doc.Find("span.paginationLabel").First()
@@ -69,11 +78,12 @@ func parseResultsTotal(doc *goquery.Document) int {
 	if err != nil {
 		return 0
 	}
-	m := resultsTotalPattern.FindStringSubmatch(html)
-	if m == nil {
+	matches := resultsTotalPattern.FindAllStringSubmatch(html, -1)
+	if len(matches) == 0 {
 		return 0
 	}
-	n, err := strconv.Atoi(strings.ReplaceAll(m[1], ",", ""))
+	last := matches[len(matches)-1][1]
+	n, err := strconv.Atoi(strings.ReplaceAll(last, ",", ""))
 	if err != nil {
 		return 0
 	}
