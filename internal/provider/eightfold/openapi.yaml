@@ -31,10 +31,11 @@ info:
     `filter_<facetName>=<value>` (repeatable for OR semantics), e.g.
     `filter_businessarea=technology&filter_businessarea=finance`. The set
     of valid facet names and values is tenant-specific and discovered at
-    runtime from `data.filterDef.smartFilters` in an unfiltered search
-    response — OpenAPI has no way to express a dynamically-named query
-    parameter, so `filter_*` application is handled by hand in the Go
-    adapter (`internal/ats`) rather than through the generated client.
+    runtime from `data.filterDef.smartFilters` and `data.filterDef.allFilters`
+    in an unfiltered search response — OpenAPI has no way to express a
+    dynamically-named query parameter, so `filter_*` application is handled
+    by hand in the Go adapter (`internal/ats`) rather than through the
+    generated client.
 
     ## v2: the other public search API
 
@@ -275,6 +276,18 @@ components:
       properties:
         smartFilters:
           type: array
+          items:
+            $ref: "#/components/schemas/SmartFilter"
+        allFilters:
+          type: array
+          description: >
+            A second facet list, usually disjoint from smartFilters, that
+            some tenants populate instead of (or alongside) it — e.g.
+            Eaton, Infineon, and Qualcomm return empty smartFilters but a
+            populated allFilters. Same shape as smartFilters (same
+            SmartFilter schema covers both); the adapter merges
+            list-valued facets from both lists. Not required: tenants that
+            populate smartFilters have been observed omitting it.
           items:
             $ref: "#/components/schemas/SmartFilter"
 

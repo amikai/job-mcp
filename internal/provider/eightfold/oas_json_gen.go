@@ -28,10 +28,21 @@ func (s *FilterDef) encodeFields(e *jx.Encoder) {
 		}
 		e.ArrEnd()
 	}
+	{
+		if s.AllFilters != nil {
+			e.FieldStart("allFilters")
+			e.ArrStart()
+			for _, elem := range s.AllFilters {
+				elem.Encode(e)
+			}
+			e.ArrEnd()
+		}
+	}
 }
 
-var jsonFieldsNameOfFilterDef = [1]string{
+var jsonFieldsNameOfFilterDef = [2]string{
 	0: "smartFilters",
+	1: "allFilters",
 }
 
 // Decode decodes FilterDef from json.
@@ -60,6 +71,23 @@ func (s *FilterDef) Decode(d *jx.Decoder) error {
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"smartFilters\"")
+			}
+		case "allFilters":
+			if err := func() error {
+				s.AllFilters = make([]SmartFilter, 0)
+				if err := d.Arr(func(d *jx.Decoder) error {
+					var elem SmartFilter
+					if err := elem.Decode(d); err != nil {
+						return err
+					}
+					s.AllFilters = append(s.AllFilters, elem)
+					return nil
+				}); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"allFilters\"")
 			}
 		default:
 			return d.Skip()

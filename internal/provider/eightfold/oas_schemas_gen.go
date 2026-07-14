@@ -5,6 +5,12 @@ package eightfold
 // Ref: #/components/schemas/FilterDef
 type FilterDef struct {
 	SmartFilters []SmartFilter `json:"smartFilters"`
+	// A second facet list, usually disjoint from smartFilters, that some tenants populate instead of (or
+	// alongside) it — e.g. Eaton, Infineon, and Qualcomm return empty smartFilters but a populated
+	// allFilters. Same shape as smartFilters (same SmartFilter schema covers both); the adapter merges
+	// list-valued facets from both lists. Not required: tenants that populate smartFilters have been
+	// observed omitting it.
+	AllFilters []SmartFilter `json:"allFilters"`
 }
 
 // GetSmartFilters returns the value of SmartFilters.
@@ -12,9 +18,19 @@ func (s *FilterDef) GetSmartFilters() []SmartFilter {
 	return s.SmartFilters
 }
 
+// GetAllFilters returns the value of AllFilters.
+func (s *FilterDef) GetAllFilters() []SmartFilter {
+	return s.AllFilters
+}
+
 // SetSmartFilters sets the value of SmartFilters.
 func (s *FilterDef) SetSmartFilters(val []SmartFilter) {
 	s.SmartFilters = val
+}
+
+// SetAllFilters sets the value of AllFilters.
+func (s *FilterDef) SetAllFilters(val []SmartFilter) {
+	s.AllFilters = val
 }
 
 // NewOptInt returns new OptInt with value set to v.

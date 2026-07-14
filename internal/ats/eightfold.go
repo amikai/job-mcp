@@ -163,19 +163,37 @@ func (a *EightfoldAdapter) Filters(ctx context.Context, slug string) (FilterSet,
 		return nil, err
 	}
 	seen := make(map[string]map[string]struct{})
-	for _, sf := range res.Data.FilterDef.SmartFilters {
+	for _, sf := range eightfoldFacets(res.Data.FilterDef) {
 		if sf.Options == nil {
 			// Non-list facets (e.g. Morgan Stanley's "include_remote"
 			// toggle) carry a boolean, not a value to pick from.
 			continue
 		}
-		labels := make(map[string]struct{}, len(sf.Options))
+		labels := seen[sf.FilterName]
+		if labels == nil {
+			labels = make(map[string]struct{}, len(sf.Options))
+			seen[sf.FilterName] = labels
+		}
 		for _, o := range sf.Options {
 			labels[o.Label] = struct{}{}
 		}
-		seen[sf.FilterName] = labels
 	}
 	return toFilterSet(seen), nil
+}
+
+// eightfoldFacets concatenates smartFilters and allFilters into one facet
+// list. allFilters is a second, usually-disjoint facet list some tenants
+// (observed: Eaton, Infineon, Qualcomm) populate instead of smartFilters —
+// both use the same SmartFilter shape, so Filters and resolveFilters treat
+// them as one combined set.
+func eightfoldFacets(fd eightfold.FilterDef) []eightfold.SmartFilter {
+	if len(fd.AllFilters) == 0 {
+		return fd.SmartFilters
+	}
+	facets := make([]eightfold.SmartFilter, 0, len(fd.SmartFilters)+len(fd.AllFilters))
+	facets = append(facets, fd.SmartFilters...)
+	facets = append(facets, fd.AllFilters...)
+	return facets
 }
 
 func (a *EightfoldAdapter) Detail(ctx context.Context, slug, jobID string) (*JobDetail, error) {
@@ -313,13 +331,23 @@ func (a *EightfoldAdapter) resolveFilters(ctx context.Context, c eightfold.Roste
 		return nil, err
 	}
 
-	byName := make(map[string]eightfold.SmartFilter, len(probe.Data.FilterDef.SmartFilters))
-	valid := make(map[string]bool, len(probe.Data.FilterDef.SmartFilters))
-	for _, sf := range probe.Data.FilterDef.SmartFilters {
+	facets := eightfoldFacets(probe.Data.FilterDef)
+	byName := make(map[string]eightfold.SmartFilter, len(facets))
+	valid := make(map[string]bool, len(facets))
+	for _, sf := range facets {
 		if sf.Options == nil {
 			continue
 		}
-		byName[strings.ToLower(sf.FilterName)] = sf
+		key := strings.ToLower(sf.FilterName)
+		if existing, ok := byName[key]; ok {
+			// Same facet name in both smartFilters and allFilters
+			// (unobserved but not ruled out): merge rather than let
+			// the later list silently shadow the earlier one's options.
+			existing.Options = append(existing.Options, sf.Options...)
+			byName[key] = existing
+			continue
+		}
+		byName[key] = sf
 		valid[sf.FilterName] = true
 	}
 
