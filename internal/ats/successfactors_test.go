@@ -107,21 +107,89 @@ func TestSuccessFactorsFilterValueNotFoundTeaches(t *testing.T) {
 	require.ErrorContains(t, err, "Germany", "error should list available values")
 }
 
-// TestSuccessFactorsFilterMultipleValuesRejected proves multi-value input
-// for one key is refused with a teaching error, rather than silently
-// picking one value or fanning out several upstream requests to honor OR
-// semantics: each optionsFacetsDD_<dimension> is a single-select dropdown
-// upstream, and SF tenants have shown rate-limit-like empty responses
-// under rapid repeated requests in manual testing, so a caller wanting
-// several values for one key is told to issue one search per value
-// instead of this adapter doing it for them.
-func TestSuccessFactorsFilterMultipleValuesRejected(t *testing.T) {
-	a := testSuccessFactorsAdapter(t)
-	_, err := a.Search(t.Context(), "jobs.sap.com", SearchParams{
+// TestSuccessFactorsFilterMultipleValuesReturnsSupersetWithoutFanout proves
+// multi-value input does not cause several upstream requests. SuccessFactors
+// supports only one value per dropdown, so the multi-value country filter is
+// omitted and the broader result is returned for the caller to filter.
+func TestSuccessFactorsFilterMultipleValuesReturnsSupersetWithoutFanout(t *testing.T) {
+	searchRequests := 0
+	facetRequests := 0
+	mux := http.NewServeMux()
+	mux.HandleFunc("/services/jobs/options/facetValues/", func(w http.ResponseWriter, r *http.Request) {
+		facetRequests++
+		w.Write([]byte(`{"facets":{"map":{}}}`))
+	})
+	mux.HandleFunc("/search/", func(w http.ResponseWriter, r *http.Request) {
+		searchRequests++
+		w.Header().Set("Content-Type", "text/html")
+		if got := r.URL.Query().Get("optionsFacetsDD_country"); got != "" {
+			t.Errorf("country filter = %q, want omitted for multi-value input", got)
+		}
+		w.Write([]byte(successFactorsSupersetFixture))
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	a := NewSuccessFactorsAdapter(&http.Client{Timeout: 5 * time.Second})
+	a.baseURL = func(string) string { return srv.URL }
+
+	res, err := a.Search(t.Context(), "jobs.sap.com", SearchParams{
 		Filters: FilterSet{"country": {"Germany", "United States"}},
 	})
-	require.ErrorContains(t, err, "one value per search")
-	require.ErrorContains(t, err, "issue one search per value")
+	require.NoError(t, err)
+	assert.Len(t, res.Jobs, 3)
+	assert.Equal(t, 3, res.TotalCount)
+	assert.Equal(t, 1, searchRequests)
+	assert.Zero(t, facetRequests)
+}
+
+const successFactorsSupersetFixture = `<html><body>
+<span class="keywordsearch-icon"></span>
+<span class="paginationLabel">Results <b>1 – 3</b> of <b>3</b></span>
+<table><tbody>
+<tr class="data-row">
+<td class="colTitle"><a class="jobTitle-link" href="/job/x/1000000001/">Berlin Job</a></td>
+<td class="colLocation"><span class="jobLocation">Berlin, DE</span></td>
+</tr>
+<tr class="data-row">
+<td class="colTitle"><a class="jobTitle-link" href="/job/x/1000000002/">Austin Job</a></td>
+<td class="colLocation"><span class="jobLocation">Austin, US</span></td>
+</tr>
+<tr class="data-row">
+<td class="colTitle"><a class="jobTitle-link" href="/job/x/1000000003/">Tokyo Job</a></td>
+<td class="colLocation"><span class="jobLocation">Tokyo, JP</span></td>
+</tr>
+</tbody></table>
+</body></html>`
+
+func TestSuccessFactorsMultiValueFilterKeepsSingleValueFilters(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/services/jobs/options/facetValues/", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"facets":{"map":{
+			"country":[{"translated":"Germany","name":"DE"},{"translated":"United States","name":"US"}],
+			"department":[{"translated":"Engineering","name":"ENG"}]
+		}}}`))
+	})
+	mux.HandleFunc("/search/", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		assert.Empty(t, r.URL.Query().Get("optionsFacetsDD_country"))
+		assert.Equal(t, "ENG", r.URL.Query().Get("optionsFacetsDD_department"))
+		w.Write([]byte(successFactorsSupersetFixture))
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	a := NewSuccessFactorsAdapter(&http.Client{Timeout: 5 * time.Second})
+	a.baseURL = func(string) string { return srv.URL }
+	res, err := a.Search(t.Context(), "jobs.sap.com", SearchParams{
+		Filters: FilterSet{
+			"country":    {"Germany", "United States"},
+			"department": {"Engineering"},
+		},
+	})
+	require.NoError(t, err)
+	assert.Equal(t, 3, res.TotalCount)
 }
 
 func TestSuccessFactorsDetail(t *testing.T) {

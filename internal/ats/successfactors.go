@@ -172,15 +172,23 @@ func (a *SuccessFactorsAdapter) resolveSlug(slug string) (successfactors.Company
 // resolve labels.
 //
 // Each optionsFacetsDD_<dimension> query param is a single-select dropdown
-// upstream, so this accepts at most one value per key rather than
-// expanding OR'd values into several upstream requests: a prior version
-// did that fan-out (cartesian product across dimensions, capped and
-// merged), but SF tenants have shown rate-limit-like empty responses under
-// rapid repeated requests in manual testing, and the fan-out could still
-// drive a double-digit request burst from one Search call. A caller
-// wanting several values for one key issues one call per value instead.
+// upstream. For several values in one dimension, this deliberately omits
+// that dimension rather than fanning out: the resulting complete result set
+// is a superset of the requested OR selection, which callers can filter
+// locally. Other single-value dimensions still apply.
 func (a *SuccessFactorsAdapter) resolveFilters(ctx context.Context, c successfactors.Company, filters FilterSet) (map[string]string, error) {
 	if len(filters) == 0 {
+		return nil, nil
+	}
+
+	hasSingleValue := false
+	for _, values := range filters {
+		if len(values) == 1 {
+			hasSingleValue = true
+			break
+		}
+	}
+	if !hasSingleValue {
 		return nil, nil
 	}
 
@@ -199,18 +207,15 @@ func (a *SuccessFactorsAdapter) resolveFilters(ctx context.Context, c successfac
 
 	resolved := make(map[string]string, len(filters))
 	for key, values := range filters {
+		if len(values) > 1 {
+			continue
+		}
 		options, ok := probe.Facets[key]
 		if !ok || len(options) == 0 {
 			return nil, errUnknownFilterKey(key, valid)
 		}
 		if len(values) == 0 {
 			continue
-		}
-		if len(values) > 1 {
-			return nil, fmt.Errorf(
-				"successfactors: %q accepts one value per search, got %d (%s); issue one search per value instead",
-				key, len(values), strings.Join(values, ", "),
-			)
 		}
 		v, ok := resolveSuccessFactorsFacetValue(options, values[0])
 		if !ok {
