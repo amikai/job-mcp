@@ -14,12 +14,24 @@ type Handler interface {
 	//
 	// GET /api/pcsx/position_details
 	PositionDetails(ctx context.Context, params PositionDetailsParams) (PositionDetailsRes, error)
+	// PositionDetailsV2 implements positionDetailsV2 operation.
+	//
+	// Fetch one posting's full detail (v2 API), including its HTML description.
+	//
+	// GET /api/apply/v2/jobs/{id}
+	PositionDetailsV2(ctx context.Context, params PositionDetailsV2Params) (PositionDetailsV2Res, error)
 	// Search implements search operation.
 	//
 	// List job postings for one tenant, with server-side search and pagination.
 	//
 	// GET /api/pcsx/search
 	Search(ctx context.Context, params SearchParams) (*SearchResponse, error)
+	// SearchV2 implements searchV2 operation.
+	//
+	// List job postings for one tenant (v2 API), with server-side search and pagination.
+	//
+	// GET /api/apply/v2/jobs
+	SearchV2(ctx context.Context, params SearchV2Params) (*V2SearchResponse, error)
 }
 
 // Server implements http server based on OpenAPI v3 specification and

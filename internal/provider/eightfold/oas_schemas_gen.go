@@ -63,6 +63,74 @@ func (o OptInt) Or(d int) int {
 	return d
 }
 
+// NewOptNilString returns new OptNilString with value set to v.
+func NewOptNilString(v string) OptNilString {
+	return OptNilString{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptNilString is optional nullable string.
+type OptNilString struct {
+	Value string
+	Set   bool
+	Null  bool
+}
+
+// IsSet returns true if OptNilString was set.
+func (o OptNilString) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptNilString) Reset() {
+	var v string
+	o.Value = v
+	o.Set = false
+	o.Null = false
+}
+
+// SetTo sets value to v.
+func (o *OptNilString) SetTo(v string) {
+	o.Set = true
+	o.Null = false
+	o.Value = v
+}
+
+// IsNull returns true if value is Null.
+func (o OptNilString) IsNull() bool { return o.Null }
+
+// SetToNull sets value to null.
+func (o *OptNilString) SetToNull() {
+	o.Set = true
+	o.Null = true
+	var v string
+	o.Value = v
+}
+
+// IsEmpty returns true if the field was omitted from the payload (not Set and not Null).
+func (o OptNilString) IsEmpty() bool {
+	return !o.Set && !o.Null
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptNilString) Get() (v string, ok bool) {
+	if o.Null {
+		return v, false
+	}
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptNilString) Or(d string) string {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
 // NewOptString returns new OptString with value set to v.
 func NewOptString(v string) OptString {
 	return OptString{
@@ -109,17 +177,21 @@ func (o OptString) Or(d string) string {
 	return d
 }
 
+// DisplayJobId (the employer's human-facing requisition number, e.g. "JR040530") is deliberately not
+// modeled here even though every tenant sends it — some send it as a JSON number instead of a
+// string, and nothing in the adapter reads it, so declaring it just adds a way to fail decoding a
+// field nobody uses.
 // Ref: #/components/schemas/Position
 type Position struct {
 	// Numeric position ID; the value position_details and the /careers/job/{id} URL take.
-	ID int64 `json:"id"`
-	// The employer's human-facing requisition number (e.g. "JR040530"), not usable as an API identifier.
-	DisplayJobId string   `json:"displayJobId"`
-	Name         string   `json:"name"`
-	Locations    []string `json:"locations"`
-	// Unix seconds.
-	PostedTs   int64     `json:"postedTs"`
-	Department OptString `json:"department"`
+	ID        int64    `json:"id"`
+	Name      string   `json:"name"`
+	Locations []string `json:"locations"`
+	// Unix seconds. Typed as number, not integer, because some tenants send unposted/unknown as the float
+	// `0.0` rather than an int `0`.
+	PostedTs float64 `json:"postedTs"`
+	// Null observed on some tenants' postings that have no department assigned.
+	Department OptNilString `json:"department"`
 	// Observed values: "onsite", "hybrid", "remote".
 	WorkLocationOption OptString `json:"workLocationOption"`
 	// Site-relative posting path, e.g. "/careers/job/549798931483".
@@ -129,11 +201,6 @@ type Position struct {
 // GetID returns the value of ID.
 func (s *Position) GetID() int64 {
 	return s.ID
-}
-
-// GetDisplayJobId returns the value of DisplayJobId.
-func (s *Position) GetDisplayJobId() string {
-	return s.DisplayJobId
 }
 
 // GetName returns the value of Name.
@@ -147,12 +214,12 @@ func (s *Position) GetLocations() []string {
 }
 
 // GetPostedTs returns the value of PostedTs.
-func (s *Position) GetPostedTs() int64 {
+func (s *Position) GetPostedTs() float64 {
 	return s.PostedTs
 }
 
 // GetDepartment returns the value of Department.
-func (s *Position) GetDepartment() OptString {
+func (s *Position) GetDepartment() OptNilString {
 	return s.Department
 }
 
@@ -171,11 +238,6 @@ func (s *Position) SetID(val int64) {
 	s.ID = val
 }
 
-// SetDisplayJobId sets the value of DisplayJobId.
-func (s *Position) SetDisplayJobId(val string) {
-	s.DisplayJobId = val
-}
-
 // SetName sets the value of Name.
 func (s *Position) SetName(val string) {
 	s.Name = val
@@ -187,12 +249,12 @@ func (s *Position) SetLocations(val []string) {
 }
 
 // SetPostedTs sets the value of PostedTs.
-func (s *Position) SetPostedTs(val int64) {
+func (s *Position) SetPostedTs(val float64) {
 	s.PostedTs = val
 }
 
 // SetDepartment sets the value of Department.
-func (s *Position) SetDepartment(val OptString) {
+func (s *Position) SetDepartment(val OptNilString) {
 	s.Department = val
 }
 
@@ -210,14 +272,14 @@ func (s *Position) SetPositionUrl(val string) {
 // Ref: #/components/schemas/PositionDetail
 type PositionDetail struct {
 	// Numeric position ID; the value position_details and the /careers/job/{id} URL take.
-	ID int64 `json:"id"`
-	// The employer's human-facing requisition number (e.g. "JR040530"), not usable as an API identifier.
-	DisplayJobId string   `json:"displayJobId"`
-	Name         string   `json:"name"`
-	Locations    []string `json:"locations"`
-	// Unix seconds.
-	PostedTs   int64     `json:"postedTs"`
-	Department OptString `json:"department"`
+	ID        int64    `json:"id"`
+	Name      string   `json:"name"`
+	Locations []string `json:"locations"`
+	// Unix seconds. Typed as number, not integer, because some tenants send unposted/unknown as the float
+	// `0.0` rather than an int `0`.
+	PostedTs float64 `json:"postedTs"`
+	// Null observed on some tenants' postings that have no department assigned.
+	Department OptNilString `json:"department"`
 	// Observed values: "onsite", "hybrid", "remote".
 	WorkLocationOption OptString `json:"workLocationOption"`
 	// Site-relative posting path, e.g. "/careers/job/549798931483".
@@ -233,11 +295,6 @@ func (s *PositionDetail) GetID() int64 {
 	return s.ID
 }
 
-// GetDisplayJobId returns the value of DisplayJobId.
-func (s *PositionDetail) GetDisplayJobId() string {
-	return s.DisplayJobId
-}
-
 // GetName returns the value of Name.
 func (s *PositionDetail) GetName() string {
 	return s.Name
@@ -249,12 +306,12 @@ func (s *PositionDetail) GetLocations() []string {
 }
 
 // GetPostedTs returns the value of PostedTs.
-func (s *PositionDetail) GetPostedTs() int64 {
+func (s *PositionDetail) GetPostedTs() float64 {
 	return s.PostedTs
 }
 
 // GetDepartment returns the value of Department.
-func (s *PositionDetail) GetDepartment() OptString {
+func (s *PositionDetail) GetDepartment() OptNilString {
 	return s.Department
 }
 
@@ -283,11 +340,6 @@ func (s *PositionDetail) SetID(val int64) {
 	s.ID = val
 }
 
-// SetDisplayJobId sets the value of DisplayJobId.
-func (s *PositionDetail) SetDisplayJobId(val string) {
-	s.DisplayJobId = val
-}
-
 // SetName sets the value of Name.
 func (s *PositionDetail) SetName(val string) {
 	s.Name = val
@@ -299,12 +351,12 @@ func (s *PositionDetail) SetLocations(val []string) {
 }
 
 // SetPostedTs sets the value of PostedTs.
-func (s *PositionDetail) SetPostedTs(val int64) {
+func (s *PositionDetail) SetPostedTs(val float64) {
 	s.PostedTs = val
 }
 
 // SetDepartment sets the value of Department.
-func (s *PositionDetail) SetDepartment(val OptString) {
+func (s *PositionDetail) SetDepartment(val OptNilString) {
 	s.Department = val
 }
 
@@ -531,4 +583,190 @@ func (s *SmartFilterOption) SetLabel(val string) {
 // SetValue sets the value of Value.
 func (s *SmartFilterOption) SetValue(val string) {
 	s.Value = val
+}
+
+// Ref: #/components/schemas/V2ErrorResponse
+type V2ErrorResponse struct {
+	Message string `json:"message"`
+}
+
+// GetMessage returns the value of Message.
+func (s *V2ErrorResponse) GetMessage() string {
+	return s.Message
+}
+
+// SetMessage sets the value of Message.
+func (s *V2ErrorResponse) SetMessage(val string) {
+	s.Message = val
+}
+
+func (*V2ErrorResponse) positionDetailsV2Res() {}
+
+// Deliberately narrower than the raw v2 payload (which also carries posting_name, hot, department,
+// business_unit, t_update, ats_job_id, display_job_id, type, id_locale, stars, medallionProgram,
+// location_flexibility, work_location_option, isPrivate, ...) — only the fields the adapter actually
+// reads are modeled, since v2's field typing is looser per-tenant than pcsx's (e.g. department has
+// been observed both as a string and as null here too).
+// Ref: #/components/schemas/V2Position
+type V2Position struct {
+	ID        int64    `json:"id"`
+	Name      string   `json:"name"`
+	Locations []string `json:"locations"`
+	// Unix seconds; the closest v2 analog to pcsx's postedTs.
+	TCreate int64 `json:"t_create"`
+	// Absolute posting URL, unlike pcsx's site-relative positionUrl.
+	CanonicalPositionUrl string `json:"canonicalPositionUrl"`
+}
+
+// GetID returns the value of ID.
+func (s *V2Position) GetID() int64 {
+	return s.ID
+}
+
+// GetName returns the value of Name.
+func (s *V2Position) GetName() string {
+	return s.Name
+}
+
+// GetLocations returns the value of Locations.
+func (s *V2Position) GetLocations() []string {
+	return s.Locations
+}
+
+// GetTCreate returns the value of TCreate.
+func (s *V2Position) GetTCreate() int64 {
+	return s.TCreate
+}
+
+// GetCanonicalPositionUrl returns the value of CanonicalPositionUrl.
+func (s *V2Position) GetCanonicalPositionUrl() string {
+	return s.CanonicalPositionUrl
+}
+
+// SetID sets the value of ID.
+func (s *V2Position) SetID(val int64) {
+	s.ID = val
+}
+
+// SetName sets the value of Name.
+func (s *V2Position) SetName(val string) {
+	s.Name = val
+}
+
+// SetLocations sets the value of Locations.
+func (s *V2Position) SetLocations(val []string) {
+	s.Locations = val
+}
+
+// SetTCreate sets the value of TCreate.
+func (s *V2Position) SetTCreate(val int64) {
+	s.TCreate = val
+}
+
+// SetCanonicalPositionUrl sets the value of CanonicalPositionUrl.
+func (s *V2Position) SetCanonicalPositionUrl(val string) {
+	s.CanonicalPositionUrl = val
+}
+
+// Merged schema.
+// Ref: #/components/schemas/V2PositionDetail
+type V2PositionDetail struct {
+	ID        int64    `json:"id"`
+	Name      string   `json:"name"`
+	Locations []string `json:"locations"`
+	// Unix seconds; the closest v2 analog to pcsx's postedTs.
+	TCreate int64 `json:"t_create"`
+	// Absolute posting URL, unlike pcsx's site-relative positionUrl.
+	CanonicalPositionUrl string `json:"canonicalPositionUrl"`
+	// Full posting description as HTML.
+	JobDescription string `json:"job_description"`
+}
+
+// GetID returns the value of ID.
+func (s *V2PositionDetail) GetID() int64 {
+	return s.ID
+}
+
+// GetName returns the value of Name.
+func (s *V2PositionDetail) GetName() string {
+	return s.Name
+}
+
+// GetLocations returns the value of Locations.
+func (s *V2PositionDetail) GetLocations() []string {
+	return s.Locations
+}
+
+// GetTCreate returns the value of TCreate.
+func (s *V2PositionDetail) GetTCreate() int64 {
+	return s.TCreate
+}
+
+// GetCanonicalPositionUrl returns the value of CanonicalPositionUrl.
+func (s *V2PositionDetail) GetCanonicalPositionUrl() string {
+	return s.CanonicalPositionUrl
+}
+
+// GetJobDescription returns the value of JobDescription.
+func (s *V2PositionDetail) GetJobDescription() string {
+	return s.JobDescription
+}
+
+// SetID sets the value of ID.
+func (s *V2PositionDetail) SetID(val int64) {
+	s.ID = val
+}
+
+// SetName sets the value of Name.
+func (s *V2PositionDetail) SetName(val string) {
+	s.Name = val
+}
+
+// SetLocations sets the value of Locations.
+func (s *V2PositionDetail) SetLocations(val []string) {
+	s.Locations = val
+}
+
+// SetTCreate sets the value of TCreate.
+func (s *V2PositionDetail) SetTCreate(val int64) {
+	s.TCreate = val
+}
+
+// SetCanonicalPositionUrl sets the value of CanonicalPositionUrl.
+func (s *V2PositionDetail) SetCanonicalPositionUrl(val string) {
+	s.CanonicalPositionUrl = val
+}
+
+// SetJobDescription sets the value of JobDescription.
+func (s *V2PositionDetail) SetJobDescription(val string) {
+	s.JobDescription = val
+}
+
+func (*V2PositionDetail) positionDetailsV2Res() {}
+
+// Ref: #/components/schemas/V2SearchResponse
+type V2SearchResponse struct {
+	Positions []V2Position `json:"positions"`
+	// Total matching positions across all pages, not just this page's length.
+	Count int `json:"count"`
+}
+
+// GetPositions returns the value of Positions.
+func (s *V2SearchResponse) GetPositions() []V2Position {
+	return s.Positions
+}
+
+// GetCount returns the value of Count.
+func (s *V2SearchResponse) GetCount() int {
+	return s.Count
+}
+
+// SetPositions sets the value of Positions.
+func (s *V2SearchResponse) SetPositions(val []V2Position) {
+	s.Positions = val
+}
+
+// SetCount sets the value of Count.
+func (s *V2SearchResponse) SetCount(val int) {
+	s.Count = val
 }

@@ -22,11 +22,29 @@ func (UnimplementedHandler) PositionDetails(ctx context.Context, params Position
 	return r, ht.ErrNotImplemented
 }
 
+// PositionDetailsV2 implements positionDetailsV2 operation.
+//
+// Fetch one posting's full detail (v2 API), including its HTML description.
+//
+// GET /api/apply/v2/jobs/{id}
+func (UnimplementedHandler) PositionDetailsV2(ctx context.Context, params PositionDetailsV2Params) (r PositionDetailsV2Res, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // Search implements search operation.
 //
 // List job postings for one tenant, with server-side search and pagination.
 //
 // GET /api/pcsx/search
 func (UnimplementedHandler) Search(ctx context.Context, params SearchParams) (r *SearchResponse, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
+// SearchV2 implements searchV2 operation.
+//
+// List job postings for one tenant (v2 API), with server-side search and pagination.
+//
+// GET /api/apply/v2/jobs
+func (UnimplementedHandler) SearchV2(ctx context.Context, params SearchV2Params) (r *V2SearchResponse, _ error) {
 	return r, ht.ErrNotImplemented
 }

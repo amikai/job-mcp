@@ -6,6 +6,8 @@ package eightfold
 type OperationName = string
 
 const (
-	PositionDetailsOperation OperationName = "PositionDetails"
-	SearchOperation          OperationName = "Search"
+	PositionDetailsOperation   OperationName = "PositionDetails"
+	PositionDetailsV2Operation OperationName = "PositionDetailsV2"
+	SearchOperation            OperationName = "Search"
+	SearchV2Operation          OperationName = "SearchV2"
 )

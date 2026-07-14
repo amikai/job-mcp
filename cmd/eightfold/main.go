@@ -207,7 +207,7 @@ func summarize(p eightfold.Position, tenantURL string) positionSummaryJSON {
 		ID:         strconv.FormatInt(p.ID, 10),
 		Title:      p.Name,
 		Department: p.Department.Value,
-		PostedAt:   time.Unix(p.PostedTs, 0).UTC().Format("2006-01-02"),
+		PostedAt:   time.Unix(int64(p.PostedTs), 0).UTC().Format("2006-01-02"),
 		URL:        tenantURL + p.PositionUrl,
 	}
 	if len(p.Locations) > 0 {
@@ -425,7 +425,7 @@ func printDetail(d eightfold.PositionDetail, format string) error {
 	if d.Department.Value != "" {
 		fmt.Printf("Department: %s\n", d.Department.Value)
 	}
-	fmt.Printf("Posted: %s\n", time.Unix(d.PostedTs, 0).UTC().Format("2006-01-02"))
+	fmt.Printf("Posted: %s\n", time.Unix(int64(d.PostedTs), 0).UTC().Format("2006-01-02"))
 	if d.PublicUrl != "" {
 		fmt.Printf("URL: %s\n", d.PublicUrl)
 	}

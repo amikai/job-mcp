@@ -23,7 +23,6 @@ func TestSearch(t *testing.T) {
 
 	first := res.Data.Positions[0]
 	assert.Equal(t, int64(MockPositionID), first.ID)
-	assert.Equal(t, "PT-JR040351", first.DisplayJobId)
 	assert.Equal(t, "Vice President - Prin Software Eng", first.Name)
 	assert.Equal(t, []string{"Bengaluru, Karnataka, India"}, first.Locations)
 	assert.Equal(t, "Software Engineering", first.Department.Value)

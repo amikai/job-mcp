@@ -40,6 +40,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		s.notFound(w, r)
 		return
 	}
+	args := [1]string{}
 
 	// Static code generated router with unwrapped path search.
 	switch {
@@ -48,9 +49,9 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 		switch elem[0] {
-		case '/': // Prefix: "/api/pcsx/"
+		case '/': // Prefix: "/api/"
 
-			if l := len("/api/pcsx/"); len(elem) >= l && elem[0:l] == "/api/pcsx/" {
+			if l := len("/api/"); len(elem) >= l && elem[0:l] == "/api/" {
 				elem = elem[l:]
 			} else {
 				break
@@ -60,19 +61,18 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				break
 			}
 			switch elem[0] {
-			case 'p': // Prefix: "position_details"
+			case 'a': // Prefix: "apply/v2/jobs"
 
-				if l := len("position_details"); len(elem) >= l && elem[0:l] == "position_details" {
+				if l := len("apply/v2/jobs"); len(elem) >= l && elem[0:l] == "apply/v2/jobs" {
 					elem = elem[l:]
 				} else {
 					break
 				}
 
 				if len(elem) == 0 {
-					// Leaf node.
 					switch r.Method {
 					case "GET":
-						s.handlePositionDetailsRequest([0]string{}, elemIsEscaped, w, r)
+						s.handleSearchV2Request([0]string{}, elemIsEscaped, w, r)
 					default:
 						s.notAllowed(w, r, notAllowedParams{
 							allowedMethods: "GET",
@@ -84,30 +84,107 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 					return
 				}
+				switch elem[0] {
+				case '/': // Prefix: "/"
 
-			case 's': // Prefix: "search"
+					if l := len("/"); len(elem) >= l && elem[0:l] == "/" {
+						elem = elem[l:]
+					} else {
+						break
+					}
 
-				if l := len("search"); len(elem) >= l && elem[0:l] == "search" {
+					// Param: "id"
+					// Leaf parameter, slashes are prohibited
+					idx := strings.IndexByte(elem, '/')
+					if idx >= 0 {
+						break
+					}
+					args[0] = elem
+					elem = ""
+
+					if len(elem) == 0 {
+						// Leaf node.
+						switch r.Method {
+						case "GET":
+							s.handlePositionDetailsV2Request([1]string{
+								args[0],
+							}, elemIsEscaped, w, r)
+						default:
+							s.notAllowed(w, r, notAllowedParams{
+								allowedMethods: "GET",
+								allowedHeaders: nil,
+								acceptPost:     "",
+								acceptPatch:    "",
+							})
+						}
+
+						return
+					}
+
+				}
+
+			case 'p': // Prefix: "pcsx/"
+
+				if l := len("pcsx/"); len(elem) >= l && elem[0:l] == "pcsx/" {
 					elem = elem[l:]
 				} else {
 					break
 				}
 
 				if len(elem) == 0 {
-					// Leaf node.
-					switch r.Method {
-					case "GET":
-						s.handleSearchRequest([0]string{}, elemIsEscaped, w, r)
-					default:
-						s.notAllowed(w, r, notAllowedParams{
-							allowedMethods: "GET",
-							allowedHeaders: nil,
-							acceptPost:     "",
-							acceptPatch:    "",
-						})
+					break
+				}
+				switch elem[0] {
+				case 'p': // Prefix: "position_details"
+
+					if l := len("position_details"); len(elem) >= l && elem[0:l] == "position_details" {
+						elem = elem[l:]
+					} else {
+						break
 					}
 
-					return
+					if len(elem) == 0 {
+						// Leaf node.
+						switch r.Method {
+						case "GET":
+							s.handlePositionDetailsRequest([0]string{}, elemIsEscaped, w, r)
+						default:
+							s.notAllowed(w, r, notAllowedParams{
+								allowedMethods: "GET",
+								allowedHeaders: nil,
+								acceptPost:     "",
+								acceptPatch:    "",
+							})
+						}
+
+						return
+					}
+
+				case 's': // Prefix: "search"
+
+					if l := len("search"); len(elem) >= l && elem[0:l] == "search" {
+						elem = elem[l:]
+					} else {
+						break
+					}
+
+					if len(elem) == 0 {
+						// Leaf node.
+						switch r.Method {
+						case "GET":
+							s.handleSearchRequest([0]string{}, elemIsEscaped, w, r)
+						default:
+							s.notAllowed(w, r, notAllowedParams{
+								allowedMethods: "GET",
+								allowedHeaders: nil,
+								acceptPost:     "",
+								acceptPatch:    "",
+							})
+						}
+
+						return
+					}
+
 				}
 
 			}
@@ -125,7 +202,7 @@ type Route struct {
 	operationGroup string
 	pathPattern    string
 	count          int
-	args           [0]string
+	args           [1]string
 }
 
 // Name returns ogen operation name.
@@ -198,9 +275,9 @@ func (s *Server) FindPath(method string, u *url.URL) (r Route, _ bool) {
 			break
 		}
 		switch elem[0] {
-		case '/': // Prefix: "/api/pcsx/"
+		case '/': // Prefix: "/api/"
 
-			if l := len("/api/pcsx/"); len(elem) >= l && elem[0:l] == "/api/pcsx/" {
+			if l := len("/api/"); len(elem) >= l && elem[0:l] == "/api/" {
 				elem = elem[l:]
 			} else {
 				break
@@ -210,23 +287,22 @@ func (s *Server) FindPath(method string, u *url.URL) (r Route, _ bool) {
 				break
 			}
 			switch elem[0] {
-			case 'p': // Prefix: "position_details"
+			case 'a': // Prefix: "apply/v2/jobs"
 
-				if l := len("position_details"); len(elem) >= l && elem[0:l] == "position_details" {
+				if l := len("apply/v2/jobs"); len(elem) >= l && elem[0:l] == "apply/v2/jobs" {
 					elem = elem[l:]
 				} else {
 					break
 				}
 
 				if len(elem) == 0 {
-					// Leaf node.
 					switch method {
 					case "GET":
-						r.name = PositionDetailsOperation
-						r.summary = "Fetch one posting's full detail, including its HTML description."
-						r.operationID = "positionDetails"
+						r.name = SearchV2Operation
+						r.summary = "List job postings for one tenant (v2 API), with server-side search and pagination."
+						r.operationID = "searchV2"
 						r.operationGroup = ""
-						r.pathPattern = "/api/pcsx/position_details"
+						r.pathPattern = "/api/apply/v2/jobs"
 						r.args = args
 						r.count = 0
 						return r, true
@@ -234,30 +310,105 @@ func (s *Server) FindPath(method string, u *url.URL) (r Route, _ bool) {
 						return
 					}
 				}
+				switch elem[0] {
+				case '/': // Prefix: "/"
 
-			case 's': // Prefix: "search"
+					if l := len("/"); len(elem) >= l && elem[0:l] == "/" {
+						elem = elem[l:]
+					} else {
+						break
+					}
 
-				if l := len("search"); len(elem) >= l && elem[0:l] == "search" {
+					// Param: "id"
+					// Leaf parameter, slashes are prohibited
+					idx := strings.IndexByte(elem, '/')
+					if idx >= 0 {
+						break
+					}
+					args[0] = elem
+					elem = ""
+
+					if len(elem) == 0 {
+						// Leaf node.
+						switch method {
+						case "GET":
+							r.name = PositionDetailsV2Operation
+							r.summary = "Fetch one posting's full detail (v2 API), including its HTML description."
+							r.operationID = "positionDetailsV2"
+							r.operationGroup = ""
+							r.pathPattern = "/api/apply/v2/jobs/{id}"
+							r.args = args
+							r.count = 1
+							return r, true
+						default:
+							return
+						}
+					}
+
+				}
+
+			case 'p': // Prefix: "pcsx/"
+
+				if l := len("pcsx/"); len(elem) >= l && elem[0:l] == "pcsx/" {
 					elem = elem[l:]
 				} else {
 					break
 				}
 
 				if len(elem) == 0 {
-					// Leaf node.
-					switch method {
-					case "GET":
-						r.name = SearchOperation
-						r.summary = "List job postings for one tenant, with server-side search and pagination."
-						r.operationID = "search"
-						r.operationGroup = ""
-						r.pathPattern = "/api/pcsx/search"
-						r.args = args
-						r.count = 0
-						return r, true
-					default:
-						return
+					break
+				}
+				switch elem[0] {
+				case 'p': // Prefix: "position_details"
+
+					if l := len("position_details"); len(elem) >= l && elem[0:l] == "position_details" {
+						elem = elem[l:]
+					} else {
+						break
 					}
+
+					if len(elem) == 0 {
+						// Leaf node.
+						switch method {
+						case "GET":
+							r.name = PositionDetailsOperation
+							r.summary = "Fetch one posting's full detail, including its HTML description."
+							r.operationID = "positionDetails"
+							r.operationGroup = ""
+							r.pathPattern = "/api/pcsx/position_details"
+							r.args = args
+							r.count = 0
+							return r, true
+						default:
+							return
+						}
+					}
+
+				case 's': // Prefix: "search"
+
+					if l := len("search"); len(elem) >= l && elem[0:l] == "search" {
+						elem = elem[l:]
+					} else {
+						break
+					}
+
+					if len(elem) == 0 {
+						// Leaf node.
+						switch method {
+						case "GET":
+							r.name = SearchOperation
+							r.summary = "List job postings for one tenant, with server-side search and pagination."
+							r.operationID = "search"
+							r.operationGroup = ""
+							r.pathPattern = "/api/pcsx/search"
+							r.args = args
+							r.count = 0
+							return r, true
+						default:
+							return
+						}
+					}
+
 				}
 
 			}
