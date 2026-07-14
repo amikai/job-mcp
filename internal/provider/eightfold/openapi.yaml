@@ -36,6 +36,16 @@ info:
     parameter, so `filter_*` application is handled by hand in the Go
     adapter (`internal/ats`) rather than through the generated client.
 
+    ## v2: the other public search API
+
+    A meaningful share of tenants (observed: Vale, Bayer, HSBC, and others)
+    return `{"message": "PCSX is not enabled for this user."}` (HTTP 403)
+    from every `/api/pcsx/*` call — that tenant's postings are served
+    exclusively through a separate, newer, also-unauthenticated API instead:
+    `/api/apply/v2/jobs`. Modeled here (tag `v2`) from live traffic captured
+    on vale.eightfold.ai on 2026-07-14. The adapter tries PCSX first and
+    falls back to v2 only on that specific 403.
+
 servers:
   - url: https://example.eightfold.ai
     description: Per-tenant career site template; the actual host is <tenant>.eightfold.ai.
@@ -43,6 +53,10 @@ servers:
 tags:
   - name: pcsx
     description: Public career-site search API
+  - name: v2
+    description: >
+      Newer public career-site API some tenants use instead of pcsx (same
+      unauthenticated, per-tenant-subdomain, `domain`-scoped model).
 
 paths:
   /api/pcsx/search:
@@ -121,19 +135,88 @@ paths:
               schema:
                 $ref: "#/components/schemas/PositionNotFoundResponse"
 
+  /api/apply/v2/jobs:
+    get:
+      operationId: searchV2
+      tags: [v2]
+      summary: List job postings for one tenant (v2 API), with server-side search and pagination.
+      parameters:
+        - name: domain
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: query
+          in: query
+          description: Free-text keyword search across title and description.
+          schema:
+            type: string
+        - name: location
+          in: query
+          description: Free-text fuzzy location match.
+          schema:
+            type: string
+        - name: start
+          in: query
+          description: Zero-based result offset. The server returns a fixed page of 10.
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/V2SearchResponse"
+
+  /api/apply/v2/jobs/{id}:
+    get:
+      operationId: positionDetailsV2
+      tags: [v2]
+      summary: Fetch one posting's full detail (v2 API), including its HTML description.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: domain
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/V2PositionDetail"
+        "404":
+          description: 'Unknown id. Observed body: {"message": "Job with ID <id> not found"}.'
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/V2ErrorResponse"
+
 components:
   schemas:
     Position:
       type: object
-      required: [id, displayJobId, name, locations, postedTs, positionUrl]
+      required: [id, name, locations, postedTs, positionUrl]
+      description: >
+        displayJobId (the employer's human-facing requisition number, e.g.
+        "JR040530") is deliberately not modeled here even though every
+        tenant sends it — some send it as a JSON number instead of a
+        string, and nothing in the adapter reads it, so declaring it just
+        adds a way to fail decoding a field nobody uses.
       properties:
         id:
           type: integer
           format: int64
           description: Numeric position ID; the value position_details and the /careers/job/{id} URL take.
-        displayJobId:
-          type: string
-          description: The employer's human-facing requisition number (e.g. "JR040530"), not usable as an API identifier.
         name:
           type: string
         locations:
@@ -141,11 +224,14 @@ components:
           items:
             type: string
         postedTs:
-          type: integer
-          format: int64
-          description: Unix seconds.
+          type: number
+          description: >
+            Unix seconds. Typed as number, not integer, because some
+            tenants send unposted/unknown as the float `0.0` rather than
+            an int `0`.
         department:
-          type: string
+          type: [string, "null"]
+          description: Null observed on some tenants' postings that have no department assigned.
         workLocationOption:
           type: string
           description: 'Observed values: "onsite", "hybrid", "remote".'
@@ -252,3 +338,61 @@ components:
           type: integer
         error:
           $ref: "#/components/schemas/PositionErrorInfo"
+
+    V2Position:
+      type: object
+      required: [id, name, locations, t_create, canonicalPositionUrl]
+      description: >
+        Deliberately narrower than the raw v2 payload (which also carries
+        posting_name, hot, department, business_unit, t_update, ats_job_id,
+        display_job_id, type, id_locale, stars, medallionProgram,
+        location_flexibility, work_location_option, isPrivate, ...) — only
+        the fields the adapter actually reads are modeled, since v2's field
+        typing is looser per-tenant than pcsx's (e.g. department has been
+        observed both as a string and as null here too).
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        locations:
+          type: array
+          items:
+            type: string
+        t_create:
+          type: integer
+          format: int64
+          description: Unix seconds; the closest v2 analog to pcsx's postedTs.
+        canonicalPositionUrl:
+          type: string
+          description: Absolute posting URL, unlike pcsx's site-relative positionUrl.
+
+    V2SearchResponse:
+      type: object
+      required: [positions, count]
+      properties:
+        positions:
+          type: array
+          items:
+            $ref: "#/components/schemas/V2Position"
+        count:
+          type: integer
+          description: Total matching positions across all pages, not just this page's length.
+
+    V2PositionDetail:
+      allOf:
+        - $ref: "#/components/schemas/V2Position"
+        - type: object
+          required: [job_description]
+          properties:
+            job_description:
+              type: string
+              description: Full posting description as HTML.
+
+    V2ErrorResponse:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string

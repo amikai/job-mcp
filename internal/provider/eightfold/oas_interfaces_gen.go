@@ -4,3 +4,7 @@ package eightfold
 type PositionDetailsRes interface {
 	positionDetailsRes()
 }
+
+type PositionDetailsV2Res interface {
+	positionDetailsV2Res()
+}

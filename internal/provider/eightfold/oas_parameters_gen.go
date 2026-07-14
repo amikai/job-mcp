@@ -4,11 +4,14 @@ package eightfold
 
 import (
 	"net/http"
+	"net/url"
 
+	"github.com/go-faster/errors"
 	"github.com/ogen-go/ogen/conv"
 	"github.com/ogen-go/ogen/middleware"
 	"github.com/ogen-go/ogen/ogenerrors"
 	"github.com/ogen-go/ogen/uri"
+	"github.com/ogen-go/ogen/validate"
 )
 
 // PositionDetailsParams is parameters of positionDetails operation.
@@ -169,6 +172,116 @@ func decodePositionDetailsParams(args [0]string, argsEscaped bool, r *http.Reque
 	return params, nil
 }
 
+// PositionDetailsV2Params is parameters of positionDetailsV2 operation.
+type PositionDetailsV2Params struct {
+	ID     int64
+	Domain string
+}
+
+func unpackPositionDetailsV2Params(packed middleware.Parameters) (params PositionDetailsV2Params) {
+	{
+		key := middleware.ParameterKey{
+			Name: "id",
+			In:   "path",
+		}
+		params.ID = packed[key].(int64)
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "domain",
+			In:   "query",
+		}
+		params.Domain = packed[key].(string)
+	}
+	return params
+}
+
+func decodePositionDetailsV2Params(args [1]string, argsEscaped bool, r *http.Request) (params PositionDetailsV2Params, _ error) {
+	q := uri.NewQueryDecoder(r.URL.Query())
+	// Decode path: id.
+	if err := func() error {
+		param := args[0]
+		if argsEscaped {
+			unescaped, err := url.PathUnescape(args[0])
+			if err != nil {
+				return errors.Wrap(err, "unescape path")
+			}
+			param = unescaped
+		}
+		if len(param) > 0 {
+			d := uri.NewPathDecoder(uri.PathDecoderConfig{
+				Param:   "id",
+				Value:   param,
+				Style:   uri.PathStyleSimple,
+				Explode: false,
+			})
+
+			if err := func() error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToInt64(val)
+				if err != nil {
+					return err
+				}
+
+				params.ID = c
+				return nil
+			}(); err != nil {
+				return err
+			}
+		} else {
+			return validate.ErrFieldRequired
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "id",
+			In:   "path",
+			Err:  err,
+		}
+	}
+	// Decode query: domain.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "domain",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToString(val)
+				if err != nil {
+					return err
+				}
+
+				params.Domain = c
+				return nil
+			}); err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "domain",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
 // SearchParams is parameters of search operation.
 type SearchParams struct {
 	// The tenant's registered company domain, e.g. `morganstanley.com`.
@@ -220,6 +333,224 @@ func unpackSearchParams(packed middleware.Parameters) (params SearchParams) {
 }
 
 func decodeSearchParams(args [0]string, argsEscaped bool, r *http.Request) (params SearchParams, _ error) {
+	q := uri.NewQueryDecoder(r.URL.Query())
+	// Decode query: domain.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "domain",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				val, err := d.DecodeValue()
+				if err != nil {
+					return err
+				}
+
+				c, err := conv.ToString(val)
+				if err != nil {
+					return err
+				}
+
+				params.Domain = c
+				return nil
+			}); err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "domain",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	// Decode query: query.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "query",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotQueryVal string
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToString(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotQueryVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.Query.SetTo(paramsDotQueryVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "query",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	// Decode query: location.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "location",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotLocationVal string
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToString(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotLocationVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.Location.SetTo(paramsDotLocationVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "location",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	// Set default value for query: start.
+	{
+		val := int(0)
+		params.Start.SetTo(val)
+	}
+	// Decode query: start.
+	if err := func() error {
+		cfg := uri.QueryParameterDecodingConfig{
+			Name:    "start",
+			Style:   uri.QueryStyleForm,
+			Explode: true,
+		}
+
+		if err := q.HasParam(cfg); err == nil {
+			if err := q.DecodeParam(cfg, func(d uri.Decoder) error {
+				var paramsDotStartVal int
+				if err := func() error {
+					val, err := d.DecodeValue()
+					if err != nil {
+						return err
+					}
+
+					c, err := conv.ToInt(val)
+					if err != nil {
+						return err
+					}
+
+					paramsDotStartVal = c
+					return nil
+				}(); err != nil {
+					return err
+				}
+				params.Start.SetTo(paramsDotStartVal)
+				return nil
+			}); err != nil {
+				return err
+			}
+		}
+		return nil
+	}(); err != nil {
+		return params, &ogenerrors.DecodeParamError{
+			Name: "start",
+			In:   "query",
+			Err:  err,
+		}
+	}
+	return params, nil
+}
+
+// SearchV2Params is parameters of searchV2 operation.
+type SearchV2Params struct {
+	Domain string
+	// Free-text keyword search across title and description.
+	Query OptString `json:",omitempty,omitzero"`
+	// Free-text fuzzy location match.
+	Location OptString `json:",omitempty,omitzero"`
+	// Zero-based result offset. The server returns a fixed page of 10.
+	Start OptInt `json:",omitempty,omitzero"`
+}
+
+func unpackSearchV2Params(packed middleware.Parameters) (params SearchV2Params) {
+	{
+		key := middleware.ParameterKey{
+			Name: "domain",
+			In:   "query",
+		}
+		params.Domain = packed[key].(string)
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "query",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.Query = v.(OptString)
+		}
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "location",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.Location = v.(OptString)
+		}
+	}
+	{
+		key := middleware.ParameterKey{
+			Name: "start",
+			In:   "query",
+		}
+		if v, ok := packed[key]; ok {
+			params.Start = v.(OptInt)
+		}
+	}
+	return params
+}
+
+func decodeSearchV2Params(args [0]string, argsEscaped bool, r *http.Request) (params SearchV2Params, _ error) {
 	q := uri.NewQueryDecoder(r.URL.Query())
 	// Decode query: domain.
 	if err := func() error {

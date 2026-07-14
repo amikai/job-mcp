@@ -2,6 +2,7 @@ package ats
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -10,6 +11,7 @@ import (
 	"time"
 
 	"github.com/jaytaylor/html2text"
+	"github.com/ogen-go/ogen/validate"
 
 	"github.com/amikai/openings-mcp/internal/provider/eightfold"
 )
@@ -30,6 +32,14 @@ const upstreamPageSize = 10
 // filters is unknowable ahead of time — so a filtered Search first probes
 // an unfiltered search to resolve requested labels to values (mirrors
 // Workday's GUID-facet probe, minus the GUIDs).
+//
+// Some tenants have the pcsx API this all otherwise runs on disabled
+// (403 "PCSX is not enabled for this user.") and serve postings exclusively
+// through the newer, unfiltered-only v2 API instead; Search and Detail fall
+// back to it on that specific error (see openapi.yaml's v2 tag). Filters
+// and filtered Search still require pcsx and simply fail for v2-only
+// tenants — narrower than not supporting them at all, since plain search
+// still works.
 //
 // Roster membership is required, unlike Workday/Greenhouse/Lever: every
 // PCSX request needs the tenant's registered `domain` value alongside its
@@ -99,26 +109,48 @@ func (a *EightfoldAdapter) Search(ctx context.Context, slug string, p SearchPara
 		}
 	}
 
-	first, err := a.fetchSearch(ctx, c, params, filterValues)
+	jobs, total, err := a.searchPage(ctx, c, params, filterValues)
 	if err != nil {
 		return nil, err
 	}
-	base := a.baseURL(c.Tenant)
-	jobs := eightfoldJobSummaries(first.Data.Positions, base)
-	total := first.Data.Count
 
 	// Fill the unified 20-job page with a second upstream page, only when
 	// the first page was full and more results actually remain.
-	if len(first.Data.Positions) == upstreamPageSize && total > start+upstreamPageSize {
+	if len(jobs) == upstreamPageSize && total > start+upstreamPageSize {
 		params.Start = eightfold.NewOptInt(start + upstreamPageSize)
-		second, err := a.fetchSearch(ctx, c, params, filterValues)
+		more, _, err := a.searchPage(ctx, c, params, filterValues)
 		if err != nil {
 			return nil, err
 		}
-		jobs = append(jobs, eightfoldJobSummaries(second.Data.Positions, base)...)
+		jobs = append(jobs, more...)
 	}
 
 	return &SearchResult{Jobs: jobs, TotalCount: total, Page: page, TotalPages: totalPages(total)}, nil
+}
+
+// searchPage runs one upstream page through pcsx, falling back to the v2
+// API on pcsx's "not enabled for this user" 403 — but only for unfiltered
+// requests, since v2 has no facet-filter equivalent here.
+func (a *EightfoldAdapter) searchPage(ctx context.Context, c eightfold.RosterCompany, params eightfold.SearchParams, filterValues map[string][]string) ([]JobSummary, int, error) {
+	res, err := a.fetchSearch(ctx, c, params, filterValues)
+	if err == nil {
+		return eightfoldJobSummaries(res.Data.Positions, a.baseURL(c.Tenant)), res.Data.Count, nil
+	}
+	if len(filterValues) > 0 || !isPCSXDisabled(err) {
+		return nil, 0, err
+	}
+	v2, err := a.fetchSearchV2(ctx, c, params)
+	if err != nil {
+		return nil, 0, err
+	}
+	return v2JobSummaries(v2.Positions), v2.Count, nil
+}
+
+// isPCSXDisabled reports whether err is the 403 pcsx returns for tenants
+// that only serve postings through the v2 API.
+func isPCSXDisabled(err error) bool {
+	var sc *validate.UnexpectedStatusCodeError
+	return errors.As(err, &sc) && sc.StatusCode == http.StatusForbidden
 }
 
 func (a *EightfoldAdapter) Filters(ctx context.Context, slug string) (FilterSet, error) {
@@ -162,6 +194,9 @@ func (a *EightfoldAdapter) Detail(ctx context.Context, slug, jobID string) (*Job
 	}
 	res, err := client.PositionDetails(ctx, eightfold.PositionDetailsParams{PositionID: id, Domain: c.Domain})
 	if err != nil {
+		if isPCSXDisabled(err) {
+			return a.detailV2(ctx, client, c, slug, jobID, id)
+		}
 		return nil, fmt.Errorf("eightfold: fetch job %q for %q: %w", jobID, slug, err)
 	}
 
@@ -176,11 +211,40 @@ func (a *EightfoldAdapter) Detail(ctx context.Context, slug, jobID string) (*Job
 			Title:       d.Data.Name,
 			Company:     c.Name,
 			Location:    strings.Join(d.Data.Locations, "; "),
-			PostedAt:    isoDate(time.Unix(d.Data.PostedTs, 0)),
+			PostedAt:    isoDate(time.Unix(int64(d.Data.PostedTs), 0)),
 			URL:         d.Data.PublicUrl,
 			Description: desc,
 		}, nil
 	case *eightfold.PositionNotFoundResponse:
+		return nil, fmt.Errorf("eightfold: job %q not found for company %q; pass a job_id exactly as returned by the job search", jobID, slug)
+	default:
+		return nil, fmt.Errorf("eightfold: unexpected response type %T", res)
+	}
+}
+
+// detailV2 fetches a job's detail through the v2 API, for tenants where
+// pcsx's position_details 403'd the same way pcsx's search did.
+func (a *EightfoldAdapter) detailV2(ctx context.Context, client *eightfold.Client, c eightfold.RosterCompany, slug, jobID string, id int64) (*JobDetail, error) {
+	res, err := client.PositionDetailsV2(ctx, eightfold.PositionDetailsV2Params{ID: id, Domain: c.Domain})
+	if err != nil {
+		return nil, fmt.Errorf("eightfold: fetch job %q for %q (v2): %w", jobID, slug, err)
+	}
+	switch d := res.(type) {
+	case *eightfold.V2PositionDetail:
+		desc, err := html2text.FromString(d.JobDescription, html2text.Options{})
+		if err != nil {
+			return nil, fmt.Errorf("eightfold: convert job description: %w", err)
+		}
+		return &JobDetail{
+			JobID:       jobID,
+			Title:       d.Name,
+			Company:     c.Name,
+			Location:    strings.Join(d.Locations, "; "),
+			PostedAt:    isoDate(time.Unix(d.TCreate, 0)),
+			URL:         d.CanonicalPositionUrl,
+			Description: desc,
+		}, nil
+	case *eightfold.V2ErrorResponse:
 		return nil, fmt.Errorf("eightfold: job %q not found for company %q; pass a job_id exactly as returned by the job search", jobID, slug)
 	default:
 		return nil, fmt.Errorf("eightfold: unexpected response type %T", res)
@@ -215,6 +279,25 @@ func (a *EightfoldAdapter) fetchSearch(ctx context.Context, c eightfold.RosterCo
 	res, err := client.Search(ctx, params)
 	if err != nil {
 		return nil, fmt.Errorf("eightfold: search %q: %w", c.Tenant, err)
+	}
+	return res, nil
+}
+
+// fetchSearchV2 runs one upstream page through the v2 API, for tenants
+// where pcsx's search 403'd with "not enabled for this user".
+func (a *EightfoldAdapter) fetchSearchV2(ctx context.Context, c eightfold.RosterCompany, params eightfold.SearchParams) (*eightfold.V2SearchResponse, error) {
+	client, err := eightfold.NewClient(a.baseURL(c.Tenant), eightfold.WithClient(a.hc))
+	if err != nil {
+		return nil, err
+	}
+	res, err := client.SearchV2(ctx, eightfold.SearchV2Params{
+		Domain:   c.Domain,
+		Query:    params.Query,
+		Location: params.Location,
+		Start:    params.Start,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("eightfold: search %q (v2): %w", c.Tenant, err)
 	}
 	return res, nil
 }
@@ -279,8 +362,25 @@ func eightfoldJobSummaries(positions []eightfold.Position, base string) []JobSum
 			JobID:    strconv.FormatInt(p.ID, 10),
 			Title:    p.Name,
 			Location: strings.Join(p.Locations, "; "),
-			PostedAt: isoDate(time.Unix(p.PostedTs, 0)),
+			PostedAt: isoDate(time.Unix(int64(p.PostedTs), 0)),
 			URL:      base + p.PositionUrl,
+		})
+	}
+	return jobs
+}
+
+// v2JobSummaries mirrors eightfoldJobSummaries for the v2 API; unlike
+// pcsx's site-relative positionUrl, v2's canonicalPositionUrl is already
+// absolute.
+func v2JobSummaries(positions []eightfold.V2Position) []JobSummary {
+	jobs := make([]JobSummary, 0, len(positions))
+	for _, p := range positions {
+		jobs = append(jobs, JobSummary{
+			JobID:    strconv.FormatInt(p.ID, 10),
+			Title:    p.Name,
+			Location: strings.Join(p.Locations, "; "),
+			PostedAt: isoDate(time.Unix(p.TCreate, 0)),
+			URL:      p.CanonicalPositionUrl,
 		})
 	}
 	return jobs
