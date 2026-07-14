@@ -1,0 +1,157 @@
+package ats
+
+import (
+	"net/http"
+	"testing"
+	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"github.com/amikai/openings-mcp/internal/provider/successfactors"
+)
+
+// testSuccessFactorsAdapter points the adapter at the mock server, which was
+// captured from jobs.sap.com. Company in JobDetail comes from the roster
+// lookup, so tests can address it through any roster slug; only "SAP" gets
+// exact fixture-content assertions (title, location, description).
+func testSuccessFactorsAdapter(t *testing.T) *SuccessFactorsAdapter {
+	t.Helper()
+	mock := successfactors.NewMockServer()
+	t.Cleanup(mock.Close)
+	a := NewSuccessFactorsAdapter(&http.Client{Timeout: 5 * time.Second})
+	a.baseURL = func(string) string { return mock.URL }
+	return a
+}
+
+func TestSuccessFactorsRosterBuildsRegistry(t *testing.T) {
+	_, err := NewRegistry(NewSuccessFactorsAdapter(http.DefaultClient))
+	require.NoError(t, err)
+}
+
+func TestSuccessFactorsRosterReturnsCompanyNames(t *testing.T) {
+	a := NewSuccessFactorsAdapter(http.DefaultClient)
+	roster := a.Roster()
+	require.NotEmpty(t, roster)
+	found := false
+	for _, c := range roster {
+		if c.Slug == "jobs.sap.com" {
+			found = true
+			assert.Equal(t, "SAP", c.Name)
+		}
+	}
+	assert.True(t, found, "expected jobs.sap.com in roster")
+}
+
+func TestSuccessFactorsSearch(t *testing.T) {
+	a := testSuccessFactorsAdapter(t)
+	res, err := a.Search(t.Context(), "jobs.sap.com", SearchParams{Query: "engineer"})
+	require.NoError(t, err)
+	assert.Equal(t, 633, res.TotalCount)
+	assert.Equal(t, 1, res.Page)
+	// The upstream table always returns 25 rows; the adapter trims to the
+	// unified page size.
+	assert.Len(t, res.Jobs, pageSize)
+
+	first := res.Jobs[0]
+	assert.Equal(t, "1414343333", first.JobID)
+	assert.Equal(t, "Developer Associate", first.Title)
+	assert.Equal(t, "Bangalore, IN, 560066", first.Location)
+	assert.Equal(t, "https://jobs.sap.com/job/1414343333/1414343333/", first.URL)
+}
+
+func TestSuccessFactorsSearchNoResults(t *testing.T) {
+	a := testSuccessFactorsAdapter(t)
+	res, err := a.Search(t.Context(), "jobs.sap.com", SearchParams{Query: "zzzznonexistentkeyword12345"})
+	require.NoError(t, err)
+	assert.Empty(t, res.Jobs)
+	assert.Equal(t, 0, res.TotalCount)
+}
+
+func TestSuccessFactorsFilters(t *testing.T) {
+	a := testSuccessFactorsAdapter(t)
+	fs, err := a.Filters(t.Context(), "jobs.sap.com")
+	require.NoError(t, err)
+	require.NotEmptyf(t, fs["country"], "FilterSet missing expected dimension: %v", fs)
+	assert.Contains(t, fs["country"], "Germany")
+	assert.Contains(t, fs["department"], "Software-Design and Development")
+}
+
+// TestSuccessFactorsSearchWithFilterResolvesLabelToValue proves a display
+// label ("Germany") is resolved to the upstream's raw value ("DE") via a
+// probe facetValues call before the real filtered request.
+func TestSuccessFactorsSearchWithFilterResolvesLabelToValue(t *testing.T) {
+	a := testSuccessFactorsAdapter(t)
+	res, err := a.Search(t.Context(), "jobs.sap.com", SearchParams{
+		Query:   "engineer",
+		Filters: FilterSet{"country": {"Germany"}, "department": {"Software-Design and Development"}},
+	})
+	require.NoError(t, err)
+	assert.NotEmpty(t, res.Jobs)
+}
+
+func TestSuccessFactorsFilterKeyNotFoundTeaches(t *testing.T) {
+	a := testSuccessFactorsAdapter(t)
+	_, err := a.Search(t.Context(), "jobs.sap.com", SearchParams{
+		Filters: FilterSet{"bogus": {"x"}},
+	})
+	require.ErrorContains(t, err, "country", "error should list valid keys")
+}
+
+func TestSuccessFactorsFilterValueNotFoundTeaches(t *testing.T) {
+	a := testSuccessFactorsAdapter(t)
+	_, err := a.Search(t.Context(), "jobs.sap.com", SearchParams{
+		Filters: FilterSet{"country": {"Not A Real Country"}},
+	})
+	require.ErrorContains(t, err, "Germany", "error should list available values")
+}
+
+func TestSuccessFactorsFilterMultipleValuesRejected(t *testing.T) {
+	a := testSuccessFactorsAdapter(t)
+	_, err := a.Search(t.Context(), "jobs.sap.com", SearchParams{
+		Filters: FilterSet{"country": {"Germany", "United States"}},
+	})
+	require.ErrorContains(t, err, "one value")
+}
+
+func TestSuccessFactorsDetail(t *testing.T) {
+	a := testSuccessFactorsAdapter(t)
+	d, err := a.Detail(t.Context(), "jobs.sap.com", "1414343333")
+	require.NoError(t, err)
+	assert.Equal(t, "Developer Associate", d.Title)
+	assert.Equal(t, "SAP", d.Company, "Company comes from the SAP roster lookup, not the fixture's employer meta tag")
+	assert.Equal(t, "Bangalore, IN, 560066", d.Location)
+	assert.Equal(t, "2026-07-13", d.PostedAt)
+	assert.Equal(t, "https://jobs.sap.com/job/1414343333/1414343333/", d.URL)
+	assert.NotContains(t, d.Description, "<p>", "Description should be converted from HTML")
+	assert.Contains(t, d.Description, "Application Engineering")
+}
+
+func TestSuccessFactorsDetailNotFound(t *testing.T) {
+	a := testSuccessFactorsAdapter(t)
+	_, err := a.Detail(t.Context(), "jobs.sap.com", "999999999")
+	require.ErrorContains(t, err, "not found")
+}
+
+func TestSuccessFactorsUnknownSlugTeaches(t *testing.T) {
+	a := NewSuccessFactorsAdapter(http.DefaultClient)
+	_, err := a.Search(t.Context(), "not-a-tenant.example.com", SearchParams{})
+	require.ErrorContains(t, err, "unknown company")
+}
+
+func TestSuccessFactorsParseCareersURL(t *testing.T) {
+	a := NewSuccessFactorsAdapter(http.DefaultClient)
+
+	slug, ok := a.ParseCareersURL(mustParseURL(t, "https://jobs.sap.com/job/1414343333/1414343333/"))
+	require.True(t, ok)
+	assert.Equal(t, "jobs.sap.com", slug)
+
+	// An uncurated custom domain can't be recognized: SuccessFactors CSB
+	// tenants share no common host pattern to match against (see
+	// SuccessFactorsAdapter's doc comment).
+	_, ok = a.ParseCareersURL(mustParseURL(t, "https://jobs.some-other-tenant.com/search/"))
+	assert.False(t, ok)
+
+	_, ok = a.ParseCareersURL(mustParseURL(t, "https://jobs.lever.co/acme"))
+	assert.False(t, ok)
+}
