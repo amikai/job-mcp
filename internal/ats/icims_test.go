@@ -303,6 +303,45 @@ func TestICIMSSearchMultiPagePagination(t *testing.T) {
 	assert.Equal(t, "60", page3.Jobs[len(page3.Jobs)-1].JobID)
 }
 
+// TestICIMSSearchPaginationSweep walks every unified page across a grid of
+// tenant page sizes and board sizes: the union must be exactly jobs 1..N in
+// order, with exact totals on every page. Small and misaligned upstream page
+// sizes force the stitch loop to fetch several upstream pages per unified
+// page — a single-stitch implementation silently drops rows here.
+func TestICIMSSearchPaginationSweep(t *testing.T) {
+	for _, up := range []int{1, 5, 10, 17, 20, 50} {
+		for _, total := range []int{0, 1, 20, 41, 60, 101} {
+			t.Run(fmt.Sprintf("up%d_total%d", up, total), func(t *testing.T) {
+				srv := newICIMSMultiPageServer(t, total, up)
+				a := NewICIMSAdapter(&http.Client{Timeout: 5 * time.Second})
+				a.baseURL = func(string) string { return srv.URL }
+
+				wantPages := totalPages(total)
+				var got []string
+				for page := 1; page <= max(wantPages, 1); page++ {
+					res, err := a.Search(t.Context(), mockFixtureHost, SearchParams{Page: page})
+					require.NoError(t, err, "page %d", page)
+					assert.Equal(t, total, res.TotalCount, "TotalCount on page %d", page)
+					assert.Equal(t, wantPages, res.TotalPages, "TotalPages on page %d", page)
+					for _, j := range res.Jobs {
+						got = append(got, j.JobID)
+					}
+				}
+				var want []string
+				for id := 1; id <= total; id++ {
+					want = append(want, strconv.Itoa(id))
+				}
+				assert.Equal(t, want, got, "walk of all unified pages must cover every job exactly once, in order")
+
+				beyond, err := a.Search(t.Context(), mockFixtureHost, SearchParams{Page: wantPages + 1})
+				require.NoError(t, err)
+				assert.Empty(t, beyond.Jobs, "page past the end must be empty")
+				assert.Equal(t, total, beyond.TotalCount, "past-the-end TotalCount")
+			})
+		}
+	}
+}
+
 // newICIMSMultiPageServer serves minimal iCIMS search HTML with totalJobs
 // cards and a fixed upstream page size of upSize (pr is zero-based).
 func newICIMSMultiPageServer(t *testing.T, totalJobs, upSize int) *httptest.Server {

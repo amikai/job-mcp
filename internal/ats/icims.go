@@ -165,14 +165,14 @@ func (a *ICIMSAdapter) Search(ctx context.Context, slug string, p SearchParams) 
 		selected = append(selected, res.Jobs[offsetInPage:]...)
 	}
 
-	// Stitch one more upstream page when the slice starts mid-page and
-	// needs more rows to fill the unified pageSize.
-	if len(selected) < pageSize && correctPr+1 < totalPagesUp {
+	// Stitch further upstream pages while the slice starts mid-page or the
+	// tenant page size is smaller than the unified pageSize.
+	for next := correctPr + 1; len(selected) < pageSize && next < totalPagesUp; next++ {
 		r := base
-		r.Page = correctPr + 1
+		r.Page = next
 		more, err := client.Search(ctx, &r)
 		if err != nil {
-			return nil, fmt.Errorf("icims: search %q page %d: %w", host, correctPr+1, err)
+			return nil, fmt.Errorf("icims: search %q page %d: %w", host, next, err)
 		}
 		selected = append(selected, more.Jobs...)
 	}

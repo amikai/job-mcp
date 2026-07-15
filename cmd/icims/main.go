@@ -127,7 +127,7 @@ func resolveCompany(company string) (icims.Company, error) {
 	if i := strings.Index(host, "/"); i >= 0 {
 		host = host[:i]
 	}
-	if strings.HasSuffix(host, ".icims.com") && !strings.Contains(host, "/") {
+	if strings.HasSuffix(host, ".icims.com") {
 		return icims.Company{Name: host, Host: host}, nil
 	}
 	return icims.Company{}, fmt.Errorf("company %q not found; run 'icims companies' to see supported companies", company)
