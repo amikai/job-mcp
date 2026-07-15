@@ -1,0 +1,143 @@
+openapi: 3.1.0
+
+info:
+  title: iCIMS Public Career Portal
+  version: "1"
+  description: |
+    iCIMS does not offer a public, self-service jobs API. The partner-gated
+    Talent Cloud REST API at developer.icims.com requires Partner Program
+    credentials and is out of scope here.
+
+    This spec is hand-derived from live traffic on public career portals
+    (`careers-<slug>.icims.com` and similar `*.icims.com` hosts) captured on
+    2026-07-15. Search and detail are server-rendered HTML (SSR), the same
+    family as SuccessFactors Career Site Builder
+    (`internal/provider/successfactors`). The useful machine surface is the
+    iframe portal (`in_iframe=1`), which returns job cards and schema.org
+    JobPosting JSON-LD without the outer careers-site chrome.
+
+    ## Architecture
+
+    Each customer has a tenant host under `*.icims.com`. The most common
+    public pattern is `careers-<slug>.icims.com`; variants such as
+    `uscareers-<slug>.icims.com` also appear. Callers construct the client
+    with the selected company's origin.
+
+    ## Key Behaviors
+
+    - **Pagination**: zero-based `pr` query param. Page size is
+      tenant-configured (observed 20 and 50). The UI label
+      `Page X of Y` (`.iCIMS_PagingBatch`) gives the total page count.
+    - **Search**: `searchKeyword` free-text; `searchLocation` free-text
+      location. Always send `ss=1` (site search) and `in_iframe=1`.
+    - **Job IDs are numeric; URL slug is cosmetic**:
+      `/jobs/{id}/{slug}/job` resolves from `{id}` alone — any non-empty
+      slug works (verified). Clients holding only the ID can use
+      `/jobs/{id}/job/job`.
+    - **Not-found is HTTP 410**, not 404: an unknown or expired job ID
+      returns 410 and renders the job listing page without JobPosting
+      JSON-LD. Callers must treat 410 (or a 200 page lacking JobPosting)
+      as missing.
+    - **Unknown tenant is HTTP 404** on `/jobs/search`.
+    - **Detail fields**: prefer the `application/ld+json` JobPosting block
+      (title, description HTML, datePosted, employmentType, jobLocation,
+      hiringOrganization). Listing cards expose title, location, and id
+      without a full description.
+
+paths:
+  /jobs/search:
+    get:
+      operationId: searchJobs
+      summary: Search public job listings (HTML)
+      parameters:
+        - name: ss
+          in: query
+          required: true
+          description: Site-search flag; always "1" for the public portal.
+          schema:
+            type: string
+            enum: ["1"]
+        - name: pr
+          in: query
+          required: false
+          description: Zero-based result page index.
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: in_iframe
+          in: query
+          required: true
+          description: Request the iframe portal HTML (no outer chrome).
+          schema:
+            type: string
+            enum: ["1"]
+        - name: searchKeyword
+          in: query
+          required: false
+          description: Free-text keyword matched against title and body.
+          schema:
+            type: string
+        - name: searchLocation
+          in: query
+          required: false
+          description: Free-text location string.
+          schema:
+            type: string
+      responses:
+        "200":
+          description: HTML search results page with job cards.
+          content:
+            text/html:
+              schema:
+                type: string
+        "404":
+          description: Unknown career-portal host / tenant.
+          content:
+            text/html:
+              schema:
+                type: string
+
+  /jobs/{jobId}/{slug}/job:
+    get:
+      operationId: getJobDetail
+      summary: Job detail page (HTML + JSON-LD)
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          description: Numeric job posting ID.
+          schema:
+            type: string
+            pattern: "^[0-9]+$"
+        - name: slug
+          in: path
+          required: true
+          description: |
+            Cosmetic SEO path segment. The server resolves the posting from
+            jobId alone; any non-empty slug works.
+          schema:
+            type: string
+            minLength: 1
+        - name: in_iframe
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: ["1"]
+      responses:
+        "200":
+          description: |
+            HTML detail page embedding application/ld+json JobPosting.
+          content:
+            text/html:
+              schema:
+                type: string
+        "410":
+          description: |
+            Unknown or expired job ID. Body is typically the job listing
+            page, not a dedicated error template.
+          content:
+            text/html:
+              schema:
+                type: string

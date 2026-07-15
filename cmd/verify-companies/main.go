@@ -27,7 +27,7 @@ import (
 )
 
 // providerOrder fixes the --provider default and the report's grouping order.
-var providerOrder = []string{"ashby", "eightfold", "greenhouse", "lever", "recruitee", "successfactors", "teamtailor", "workday"}
+var providerOrder = []string{"ashby", "eightfold", "greenhouse", "icims", "lever", "recruitee", "successfactors", "teamtailor", "workday"}
 
 // Result statuses. ERROR covers every failed check — a stale identifier
 // (upstream 404) and a transient failure (timeout, 5xx) alike; Detail
@@ -161,6 +161,8 @@ func buildAdapters(names []string) ([]ats.Adapter, error) {
 			a = ats.NewEightfoldAdapter(&http.Client{Transport: eightfold.BrowserTransport{}})
 		case "greenhouse":
 			a, err = ats.NewGreenhouseAdapter("https://boards-api.greenhouse.io/v1", hc)
+		case "icims":
+			a = ats.NewICIMSAdapter(hc)
 		case "lever":
 			a, err = ats.NewLeverAdapter("https://api.lever.co", hc)
 		case "recruitee":

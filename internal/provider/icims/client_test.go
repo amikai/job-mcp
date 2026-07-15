@@ -1,0 +1,119 @@
+package icims
+
+import (
+	"net/http"
+	"net/http/httptest"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+func TestSearch(t *testing.T) {
+	srv := NewMockServer()
+	defer srv.Close()
+	c := NewClient(srv.URL, srv.Client())
+
+	got, err := c.Search(t.Context(), &SearchRequest{})
+	require.NoError(t, err)
+
+	assert.Equal(t, 1, got.TotalPages)
+	assert.Len(t, got.Jobs, 3)
+	assert.Equal(t, 3, got.PageSize)
+	assert.Equal(t, "1977", got.Jobs[0].ID)
+	assert.Equal(t, "Senior Product Manager", got.Jobs[0].Title)
+	assert.Contains(t, got.Jobs[0].Location, "Austin")
+	assert.Equal(t, "senior-product-manager", got.Jobs[0].Slug)
+}
+
+func TestSearchFiltered(t *testing.T) {
+	srv := NewMockServer()
+	defer srv.Close()
+	c := NewClient(srv.URL, srv.Client())
+
+	got, err := c.Search(t.Context(), &SearchRequest{Keyword: "Product"})
+	require.NoError(t, err)
+	assert.NotEmpty(t, got.Jobs)
+	assert.LessOrEqual(t, len(got.Jobs), 3)
+}
+
+func TestSearchNoResults(t *testing.T) {
+	srv := NewMockServer()
+	defer srv.Close()
+	c := NewClient(srv.URL, srv.Client())
+
+	got, err := c.Search(t.Context(), &SearchRequest{Keyword: "zzzznonexistentkeyword12345"})
+	require.NoError(t, err)
+	assert.Empty(t, got.Jobs)
+	assert.Equal(t, 1, got.TotalPages)
+}
+
+func TestSearchUnknownCompany(t *testing.T) {
+	srv := NewMockServer()
+	defer srv.Close()
+	c := NewClient(srv.URL+"/unknown", srv.Client())
+
+	_, err := c.Search(t.Context(), &SearchRequest{})
+	require.ErrorIs(t, err, ErrCompanyNotFound)
+}
+
+func TestJobDetail(t *testing.T) {
+	srv := NewMockServer()
+	defer srv.Close()
+	c := NewClient(srv.URL, srv.Client())
+
+	got, err := c.JobDetail(t.Context(), "1977")
+	require.NoError(t, err)
+
+	assert.Equal(t, "1977", got.ID)
+	assert.Equal(t, "Senior Product Manager", got.Title)
+	assert.Contains(t, got.Location, "Austin")
+	assert.NotEmpty(t, got.DescriptionHTML)
+	assert.Equal(t, "FULL_TIME", got.EmploymentType)
+	assert.NotEmpty(t, got.PostedAtRaw)
+}
+
+func TestJobDetailNotFound(t *testing.T) {
+	srv := NewMockServer()
+	defer srv.Close()
+	c := NewClient(srv.URL, srv.Client())
+
+	_, err := c.JobDetail(t.Context(), "999999999")
+	require.ErrorIs(t, err, ErrJobNotFound)
+}
+
+func TestJobDetailOperationalFailureIsNotErrJobNotFound(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+	defer srv.Close()
+	c := NewClient(srv.URL, srv.Client())
+
+	_, err := c.JobDetail(t.Context(), "1")
+	require.Error(t, err)
+	assert.NotErrorIs(t, err, ErrJobNotFound)
+}
+
+func TestJobDetailUnrecognized200IsNotErrJobNotFound(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		_, _ = w.Write([]byte(`<html><title>Maintenance</title><body>Try again later</body></html>`))
+	}))
+	defer srv.Close()
+	c := NewClient(srv.URL, srv.Client())
+
+	_, err := c.JobDetail(t.Context(), "1")
+	require.ErrorContains(t, err, "unrecognized detail page")
+	assert.NotErrorIs(t, err, ErrJobNotFound)
+}
+
+func TestJobDetailRejectsNonNumericID(t *testing.T) {
+	c := NewClient("https://example.icims.com", http.DefaultClient)
+	_, err := c.JobDetail(t.Context(), "abc")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "numeric")
+}
+
+func TestJobURL(t *testing.T) {
+	assert.Equal(t, "https://careers-buspatrol.icims.com/jobs/1977/job/job", JobURL("careers-buspatrol.icims.com", "1977"))
+}
