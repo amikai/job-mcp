@@ -2,6 +2,8 @@
   company_identifier: AbbVie
 - company: Abercrombie and Fitch Co.
   company_identifier: AbercrombieAndFitchCo
+- company: Accor
+  company_identifier: Accor
 - company: AccorHotel
   company_identifier: AccorHotel
 - company: AECOM
@@ -12,16 +14,26 @@
   company_identifier: AngloAmericanDeBeersGroup
 - company: Arista Networks
   company_identifier: AristaNetworks
+- company: Auberge Collection
+  company_identifier: AubergeCollection
 - company: Best10
   company_identifier: Best10
+- company: "Blancas Sandoval & Associates"
+  company_identifier: BlancasSandovalAssociatesPA
 - company: Bosch Group
   company_identifier: BoschGroup
 - company: BOULANGER
   company_identifier: Boulanger
+- company: California Closets
+  company_identifier: CaliforniaClosets
 - company: Cermati.com
   company_identifier: Cermaticom
+- company: CGLRS
+  company_identifier: CGLRS1
 - company: Check Point Software Technologies
   company_identifier: CheckPointSoftwareTechnologies2
+- company: Christian Brothers Automotive
+  company_identifier: ChristianBrothersAutomotive
 - company: CityFibre
   company_identifier: CityFibre
 - company: Colisée France
@@ -30,15 +42,19 @@
   company_identifier: DeliveryHero
 - company: Delta Electronics
   company_identifier: DeltaElectronics
-- company: Domino's
+- company: "Domino's"
   company_identifier: Dominos
-- company: Dr Reddy's Laboratories Limited
+- company: "Dr Reddy's Laboratories Limited"
   company_identifier: DrReddysLaboratoriesLimited
+- company: Endeavour Group
+  company_identifier: EndeavourGroupCareers
 - company: Equinox
   company_identifier: Equinox
+- company: Eurofins
+  company_identifier: Eurofins
 - company: Experian
   company_identifier: Experian
-- company: Express Oil Change & Tire Engineers
+- company: "Express Oil Change & Tire Engineers"
   company_identifier: EOCTEBP
 - company: Flywire
   company_identifier: Flywire1
@@ -50,24 +66,52 @@
   company_identifier: GreeneKing
 - company: Groupement Mousquetaires
   company_identifier: GroupementMousquetaires
-- company: H&M Group
+- company: Guzman y Gomez
+  company_identifier: GuzmanYGomez
+- company: "H&M Group"
   company_identifier: HMGroup
 - company: Ikano-Retail
   company_identifier: IkanoRetail
+- company: INX International Ink Co.
+  company_identifier: INXInternationalInkCo
+- company: Job Mobz
+  company_identifier: JobMobz1
+- company: Jobs for Humanity
+  company_identifier: JobsForHumanity
 - company: JYSK
   company_identifier: JYSK
 - company: Kiabi
   company_identifier: KIABI
+- company: Lendi Group
+  company_identifier: LendiGroup1
 - company: LEONI
   company_identifier: LEONI1
 - company: LinkedIn
   company_identifier: LinkedIn3
-- company: McDonald's Corporation
+- company: M3USA
+  company_identifier: M3USA
+- company: "McDonald's Corporation"
   company_identifier: McDonaldsCorporation
+- company: "McDonald's Österreich"
+  company_identifier: McDonaldsOesterreich
+- company: MedHealth
+  company_identifier: MedHealth3
+- company: MicroStrategy
+  company_identifier: MicroStrategy1
+- company: Minor International
+  company_identifier: MinorInternational
 - company: Much Prosperity Trading International Inc.
   company_identifier: MuchProsperityTradingInternationalInc
 - company: Nagarro
   company_identifier: Nagarro1
+- company: NBCUniversal
+  company_identifier: NBCUniversal3
+- company: North40 Outfitters
+  company_identifier: North40Outfitters
+- company: Northwestern Memorial Healthcare
+  company_identifier: NorthwesternMedicine
+- company: OceanaGold
+  company_identifier: OceanaGold
 - company: OTTO FUCHS KG
   company_identifier: OTTOFUCHSKG
 - company: Pilot Company
@@ -76,12 +120,18 @@
   company_identifier: PortmanDentex
 - company: Primark
   company_identifier: Primark
+- company: "QAD, Inc."
+  company_identifier: QADInc
 - company: Radisson Hotel Group
   company_identifier: RHG
-- company: Relais & Châteaux
+- company: "Raising Cane's"
+  company_identifier: RaisingCanes
+- company: "Relais & Châteaux"
   company_identifier: RelaisChateaux
 - company: Sana Commerce
   company_identifier: SanaCommerce
+- company: "Senior Resource Group, LLC"
+  company_identifier: SeniorResourceGroupLLC
 - company: ServiceNow
   company_identifier: ServiceNow
 - company: SGS
@@ -92,13 +142,29 @@
   company_identifier: SmithsGroup2
 - company: SPHEREA
   company_identifier: SPHEREA
+- company: The Ward Law Group
+  company_identifier: TheWardLawGroupPL
+- company: The Warehouse Group
+  company_identifier: TheWarehouseGroup1
 - company: Tipico
   company_identifier: Tipico
+- company: Travoom
+  company_identifier: Travoom
+- company: "Turner & Townsend"
+  company_identifier: TurnerTownsend
 - company: Ubisoft
   company_identifier: Ubisoft2
+- company: University of Auckland
+  company_identifier: TheUniversityOfAuckland
 - company: VAM Systems
   company_identifier: VAMSystems
+- company: Veolia Environnement SA
+  company_identifier: VeoliaEnvironnementSA
+- company: Western Digital
+  company_identifier: WesternDigital
 - company: Wix
   company_identifier: Wix2
+- company: "Woongjin, Inc"
+  company_identifier: WJCompany
 - company: 株式会社FFL
   company_identifier: ZhuShiHuiSheFFL
