@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -133,11 +134,105 @@ func TestICIMSSearchNoResults(t *testing.T) {
 	assert.Equal(t, 0, res.TotalCount)
 }
 
-func TestICIMSFiltersEmpty(t *testing.T) {
+func TestICIMSFilters(t *testing.T) {
 	a := testICIMSAdapter(t)
 	fs, err := a.Filters(t.Context(), mockFixtureHost)
 	require.NoError(t, err)
-	assert.Empty(t, fs)
+	assert.Equal(t, []string{"Sales & Communication - Sales", "Technology - Product Management"}, fs["category"])
+	assert.Contains(t, fs["positionType"], "Full-Time")
+	assert.Contains(t, fs["positionType"], "Part-Time")
+}
+
+// newICIMSFilterServer serves a three-job board whose searchCategory and
+// searchPositionType query params filter the cards server-side, mirroring
+// the verified portal semantics (OR within a param, AND across params).
+func newICIMSFilterServer(t *testing.T) *httptest.Server {
+	t.Helper()
+	type job struct{ id, title, cat, ptype string }
+	jobs := []job{
+		{"1", "Backend Engineer", "100", "2049"},
+		{"2", "Frontend Engineer", "100", "2050"},
+		{"3", "Account Manager", "200", "2049"},
+	}
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		q := r.URL.Query()
+		match := func(j job) bool {
+			if cats := q["searchCategory"]; len(cats) > 0 && !slices.Contains(cats, j.cat) {
+				return false
+			}
+			if types := q["searchPositionType"]; len(types) > 0 && !slices.Contains(types, j.ptype) {
+				return false
+			}
+			return true
+		}
+		var b strings.Builder
+		b.WriteString(`<!DOCTYPE html><html><body><form id="searchForm"><input name="searchKeyword"/>`)
+		b.WriteString(`<select name="searchCategory"><option value="">(All)</option>`)
+		b.WriteString(`<option value="100">Engineering</option><option value="200">Sales</option></select>`)
+		b.WriteString(`<select name="searchPositionType"><option value="">(All)</option>`)
+		b.WriteString(`<option value="2049">Full-Time</option><option value="2050">Part-Time</option></select>`)
+		b.WriteString(`</form><ul class="iCIMS_JobsTable">`)
+		for _, j := range jobs {
+			if !match(j) {
+				continue
+			}
+			fmt.Fprintf(&b, `<li class="iCIMS_JobCardItem">
+  <span class="sr-only field-label">Location</span><span>US-TX-Austin</span>
+  <a class="iCIMS_Anchor" href="/jobs/%s/x/job"><h3>%s</h3></a>
+</li>`, j.id, j.title)
+		}
+		b.WriteString(`</ul></body></html>`)
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		_, _ = w.Write([]byte(b.String()))
+	}))
+	t.Cleanup(srv.Close)
+	return srv
+}
+
+func TestICIMSSearchFilters(t *testing.T) {
+	srv := newICIMSFilterServer(t)
+	a := NewICIMSAdapter(&http.Client{Timeout: 5 * time.Second})
+	a.baseURL = func(string) string { return srv.URL }
+
+	res, err := a.Search(t.Context(), mockFixtureHost, SearchParams{
+		Filters: FilterSet{"category": {"Engineering"}},
+	})
+	require.NoError(t, err)
+	require.Len(t, res.Jobs, 2)
+	assert.Equal(t, 2, res.TotalCount)
+
+	// Labels resolve case-insensitively; keys AND together.
+	res, err = a.Search(t.Context(), mockFixtureHost, SearchParams{
+		Filters: FilterSet{"category": {"engineering"}, "positionType": {"Part-Time"}},
+	})
+	require.NoError(t, err)
+	require.Len(t, res.Jobs, 1)
+	assert.Equal(t, "2", res.Jobs[0].JobID)
+
+	// Values within a key OR together.
+	res, err = a.Search(t.Context(), mockFixtureHost, SearchParams{
+		Filters: FilterSet{"category": {"Engineering", "Sales"}},
+	})
+	require.NoError(t, err)
+	assert.Len(t, res.Jobs, 3)
+}
+
+func TestICIMSSearchFilterTeachingErrors(t *testing.T) {
+	srv := newICIMSFilterServer(t)
+	a := NewICIMSAdapter(&http.Client{Timeout: 5 * time.Second})
+	a.baseURL = func(string) string { return srv.URL }
+
+	_, err := a.Search(t.Context(), mockFixtureHost, SearchParams{
+		Filters: FilterSet{"department": {"Engineering"}},
+	})
+	require.ErrorContains(t, err, "unknown filter key")
+	assert.Contains(t, err.Error(), "category")
+
+	_, err = a.Search(t.Context(), mockFixtureHost, SearchParams{
+		Filters: FilterSet{"category": {"Nonexistent"}},
+	})
+	require.ErrorContains(t, err, `filter value "Nonexistent" not found`)
+	assert.Contains(t, err.Error(), "available:")
 }
 
 func TestICIMSDetail(t *testing.T) {

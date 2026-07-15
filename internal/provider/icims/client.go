@@ -3,6 +3,7 @@
 package icims
 
 import (
+	"bytes"
 	"cmp"
 	"context"
 	"errors"
@@ -57,6 +58,13 @@ func NewClient(baseURL string, httpClient *http.Client) *Client {
 type SearchRequest struct {
 	Keyword  string
 	Location string
+	// Categories and PositionTypes are encoded option values from the
+	// portal's searchCategory / searchPositionType selects, sent as repeated
+	// query parameters (the server ORs values within one field). The server
+	// silently ignores unknown values — returning unfiltered results — so
+	// callers must resolve labels against SearchResponse options first.
+	Categories    []string
+	PositionTypes []string
 	// Page is the zero-based upstream pr index.
 	Page int
 }
@@ -72,8 +80,11 @@ type SearchResponse struct {
 	// stable size from a known full page (typically pr=0 when TotalPages > 1),
 	// not from an arbitrary response. Empty result pages leave this 0.
 	PageSize int
-	// Locations are the portal's searchLocation <option> entries, when present.
-	Locations []LocationOption
+	// Locations, Categories, and PositionTypes are the portal's search-form
+	// <option> entries, for the selects the tenant renders.
+	Locations     []SelectOption
+	Categories    []SelectOption
+	PositionTypes []SelectOption
 }
 
 // Job is one listing card.
@@ -110,40 +121,49 @@ func (c *Client) Search(ctx context.Context, req *SearchRequest) (*SearchRespons
 	if req == nil {
 		req = &SearchRequest{}
 	}
-	keyword := strings.TrimSpace(req.Keyword)
-	loc := strings.TrimSpace(req.Location)
-	page := req.Page
-	if page < 0 {
-		page = 0
-	}
+	r := *req // shallow copy so resolution never mutates the caller's request
+	r.Keyword = strings.TrimSpace(r.Keyword)
+	r.Location = strings.TrimSpace(r.Location)
+	r.Page = max(r.Page, 0)
 
-	if loc != "" && !LooksLikeLocationValue(loc) {
-		probe, err := c.doSearch(ctx, keyword, "", 0)
+	if r.Location != "" && !LooksLikeLocationValue(r.Location) {
+		probeReq := r
+		probeReq.Location = ""
+		probeReq.Page = 0
+		probe, err := c.doSearch(ctx, &probeReq)
 		if err != nil {
 			return nil, err
 		}
-		matches := normalizeLocationValues(MatchLocationOptions(probe.Locations, loc))
+		matches := normalizeLocationValues(MatchLocationOptions(probe.Locations, r.Location))
 		if err := validateLocationCount(matches); err != nil {
 			return nil, err
 		}
 		switch len(matches) {
 		case 0:
-			return &SearchResponse{Jobs: nil, TotalPages: 1, PageSize: 0, Locations: probe.Locations}, nil
+			probe.Jobs = nil
+			probe.TotalPages = 1
+			probe.PageSize = 0
+			return probe, nil
 		case 1:
-			loc = matches[0]
+			r.Location = matches[0]
 		default:
-			return c.searchMerged(ctx, keyword, matches, page, probe.Locations)
+			return c.searchMerged(ctx, &r, matches, probe)
 		}
 	}
 
-	return c.doSearch(ctx, keyword, loc, page)
+	return c.doSearch(ctx, &r)
 }
 
 // SearchAllForLocations fetches every page for a bounded set of encoded
 // location values and returns a stable de-duplicated union. It uses the
 // portal's own encoded filters as the source of truth because job-card text
-// may omit country/state tokens present in the option labels.
-func (c *Client) SearchAllForLocations(ctx context.Context, keyword string, locations []string) ([]Job, []LocationOption, error) {
+// may omit country/state tokens present in the option labels. base's
+// keyword and category / position-type values apply to every request; its
+// Location and Page are ignored.
+func (c *Client) SearchAllForLocations(ctx context.Context, base *SearchRequest, locations []string) ([]Job, []SelectOption, error) {
+	if base == nil {
+		base = &SearchRequest{}
+	}
 	locations = normalizeLocationValues(locations)
 	if err := validateLocationCount(locations); err != nil {
 		return nil, nil, err
@@ -151,7 +171,7 @@ func (c *Client) SearchAllForLocations(ctx context.Context, keyword string, loca
 
 	var (
 		out      []Job
-		opts     []LocationOption
+		opts     []SelectOption
 		seen     = make(map[string]struct{})
 		requests int
 	)
@@ -160,7 +180,10 @@ func (c *Client) SearchAllForLocations(ctx context.Context, keyword string, loca
 			if requests >= maxUpstreamRequests {
 				return nil, nil, locationRequestLimitError(requests)
 			}
-			res, err := c.doSearch(ctx, keyword, loc, page)
+			r := *base
+			r.Location = loc
+			r.Page = page
+			res, err := c.doSearch(ctx, &r)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -193,7 +216,8 @@ func (c *Client) SearchAllForLocations(ctx context.Context, keyword string, loca
 }
 
 // searchMerged unions one upstream page across a bounded set of locations.
-func (c *Client) searchMerged(ctx context.Context, keyword string, locations []string, page int, opts []LocationOption) (*SearchResponse, error) {
+// probe supplies the select options for the merged response.
+func (c *Client) searchMerged(ctx context.Context, base *SearchRequest, locations []string, probe *SearchResponse) (*SearchResponse, error) {
 	locations = normalizeLocationValues(locations)
 	if err := validateLocationCount(locations); err != nil {
 		return nil, err
@@ -205,15 +229,14 @@ func (c *Client) searchMerged(ctx context.Context, keyword string, locations []s
 		maxPages int
 	)
 	for _, loc := range locations {
-		res, err := c.doSearch(ctx, keyword, loc, page)
+		r := *base
+		r.Location = loc
+		res, err := c.doSearch(ctx, &r)
 		if err != nil {
 			return nil, err
 		}
 		if res.TotalPages > maxPages {
 			maxPages = res.TotalPages
-		}
-		if len(opts) == 0 {
-			opts = res.Locations
 		}
 		for _, j := range res.Jobs {
 			if _, dup := seen[j.ID]; dup {
@@ -223,14 +246,13 @@ func (c *Client) searchMerged(ctx context.Context, keyword string, locations []s
 			jobs = append(jobs, j)
 		}
 	}
-	if maxPages < 1 {
-		maxPages = 1
-	}
 	return &SearchResponse{
-		Jobs:       jobs,
-		TotalPages: maxPages,
-		PageSize:   len(jobs),
-		Locations:  opts,
+		Jobs:          jobs,
+		TotalPages:    max(maxPages, 1),
+		PageSize:      len(jobs),
+		Locations:     probe.Locations,
+		Categories:    probe.Categories,
+		PositionTypes: probe.PositionTypes,
 	}, nil
 }
 
@@ -262,7 +284,10 @@ func locationRequestLimitError(requests int) error {
 	return fmt.Errorf("%w after %d requests (maximum %d); provide a more specific location or keyword", ErrLocationRequestLimit, requests, maxUpstreamRequests)
 }
 
-func (c *Client) doSearch(ctx context.Context, keyword, location string, page int) (*SearchResponse, error) {
+// doSearch issues one upstream request. req's location and category /
+// position-type values must already be encoded option values — free text is
+// resolved in Search.
+func (c *Client) doSearch(ctx context.Context, req *SearchRequest) (*SearchResponse, error) {
 	u, err := url.Parse(c.baseURL + searchPath)
 	if err != nil {
 		return nil, fmt.Errorf("parse base url %q: %w", c.baseURL, err)
@@ -270,17 +295,18 @@ func (c *Client) doSearch(ctx context.Context, keyword, location string, page in
 	q := u.Query()
 	q.Set("ss", "1")
 	q.Set("in_iframe", "1")
-	if page > 0 {
-		q.Set("pr", strconv.Itoa(page))
-	} else {
-		q.Set("pr", "0")
+	q.Set("pr", strconv.Itoa(max(req.Page, 0)))
+	if req.Keyword != "" {
+		q.Set("searchKeyword", req.Keyword)
 	}
-	if keyword != "" {
-		q.Set("searchKeyword", keyword)
+	if req.Location != "" {
+		q.Set("searchLocation", req.Location)
 	}
-	if location != "" {
-		// Encoded option value only — free text is resolved in Search.
-		q.Set("searchLocation", location)
+	for _, v := range req.Categories {
+		q.Add("searchCategory", v)
+	}
+	for _, v := range req.PositionTypes {
+		q.Add("searchPositionType", v)
 	}
 	u.RawQuery = q.Encode()
 
@@ -295,16 +321,11 @@ func (c *Client) doSearch(ctx context.Context, keyword, location string, page in
 		return nil, fmt.Errorf("search jobs: HTTP %d", status)
 	}
 
-	jobs, totalPages, pageSize, locations, err := parseSearchHTML(doc)
+	res, err := parseSearchHTML(doc)
 	if err != nil {
 		return nil, fmt.Errorf("search jobs: %w", err)
 	}
-	return &SearchResponse{
-		Jobs:       jobs,
-		TotalPages: totalPages,
-		PageSize:   pageSize,
-		Locations:  locations,
-	}, nil
+	return res, nil
 }
 
 // JobDetail fetches one posting. The path slug is cosmetic (see openapi.yaml);
@@ -373,7 +394,7 @@ func (c *Client) getHTML(ctx context.Context, rawURL string) (*goquery.Document,
 	if err != nil {
 		return nil, resp.StatusCode, fmt.Errorf("read body: %w", err)
 	}
-	doc, err := goquery.NewDocumentFromReader(strings.NewReader(string(body)))
+	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(body))
 	if err != nil {
 		return nil, resp.StatusCode, fmt.Errorf("parse html: %w", err)
 	}

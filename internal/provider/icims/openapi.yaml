@@ -28,10 +28,18 @@ info:
     - **Pagination**: zero-based `pr` query param. Page size is
       tenant-configured (observed 20 and 50). The UI label
       `Page X of Y` (`.iCIMS_PagingBatch`) gives the total page count.
-    - **Search**: `searchKeyword` free-text; `searchLocation` is the
-      encoded `<option value>` from the portal location select (for
-      example `12781-12827-Austin`), not free text such as `Austin`.
-      Always send `ss=1` (site search) and `in_iframe=1`.
+    - **Search**: `searchKeyword` free-text; `searchLocation`,
+      `searchCategory`, and `searchPositionType` take the encoded
+      `<option value>` from the matching portal select (for example
+      `12781-12827-Austin`, `36942`), not free text. Fields AND together;
+      repeating one parameter ORs its values. Always send `ss=1` (site
+      search) and `in_iframe=1`.
+    - **Unknown encoded filter values fail open or closed by field**
+      (verified live 2026-07-16): an unknown `searchLocation` returns an
+      empty result set, but an unknown `searchCategory` /
+      `searchPositionType` is silently ignored and returns UNFILTERED
+      results — clients must resolve labels against the select options
+      and never pass through unvalidated values.
     - **Job IDs are numeric; URL slug is cosmetic**:
       `/jobs/{id}/{slug}/job` resolves from `{id}` alone — any non-empty
       slug works (verified). Clients holding only the ID can use
@@ -88,6 +96,26 @@ paths:
             `select[name=searchLocation]` (e.g. `12781-12827-Austin`).
             Free-text city names are ignored by the server; clients must
             resolve user input against option labels/values first.
+          schema:
+            type: string
+        - name: searchCategory
+          in: query
+          required: false
+          description: |
+            Encoded category option value from the portal's
+            `select[name=searchCategory]` (e.g. `36942`). Repeat the
+            parameter to OR several categories. Unknown values are
+            silently ignored — the results are NOT narrowed — so clients
+            must resolve labels against the select options first.
+          schema:
+            type: string
+        - name: searchPositionType
+          in: query
+          required: false
+          description: |
+            Encoded position-type option value from the portal's
+            `select[name=searchPositionType]` (e.g. `2049`). Same
+            repeat-to-OR and silent-ignore semantics as searchCategory.
           schema:
             type: string
 

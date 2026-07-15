@@ -61,7 +61,7 @@ func (a *ICIMSAdapter) ParseCareersURL(u *url.URL) (string, bool) {
 }
 
 func (a *ICIMSAdapter) Search(ctx context.Context, slug string, p SearchParams) (*SearchResult, error) {
-	host, companyName, err := a.resolveHost(slug)
+	host, _, err := a.resolveHost(slug)
 	if err != nil {
 		return nil, err
 	}
@@ -79,11 +79,17 @@ func (a *ICIMSAdapter) Search(ctx context.Context, slug string, p SearchParams) 
 	keyword := strings.TrimSpace(p.Query)
 	location := strings.TrimSpace(p.Location)
 
-	// Probe pr=0 without a location filter to learn options and, when no
-	// location is requested, the stable upstream page size.
+	// Probe pr=0 with the keyword only to learn the portal's select options
+	// and, when no other constraint applies, the stable upstream page size.
 	probe, err := client.Search(ctx, &icims.SearchRequest{Keyword: keyword, Page: 0})
 	if err != nil {
 		return nil, fmt.Errorf("icims: search %q: %w", host, err)
+	}
+
+	base := icims.SearchRequest{Keyword: keyword}
+	base.Categories, base.PositionTypes, err = icimsResolveFilters(probe, p.Filters)
+	if err != nil {
+		return nil, err
 	}
 
 	var locValues []string
@@ -104,29 +110,22 @@ func (a *ICIMSAdapter) Search(ctx context.Context, slug string, p SearchParams) 
 	// option as the source of truth because listing-card text may omit country
 	// or state tokens, while the provider client bounds matches and requests.
 	if len(locValues) > 1 {
-		all, _, err := client.SearchAllForLocations(ctx, keyword, locValues)
+		all, _, err := client.SearchAllForLocations(ctx, &base, locValues)
 		if err != nil {
 			return nil, fmt.Errorf("icims: search %q: %w", host, err)
 		}
-		return icimsPageJobs(all, host, companyName, page, start), nil
+		return icimsPageJobs(all, host, page, start), nil
 	}
 
-	base := icims.SearchRequest{Keyword: keyword}
 	if len(locValues) == 1 {
 		base.Location = locValues[0]
 	}
 
 	// Discover the tenant page size from pr=0 under the active filters.
 	// When TotalPages > 1, pr=0 is always a full page.
-	var first *icims.SearchResponse
-	if base.Location == "" {
-		first = probe
-	} else {
-		first, err = client.Search(ctx, &icims.SearchRequest{
-			Keyword:  base.Keyword,
-			Location: base.Location,
-			Page:     0,
-		})
+	first := probe
+	if base.Location != "" || len(base.Categories) > 0 || len(base.PositionTypes) > 0 {
+		first, err = client.Search(ctx, &base)
 		if err != nil {
 			return nil, fmt.Errorf("icims: search %q: %w", host, err)
 		}
@@ -153,11 +152,9 @@ func (a *ICIMSAdapter) Search(ctx context.Context, slug string, p SearchParams) 
 	if correctPr == 0 {
 		res = first
 	} else {
-		res, err = client.Search(ctx, &icims.SearchRequest{
-			Keyword:  base.Keyword,
-			Location: base.Location,
-			Page:     correctPr,
-		})
+		r := base
+		r.Page = correctPr
+		res, err = client.Search(ctx, &r)
 		if err != nil {
 			return nil, fmt.Errorf("icims: search %q page %d: %w", host, correctPr, err)
 		}
@@ -171,11 +168,9 @@ func (a *ICIMSAdapter) Search(ctx context.Context, slug string, p SearchParams) 
 	// Stitch one more upstream page when the slice starts mid-page and
 	// needs more rows to fill the unified pageSize.
 	if len(selected) < pageSize && correctPr+1 < totalPagesUp {
-		more, err := client.Search(ctx, &icims.SearchRequest{
-			Keyword:  base.Keyword,
-			Location: base.Location,
-			Page:     correctPr + 1,
-		})
+		r := base
+		r.Page = correctPr + 1
+		more, err := client.Search(ctx, &r)
 		if err != nil {
 			return nil, fmt.Errorf("icims: search %q page %d: %w", host, correctPr+1, err)
 		}
@@ -187,21 +182,21 @@ func (a *ICIMSAdapter) Search(ctx context.Context, slug string, p SearchParams) 
 	}
 
 	return &SearchResult{
-		Jobs:       icimsJobSummaries(selected, host, companyName),
+		Jobs:       icimsJobSummaries(selected, host),
 		TotalCount: total,
 		Page:       page,
 		TotalPages: totalPages(total),
 	}, nil
 }
 
-func icimsPageJobs(all []icims.Job, host, companyName string, page, start int) *SearchResult {
+func icimsPageJobs(all []icims.Job, host string, page, start int) *SearchResult {
 	total := len(all)
 	if start >= total {
 		return &SearchResult{Jobs: nil, TotalCount: total, Page: page, TotalPages: totalPages(total)}
 	}
 	end := min(start+pageSize, total)
 	return &SearchResult{
-		Jobs:       icimsJobSummaries(all[start:end], host, companyName),
+		Jobs:       icimsJobSummaries(all[start:end], host),
 		TotalCount: total,
 		Page:       page,
 		TotalPages: totalPages(total),
@@ -215,27 +210,102 @@ func icimsExactTotal(ctx context.Context, client *icims.Client, base icims.Searc
 	if first.TotalPages <= 1 {
 		return len(first.Jobs), nil
 	}
-	upSize := first.PageSize
-	lastPr := first.TotalPages - 1
-	last, err := client.Search(ctx, &icims.SearchRequest{
-		Keyword:  base.Keyword,
-		Location: base.Location,
-		Page:     lastPr,
-	})
+	last := base
+	last.Page = first.TotalPages - 1
+	res, err := client.Search(ctx, &last)
 	if err != nil {
 		return 0, err
 	}
-	return (first.TotalPages-1)*upSize + len(last.Jobs), nil
+	return (first.TotalPages-1)*first.PageSize + len(res.Jobs), nil
 }
 
+// Filters reports the portal's category and position-type selects, resolved
+// per tenant at call time. Tenants that do not render a select simply omit
+// that dimension.
 func (a *ICIMSAdapter) Filters(ctx context.Context, slug string) (FilterSet, error) {
-	if _, _, err := a.resolveHost(slug); err != nil {
+	host, _, err := a.resolveHost(slug)
+	if err != nil {
 		return nil, err
 	}
-	// iCIMS portal filters (category, position type, …) are HTML form
-	// selects without a stable cross-tenant facet JSON API. Structured
-	// Filters are not exposed; callers use keyword + location.
-	return FilterSet{}, nil
+	client := icims.NewClient(a.baseURL(host), a.hc)
+	probe, err := client.Search(ctx, &icims.SearchRequest{})
+	if err != nil {
+		return nil, fmt.Errorf("icims: filters %q: %w", host, err)
+	}
+	fs := FilterSet{}
+	for _, d := range icimsFilterDims(probe) {
+		if len(d.options) == 0 {
+			continue
+		}
+		labels := make([]string, 0, len(d.options))
+		for _, o := range d.options {
+			labels = append(labels, o.Label)
+		}
+		fs[d.key] = labels
+	}
+	return fs, nil
+}
+
+// icimsFilterDim binds one unified filter key to a portal search select.
+type icimsFilterDim struct {
+	key     string
+	options []icims.SelectOption
+}
+
+func icimsFilterDims(res *icims.SearchResponse) []icimsFilterDim {
+	return []icimsFilterDim{
+		{key: "category", options: res.Categories},
+		{key: "positionType", options: res.PositionTypes},
+	}
+}
+
+// icimsResolveFilters turns unified filter labels into the encoded option
+// values the upstream expects. Unknown keys and values are teaching errors:
+// the upstream silently ignores unrecognized encoded values and returns
+// unfiltered results, so nothing unresolved may pass through.
+func icimsResolveFilters(probe *icims.SearchResponse, filters FilterSet) (categories, positionTypes []string, err error) {
+	if len(filters) == 0 {
+		return nil, nil, nil
+	}
+	valid := make(map[string]bool)
+	byKey := make(map[string][]icims.SelectOption)
+	for _, d := range icimsFilterDims(probe) {
+		if len(d.options) == 0 {
+			continue
+		}
+		valid[d.key] = true
+		byKey[d.key] = d.options
+	}
+	resolved := make(map[string][]string, len(filters))
+	for key, values := range filters {
+		options, ok := byKey[key]
+		if !ok {
+			return nil, nil, errUnknownFilterKey(key, valid)
+		}
+		for _, v := range values {
+			value, ok := icimsResolveOption(options, v)
+			if !ok {
+				labels := make([]string, len(options))
+				for i, o := range options {
+					labels[i] = o.Label
+				}
+				return nil, nil, fmt.Errorf("filter value %q not found for %q; available: %s", v, key, strings.Join(labels, ", "))
+			}
+			resolved[key] = append(resolved[key], value)
+		}
+	}
+	return resolved["category"], resolved["positionType"], nil
+}
+
+// icimsResolveOption matches a unified filter value against option labels
+// (case-insensitive) or an exact encoded value.
+func icimsResolveOption(options []icims.SelectOption, v string) (string, bool) {
+	for _, o := range options {
+		if strings.EqualFold(o.Label, v) || o.Value == v {
+			return o.Value, true
+		}
+	}
+	return "", false
 }
 
 func (a *ICIMSAdapter) Detail(ctx context.Context, slug, jobID string) (*JobDetail, error) {
@@ -292,8 +362,7 @@ func (a *ICIMSAdapter) resolveHost(slug string) (host, name string, err error) {
 	return "", "", fmt.Errorf("icims: unknown company %q; pass a roster career-portal host or a *.icims.com careers URL", slug)
 }
 
-func icimsJobSummaries(jobs []icims.Job, host, companyName string) []JobSummary {
-	_ = companyName
+func icimsJobSummaries(jobs []icims.Job, host string) []JobSummary {
 	out := make([]JobSummary, 0, len(jobs))
 	for _, j := range jobs {
 		out = append(out, JobSummary{

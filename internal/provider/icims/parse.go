@@ -17,20 +17,21 @@ var pageOfPattern = regexp.MustCompile(`(?i)Page\s+(\d+)\s+of\s+(\d+)`)
 // jobHrefPattern extracts id and slug from /jobs/{id}/{slug}/job links.
 var jobHrefPattern = regexp.MustCompile(`(?i)/jobs/(\d+)/([^/?#]+)/job`)
 
-// LocationOption is one entry from the portal's searchLocation <select>.
-// Value is the encoded token the server expects (e.g. "12781-12827-Austin");
-// Label is the visible text (e.g. "TX Austin US").
-type LocationOption struct {
+// SelectOption is one entry from a portal search-form <select>. Value is the
+// encoded token the server expects (e.g. "12781-12827-Austin" for a location,
+// "36942" for a category); Label is the visible text.
+type SelectOption struct {
 	Value string
 	Label string
 }
 
-// parseSearchHTML extracts job cards, pagination metadata, and location options.
+// parseSearchHTML extracts job cards, pagination metadata, and search-form
+// select options into a SearchResponse.
 //
 // A page with the search form (or job table chrome) but zero cards is a
 // genuine empty result set. A page that looks nothing like the portal is an
 // error so bot-challenge / login walls surface clearly.
-func parseSearchHTML(doc *goquery.Document) ([]Job, int, int, []LocationOption, error) {
+func parseSearchHTML(doc *goquery.Document) (*SearchResponse, error) {
 	var jobs []Job
 	seen := make(map[string]struct{})
 	doc.Find("li.iCIMS_JobCardItem").Each(func(_ int, card *goquery.Selection) {
@@ -47,23 +48,30 @@ func parseSearchHTML(doc *goquery.Document) ([]Job, int, int, []LocationOption, 
 
 	totalPages := parseTotalPages(doc)
 	if len(jobs) == 0 && totalPages == 0 && !looksLikeSearchPage(doc) {
-		return nil, 0, 0, nil, errors.New("unrecognized search page: no job cards, no pagination, and no search form")
+		return nil, errors.New("unrecognized search page: no job cards, no pagination, and no search form")
 	}
 	if totalPages == 0 {
 		// Single-page boards often omit the "Page X of Y" label.
 		totalPages = 1
 	}
-	return jobs, totalPages, len(jobs), parseLocationOptions(doc), nil
+	return &SearchResponse{
+		Jobs:          jobs,
+		TotalPages:    totalPages,
+		PageSize:      len(jobs),
+		Locations:     parseSelectOptions(doc, "select[name='searchLocation'], #jsb_f_location_s"),
+		Categories:    parseSelectOptions(doc, "select[name='searchCategory']"),
+		PositionTypes: parseSelectOptions(doc, "select[name='searchPositionType']"),
+	}, nil
 }
 
-// parseLocationOptions reads the searchLocation <select> options. Empty
-// values and the synthetic "zipRadius" entry are skipped.
-func parseLocationOptions(doc *goquery.Document) []LocationOption {
-	sel := doc.Find("select[name='searchLocation'], #jsb_f_location_s").First()
+// parseSelectOptions reads one search-form <select>'s options. Empty values
+// (the "(All)" placeholder) and the synthetic "zipRadius" entry are skipped.
+func parseSelectOptions(doc *goquery.Document, selector string) []SelectOption {
+	sel := doc.Find(selector).First()
 	if sel.Length() == 0 {
 		return nil
 	}
-	var out []LocationOption
+	var out []SelectOption
 	sel.Find("option").Each(func(_ int, opt *goquery.Selection) {
 		value, _ := opt.Attr("value")
 		value = strings.TrimSpace(value)
@@ -74,7 +82,7 @@ func parseLocationOptions(doc *goquery.Document) []LocationOption {
 		if label == "" {
 			label = value
 		}
-		out = append(out, LocationOption{Value: value, Label: label})
+		out = append(out, SelectOption{Value: value, Label: label})
 	})
 	return out
 }
@@ -87,7 +95,7 @@ func parseLocationOptions(doc *goquery.Document) []LocationOption {
 // Matching is token-based (split on non-alphanumeric), not raw substring, so
 // "US" hits "TX Austin US" / "VA Lorton US" but not a value that only embeds
 // those letters inside a city name such as "…-Austin".
-func MatchLocationOptions(opts []LocationOption, text string) []string {
+func MatchLocationOptions(opts []SelectOption, text string) []string {
 	text = strings.TrimSpace(text)
 	if text == "" || len(opts) == 0 {
 		return nil
@@ -141,17 +149,6 @@ func tokensCover(hay, query []string) bool {
 		}
 	}
 	return true
-}
-
-// MatchLocationOption is a convenience for the single-match case. ok is
-// false when no option matches; when several match, the first is returned.
-// Prefer MatchLocationOptions when the caller must preserve every hit.
-func MatchLocationOption(opts []LocationOption, text string) (value string, ok bool) {
-	matches := MatchLocationOptions(opts, text)
-	if len(matches) == 0 {
-		return "", false
-	}
-	return matches[0], true
 }
 
 // LooksLikeLocationValue reports whether s is already an encoded portal

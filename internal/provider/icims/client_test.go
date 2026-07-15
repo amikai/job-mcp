@@ -147,7 +147,7 @@ func TestSearchAllForLocations(t *testing.T) {
 	defer srv.Close()
 	c := NewClient(srv.URL, srv.Client())
 
-	jobs, _, err := c.SearchAllForLocations(t.Context(), "", []string{
+	jobs, _, err := c.SearchAllForLocations(t.Context(), nil, []string{
 		"12781-12827-Austin",
 		"12781-12830-Lorton",
 	})
@@ -169,9 +169,28 @@ func TestSearchAllForLocationsCapsRequests(t *testing.T) {
 	defer srv.Close()
 	c := NewClient(srv.URL, srv.Client())
 
-	_, _, err := c.SearchAllForLocations(t.Context(), "", []string{"1-1-Austin"})
+	_, _, err := c.SearchAllForLocations(t.Context(), nil, []string{"1-1-Austin"})
 	require.ErrorIs(t, err, ErrLocationRequestLimit)
 	assert.Equal(t, int32(1), requests.Load())
+}
+
+func TestSearchSendsFilterParams(t *testing.T) {
+	var gotCats, gotTypes []string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotCats = r.URL.Query()["searchCategory"]
+		gotTypes = r.URL.Query()["searchPositionType"]
+		writeSearchHTML(w, nil, []string{jobCardHTML("1", "T", "L")}, 1)
+	}))
+	defer srv.Close()
+	c := NewClient(srv.URL, srv.Client())
+
+	_, err := c.Search(t.Context(), &SearchRequest{
+		Categories:    []string{"100", "200"},
+		PositionTypes: []string{"2049"},
+	})
+	require.NoError(t, err)
+	assert.Equal(t, []string{"100", "200"}, gotCats, "values within a field repeat as OR")
+	assert.Equal(t, []string{"2049"}, gotTypes)
 }
 
 func TestSearchNoResults(t *testing.T) {
