@@ -16,12 +16,20 @@ var pageOfPattern = regexp.MustCompile(`(?i)Page\s+(\d+)\s+of\s+(\d+)`)
 // jobHrefPattern extracts id and slug from /jobs/{id}/{slug}/job links.
 var jobHrefPattern = regexp.MustCompile(`(?i)/jobs/(\d+)/([^/?#]+)/job`)
 
-// parseSearchHTML extracts job cards and pagination metadata.
+// LocationOption is one entry from the portal's searchLocation <select>.
+// Value is the encoded token the server expects (e.g. "12781-12827-Austin");
+// Label is the visible text (e.g. "TX Austin US").
+type LocationOption struct {
+	Value string
+	Label string
+}
+
+// parseSearchHTML extracts job cards, pagination metadata, and location options.
 //
 // A page with the search form (or job table chrome) but zero cards is a
 // genuine empty result set. A page that looks nothing like the portal is an
 // error so bot-challenge / login walls surface clearly.
-func parseSearchHTML(doc *goquery.Document) ([]Job, int, int, error) {
+func parseSearchHTML(doc *goquery.Document) ([]Job, int, int, []LocationOption, error) {
 	var jobs []Job
 	seen := make(map[string]struct{})
 	doc.Find("li.iCIMS_JobCardItem").Each(func(_ int, card *goquery.Selection) {
@@ -38,13 +46,108 @@ func parseSearchHTML(doc *goquery.Document) ([]Job, int, int, error) {
 
 	totalPages := parseTotalPages(doc)
 	if len(jobs) == 0 && totalPages == 0 && !looksLikeSearchPage(doc) {
-		return nil, 0, 0, errors.New("unrecognized search page: no job cards, no pagination, and no search form")
+		return nil, 0, 0, nil, errors.New("unrecognized search page: no job cards, no pagination, and no search form")
 	}
 	if totalPages == 0 {
 		// Single-page boards often omit the "Page X of Y" label.
 		totalPages = 1
 	}
-	return jobs, totalPages, len(jobs), nil
+	return jobs, totalPages, len(jobs), parseLocationOptions(doc), nil
+}
+
+// parseLocationOptions reads the searchLocation <select> options. Empty
+// values and the synthetic "zipRadius" entry are skipped.
+func parseLocationOptions(doc *goquery.Document) []LocationOption {
+	sel := doc.Find("select[name='searchLocation'], #jsb_f_location_s").First()
+	if sel.Length() == 0 {
+		return nil
+	}
+	var out []LocationOption
+	sel.Find("option").Each(func(_ int, opt *goquery.Selection) {
+		value, _ := opt.Attr("value")
+		value = strings.TrimSpace(value)
+		if value == "" || strings.EqualFold(value, "zipRadius") {
+			return
+		}
+		label := strings.Join(strings.Fields(opt.Text()), " ")
+		if label == "" {
+			label = value
+		}
+		out = append(out, LocationOption{Value: value, Label: label})
+	})
+	return out
+}
+
+// MatchLocationOption maps free-text user input onto a portal option value.
+// Exact (case-insensitive) matches on value or label win; otherwise the
+// shortest label/value containing the text is chosen. ok is false when no
+// option matches.
+func MatchLocationOption(opts []LocationOption, text string) (value string, ok bool) {
+	text = strings.TrimSpace(text)
+	if text == "" || len(opts) == 0 {
+		return "", false
+	}
+	lower := strings.ToLower(text)
+
+	for _, o := range opts {
+		if strings.EqualFold(o.Value, text) || strings.EqualFold(o.Label, text) {
+			return o.Value, true
+		}
+	}
+
+	type hit struct {
+		value string
+		rank  int // smaller is better: prefer shorter labels
+	}
+	var best *hit
+	for _, o := range opts {
+		lv := strings.ToLower(o.Value)
+		ll := strings.ToLower(o.Label)
+		if !strings.Contains(ll, lower) && !strings.Contains(lv, lower) {
+			continue
+		}
+		rank := len(o.Label)
+		if rank == 0 {
+			rank = len(o.Value)
+		}
+		if best == nil || rank < best.rank || (rank == best.rank && o.Value < best.value) {
+			h := hit{value: o.Value, rank: rank}
+			best = &h
+		}
+	}
+	if best == nil {
+		return "", false
+	}
+	return best.value, true
+}
+
+// looksLikeLocationValue reports whether s is already an encoded portal
+// option value (digits-digits-name), so Search can skip a resolve probe.
+func looksLikeLocationValue(s string) bool {
+	// e.g. "12781-12827-Austin"
+	i := strings.IndexByte(s, '-')
+	if i <= 0 {
+		return false
+	}
+	j := strings.IndexByte(s[i+1:], '-')
+	if j <= 0 {
+		return false
+	}
+	j += i + 1
+	if j+1 >= len(s) {
+		return false
+	}
+	for _, c := range s[:i] {
+		if c < '0' || c > '9' {
+			return false
+		}
+	}
+	for _, c := range s[i+1 : j] {
+		if c < '0' || c > '9' {
+			return false
+		}
+	}
+	return true
 }
 
 func parseJobCard(card *goquery.Selection) (Job, bool) {

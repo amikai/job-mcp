@@ -56,9 +56,14 @@ type SearchResponse struct {
 	Jobs []Job
 	// TotalPages comes from the "Page X of Y" label (at least 1).
 	TotalPages int
-	// PageSize is len(Jobs) on this response; used by the adapter to map
-	// unified page offsets onto pr indices. Empty result pages leave this 0.
+	// PageSize is len(Jobs) on this response. On a full upstream page this
+	// equals the tenant's configured page size; on a partial last page it is
+	// smaller. Callers that translate unified offsets must discover the
+	// stable size from a known full page (typically pr=0 when TotalPages > 1),
+	// not from an arbitrary response. Empty result pages leave this 0.
 	PageSize int
+	// Locations are the portal's searchLocation <option> entries, when present.
+	Locations []LocationOption
 }
 
 // Job is one listing card.
@@ -83,10 +88,52 @@ type JobDetailResponse struct {
 }
 
 // Search fetches one upstream results page.
+//
+// Location must be either an encoded portal option value (e.g.
+// "12781-12827-Austin") or free text matched against option labels/values
+// (e.g. "Austin"). Free text is resolved via a probe request before the
+// real search; unknown locations yield an empty result set rather than
+// silently ignoring the filter.
 func (c *Client) Search(ctx context.Context, req *SearchRequest) (*SearchResponse, error) {
 	if req == nil {
 		req = &SearchRequest{}
 	}
+	keyword := strings.TrimSpace(req.Keyword)
+	loc := strings.TrimSpace(req.Location)
+	page := req.Page
+	if page < 0 {
+		page = 0
+	}
+
+	if loc != "" && !looksLikeLocationValue(loc) {
+		resolved, opts, err := c.resolveLocation(ctx, keyword, loc)
+		if err != nil {
+			return nil, err
+		}
+		if resolved == "" {
+			return &SearchResponse{Jobs: nil, TotalPages: 1, PageSize: 0, Locations: opts}, nil
+		}
+		loc = resolved
+	}
+
+	return c.doSearch(ctx, keyword, loc, page)
+}
+
+// resolveLocation probes pr=0 (keyword only) for the location <select> and
+// maps free-text loc onto an option value. Returns ("", opts, nil) when no
+// option matches.
+func (c *Client) resolveLocation(ctx context.Context, keyword, loc string) (string, []LocationOption, error) {
+	probe, err := c.doSearch(ctx, keyword, "", 0)
+	if err != nil {
+		return "", nil, err
+	}
+	if v, ok := MatchLocationOption(probe.Locations, loc); ok {
+		return v, probe.Locations, nil
+	}
+	return "", probe.Locations, nil
+}
+
+func (c *Client) doSearch(ctx context.Context, keyword, location string, page int) (*SearchResponse, error) {
 	u, err := url.Parse(c.baseURL + searchPath)
 	if err != nil {
 		return nil, fmt.Errorf("parse base url %q: %w", c.baseURL, err)
@@ -94,16 +141,17 @@ func (c *Client) Search(ctx context.Context, req *SearchRequest) (*SearchRespons
 	q := u.Query()
 	q.Set("ss", "1")
 	q.Set("in_iframe", "1")
-	if req.Page > 0 {
-		q.Set("pr", strconv.Itoa(req.Page))
+	if page > 0 {
+		q.Set("pr", strconv.Itoa(page))
 	} else {
 		q.Set("pr", "0")
 	}
-	if kw := strings.TrimSpace(req.Keyword); kw != "" {
-		q.Set("searchKeyword", kw)
+	if keyword != "" {
+		q.Set("searchKeyword", keyword)
 	}
-	if loc := strings.TrimSpace(req.Location); loc != "" {
-		q.Set("searchLocation", loc)
+	if location != "" {
+		// Encoded option value only — free text is resolved in Search.
+		q.Set("searchLocation", location)
 	}
 	u.RawQuery = q.Encode()
 
@@ -118,11 +166,16 @@ func (c *Client) Search(ctx context.Context, req *SearchRequest) (*SearchRespons
 		return nil, fmt.Errorf("search jobs: HTTP %d", status)
 	}
 
-	jobs, totalPages, pageSize, err := parseSearchHTML(doc)
+	jobs, totalPages, pageSize, locations, err := parseSearchHTML(doc)
 	if err != nil {
 		return nil, fmt.Errorf("search jobs: %w", err)
 	}
-	return &SearchResponse{Jobs: jobs, TotalPages: totalPages, PageSize: pageSize}, nil
+	return &SearchResponse{
+		Jobs:       jobs,
+		TotalPages: totalPages,
+		PageSize:   pageSize,
+		Locations:  locations,
+	}, nil
 }
 
 // JobDetail fetches one posting. The path slug is cosmetic (see openapi.yaml);

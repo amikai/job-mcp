@@ -37,6 +37,45 @@ func TestSearchFiltered(t *testing.T) {
 	assert.LessOrEqual(t, len(got.Jobs), 3)
 }
 
+func TestSearchLocationFreeText(t *testing.T) {
+	srv := NewMockServer()
+	defer srv.Close()
+	c := NewClient(srv.URL, srv.Client())
+
+	// Free text must resolve to the encoded option value; mock only returns
+	// the Austin fixture when searchLocation contains "Austin".
+	got, err := c.Search(t.Context(), &SearchRequest{Location: "Austin"})
+	require.NoError(t, err)
+	require.Len(t, got.Jobs, 2)
+	for _, j := range got.Jobs {
+		assert.Contains(t, j.Location, "Austin")
+		assert.NotContains(t, j.Location, "Lorton")
+	}
+	assert.Equal(t, []string{"1977", "1922"}, []string{got.Jobs[0].ID, got.Jobs[1].ID})
+}
+
+func TestSearchLocationEncodedValue(t *testing.T) {
+	srv := NewMockServer()
+	defer srv.Close()
+	c := NewClient(srv.URL, srv.Client())
+
+	got, err := c.Search(t.Context(), &SearchRequest{Location: "12781-12827-Austin"})
+	require.NoError(t, err)
+	require.Len(t, got.Jobs, 2)
+	assert.Equal(t, "1977", got.Jobs[0].ID)
+}
+
+func TestSearchLocationUnknown(t *testing.T) {
+	srv := NewMockServer()
+	defer srv.Close()
+	c := NewClient(srv.URL, srv.Client())
+
+	got, err := c.Search(t.Context(), &SearchRequest{Location: "Seattle"})
+	require.NoError(t, err)
+	assert.Empty(t, got.Jobs)
+	assert.Equal(t, 0, got.PageSize)
+}
+
 func TestSearchNoResults(t *testing.T) {
 	srv := NewMockServer()
 	defer srv.Close()

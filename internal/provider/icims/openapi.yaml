@@ -28,8 +28,10 @@ info:
     - **Pagination**: zero-based `pr` query param. Page size is
       tenant-configured (observed 20 and 50). The UI label
       `Page X of Y` (`.iCIMS_PagingBatch`) gives the total page count.
-    - **Search**: `searchKeyword` free-text; `searchLocation` free-text
-      location. Always send `ss=1` (site search) and `in_iframe=1`.
+    - **Search**: `searchKeyword` free-text; `searchLocation` is the
+      encoded `<option value>` from the portal location select (for
+      example `12781-12827-Austin`), not free text such as `Austin`.
+      Always send `ss=1` (site search) and `in_iframe=1`.
     - **Job IDs are numeric; URL slug is cosmetic**:
       `/jobs/{id}/{slug}/job` resolves from `{id}` alone — any non-empty
       slug works (verified). Clients holding only the ID can use
@@ -81,9 +83,14 @@ paths:
         - name: searchLocation
           in: query
           required: false
-          description: Free-text location string.
+          description: |
+            Encoded location option value from the portal's
+            `select[name=searchLocation]` (e.g. `12781-12827-Austin`).
+            Free-text city names are ignored by the server; clients must
+            resolve user input against option labels/values first.
           schema:
             type: string
+
       responses:
         "200":
           description: HTML search results page with job cards.

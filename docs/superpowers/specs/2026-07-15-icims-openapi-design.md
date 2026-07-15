@@ -25,8 +25,8 @@ as SuccessFactors Career Site Builder (`internal/provider/successfactors`).
 - each posting is an `<li class="iCIMS_JobCardItem">` with title link
   `/jobs/{id}/{slug}/job`, location, and optional summary;
 - free-text title/description search: `searchKeyword`;
-- free-text location: `searchLocation` (observed form field; effect varies
-  by tenant).
+- location: `searchLocation` expects the encoded `<option value>` from the
+  portal select (e.g. `12781-12827-Austin`), not free text such as `Austin`.
 
 `GET https://<career-host>/jobs/{id}/{slug}/job?in_iframe=1`:
 

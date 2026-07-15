@@ -13,7 +13,7 @@ func TestParseSearchHTMLFixture(t *testing.T) {
 	doc, err := goquery.NewDocumentFromReader(strings.NewReader(string(mockSearchRsp)))
 	require.NoError(t, err)
 
-	jobs, totalPages, pageSize, err := parseSearchHTML(doc)
+	jobs, totalPages, pageSize, locs, err := parseSearchHTML(doc)
 	require.NoError(t, err)
 	assert.Equal(t, 1, totalPages)
 	assert.Equal(t, 3, pageSize)
@@ -24,13 +24,39 @@ func TestParseSearchHTMLFixture(t *testing.T) {
 		Title:    "Senior Product Manager",
 		Location: "US-TX-Austin",
 	}, jobs[0])
+	require.NotEmpty(t, locs)
+	assert.Equal(t, "12781-12827-Austin", locs[0].Value)
+	assert.Contains(t, locs[0].Label, "Austin")
+}
+
+func TestMatchLocationOption(t *testing.T) {
+	opts := []LocationOption{
+		{Value: "12781-12827-Austin", Label: "TX Austin US"},
+		{Value: "12781-12830-Lorton", Label: "VA Lorton US"},
+	}
+	v, ok := MatchLocationOption(opts, "Austin")
+	require.True(t, ok)
+	assert.Equal(t, "12781-12827-Austin", v)
+
+	v, ok = MatchLocationOption(opts, "12781-12830-Lorton")
+	require.True(t, ok)
+	assert.Equal(t, "12781-12830-Lorton", v)
+
+	_, ok = MatchLocationOption(opts, "Seattle")
+	assert.False(t, ok)
+}
+
+func TestLooksLikeLocationValue(t *testing.T) {
+	assert.True(t, looksLikeLocationValue("12781-12827-Austin"))
+	assert.False(t, looksLikeLocationValue("Austin"))
+	assert.False(t, looksLikeLocationValue("TX Austin US"))
 }
 
 func TestParseSearchNoResults(t *testing.T) {
 	doc, err := goquery.NewDocumentFromReader(strings.NewReader(string(mockSearchNoResultsRsp)))
 	require.NoError(t, err)
 
-	jobs, totalPages, pageSize, err := parseSearchHTML(doc)
+	jobs, totalPages, pageSize, _, err := parseSearchHTML(doc)
 	require.NoError(t, err)
 	assert.Empty(t, jobs)
 	assert.Equal(t, 0, pageSize)

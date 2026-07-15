@@ -69,53 +69,67 @@ func (a *ICIMSAdapter) Search(ctx context.Context, slug string, p SearchParams) 
 	start := (page - 1) * pageSize
 
 	client := icims.NewClient(a.baseURL(host), a.hc)
-	baseReq := icims.SearchRequest{
+	// Discover the tenant page size from pr=0. When TotalPages > 1, pr=0 is
+	// always a full page, so PageSize is the stable configured size — not a
+	// partial last page (which would break offset math).
+	//
+	// Free-text Location is resolved to an encoded option value inside the
+	// client; pass it through so the filter is applied on every request.
+	base := icims.SearchRequest{
 		Keyword:  p.Query,
 		Location: strings.TrimSpace(p.Location),
 	}
-
-	// Upstream page size is tenant-configured (observed 20 and 50). Guess
-	// pr using the common size of 20, then correct after we see PageSize.
-	guessPr := 0
-	if start > 0 {
-		guessPr = start / 20
-	}
-	res, err := client.Search(ctx, &icims.SearchRequest{
-		Keyword:  baseReq.Keyword,
-		Location: baseReq.Location,
-		Page:     guessPr,
+	first, err := client.Search(ctx, &icims.SearchRequest{
+		Keyword:  base.Keyword,
+		Location: base.Location,
+		Page:     0,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("icims: search %q: %w", host, err)
 	}
 
-	upSize := res.PageSize
-	totalPagesUp := res.TotalPages
-	if upSize == 0 {
-		total := 0
-		if totalPagesUp <= 1 {
-			total = 0
+	// Prefer the encoded option value for subsequent pages so the client
+	// skips a free-text resolve probe on every request.
+	if base.Location != "" {
+		if v, ok := icims.MatchLocationOption(first.Locations, base.Location); ok {
+			base.Location = v
+		} else if first.PageSize == 0 && len(first.Jobs) == 0 {
+			// Unknown location: client already returned empty.
+			return &SearchResult{Jobs: nil, TotalCount: 0, Page: page, TotalPages: 0}, nil
 		}
+	}
+
+	upSize := first.PageSize
+	totalPagesUp := first.TotalPages
+	if upSize == 0 {
+		return &SearchResult{Jobs: nil, TotalCount: 0, Page: page, TotalPages: 0}, nil
+	}
+
+	total, err := icimsExactTotal(ctx, client, base, first)
+	if err != nil {
+		return nil, fmt.Errorf("icims: search %q: %w", host, err)
+	}
+	if start >= total {
 		return &SearchResult{Jobs: nil, TotalCount: total, Page: page, TotalPages: totalPages(total)}, nil
 	}
 
 	correctPr := start / upSize
-	if correctPr != guessPr {
+	offsetInPage := start % upSize
+
+	var res *icims.SearchResponse
+	if correctPr == 0 {
+		res = first
+	} else {
 		res, err = client.Search(ctx, &icims.SearchRequest{
-			Keyword:  baseReq.Keyword,
-			Location: baseReq.Location,
+			Keyword:  base.Keyword,
+			Location: base.Location,
 			Page:     correctPr,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("icims: search %q page %d: %w", host, correctPr, err)
 		}
-		if res.PageSize > 0 {
-			upSize = res.PageSize
-		}
-		totalPagesUp = res.TotalPages
 	}
 
-	offsetInPage := start % upSize
 	var selected []icims.Job
 	if offsetInPage < len(res.Jobs) {
 		selected = append(selected, res.Jobs[offsetInPage:]...)
@@ -125,8 +139,8 @@ func (a *ICIMSAdapter) Search(ctx context.Context, slug string, p SearchParams) 
 	// needs more rows to fill the unified pageSize.
 	if len(selected) < pageSize && correctPr+1 < totalPagesUp {
 		more, err := client.Search(ctx, &icims.SearchRequest{
-			Keyword:  baseReq.Keyword,
-			Location: baseReq.Location,
+			Keyword:  base.Keyword,
+			Location: base.Location,
 			Page:     correctPr + 1,
 		})
 		if err != nil {
@@ -139,24 +153,32 @@ func (a *ICIMSAdapter) Search(ctx context.Context, slug string, p SearchParams) 
 		selected = selected[:pageSize]
 	}
 
-	total := totalPagesUp * upSize
-	if totalPagesUp <= 1 {
-		// Single upstream page: exact count is the card list length.
-		// When we sliced from pr=0, that is len(res.Jobs); when start
-		// pointed past the end, total is still the full board size.
-		if correctPr == 0 {
-			total = len(res.Jobs)
-		} else {
-			total = 0
-		}
-	}
-
 	return &SearchResult{
 		Jobs:       icimsJobSummaries(selected, host, companyName),
 		TotalCount: total,
 		Page:       page,
 		TotalPages: totalPages(total),
 	}, nil
+}
+
+// icimsExactTotal returns the job count for the current filters.
+// Single upstream page: len(first.Jobs). Multi-page: (pages-1)*pageSize +
+// last page length, so a partial final page is not inflated to a full page.
+func icimsExactTotal(ctx context.Context, client *icims.Client, base icims.SearchRequest, first *icims.SearchResponse) (int, error) {
+	if first.TotalPages <= 1 {
+		return len(first.Jobs), nil
+	}
+	upSize := first.PageSize
+	lastPr := first.TotalPages - 1
+	last, err := client.Search(ctx, &icims.SearchRequest{
+		Keyword:  base.Keyword,
+		Location: base.Location,
+		Page:     lastPr,
+	})
+	if err != nil {
+		return 0, err
+	}
+	return (first.TotalPages-1)*upSize + len(last.Jobs), nil
 }
 
 func (a *ICIMSAdapter) Filters(ctx context.Context, slug string) (FilterSet, error) {
