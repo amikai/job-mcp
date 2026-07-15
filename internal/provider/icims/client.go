@@ -87,15 +87,21 @@ type JobDetailResponse struct {
 	URL             string
 }
 
+// maxUpstreamPages caps sequential /jobs/search fetches when walking an
+// unfiltered board for multi-option location text. Beyond this, callers get
+// an error instead of unbounded request storms on large tenants.
+const maxUpstreamPages = 30
+
 // Search fetches one upstream results page.
 //
 // Location must be either an encoded portal option value (e.g.
 // "12781-12827-Austin") or free text matched against option labels/values
 // (e.g. "Austin"). Free text is resolved via a probe request before the
-// real search. When several options match (e.g. "US"), every match is
-// searched and the job lists are merged so broad fuzzy inputs are not
-// collapsed to a single city. Unknown locations yield an empty result set
-// rather than silently ignoring the filter.
+// real search. A single option match is sent as searchLocation; several
+// option matches (e.g. "US") are applied by walking the unfiltered board
+// once and filtering cards locally so results are not collapsed to one city
+// and fan-out does not multiply pages by option count. Unknown locations
+// yield an empty result set rather than silently ignoring the filter.
 func (c *Client) Search(ctx context.Context, req *SearchRequest) (*SearchResponse, error) {
 	if req == nil {
 		req = &SearchRequest{}
@@ -108,111 +114,78 @@ func (c *Client) Search(ctx context.Context, req *SearchRequest) (*SearchRespons
 	}
 
 	if loc != "" && !LooksLikeLocationValue(loc) {
-		matches, opts, err := c.resolveLocations(ctx, keyword, loc)
+		probe, err := c.doSearch(ctx, keyword, "", 0)
 		if err != nil {
 			return nil, err
 		}
+		matches := MatchLocationOptions(probe.Locations, loc)
 		switch len(matches) {
 		case 0:
-			return &SearchResponse{Jobs: nil, TotalPages: 1, PageSize: 0, Locations: opts}, nil
+			return &SearchResponse{Jobs: nil, TotalPages: 1, PageSize: 0, Locations: probe.Locations}, nil
 		case 1:
 			loc = matches[0]
 		default:
-			// Multi-match: union every matching option. Page is applied per
-			// option then merged; adapters that need exact unified paging
-			// should dump all pages per option (see SearchAllForLocations).
-			return c.searchMerged(ctx, keyword, matches, page, opts)
+			// Multi-match: one bounded unfiltered walk + local card filter
+			// (reuse the probe as page 0).
+			jobs, err := c.collectMatchingFromProbe(ctx, keyword, loc, probe)
+			if err != nil {
+				return nil, err
+			}
+			return &SearchResponse{
+				Jobs:       jobs,
+				TotalPages: 1,
+				PageSize:   len(jobs),
+				Locations:  probe.Locations,
+			}, nil
 		}
 	}
 
 	return c.doSearch(ctx, keyword, loc, page)
 }
 
-// resolveLocations probes pr=0 (keyword only) for the location <select> and
-// maps free-text loc onto every matching option value.
-func (c *Client) resolveLocations(ctx context.Context, keyword, loc string) ([]string, []LocationOption, error) {
+// CollectJobsMatchingLocation walks the keyword-only board (no searchLocation)
+// and keeps cards whose location text matches loc under token rules. Used when
+// free-text location hits several portal options so every match is retained
+// without N×pages fan-out. At most maxUpstreamPages requests are issued.
+func (c *Client) CollectJobsMatchingLocation(ctx context.Context, keyword, loc string) ([]Job, []LocationOption, error) {
 	probe, err := c.doSearch(ctx, keyword, "", 0)
 	if err != nil {
 		return nil, nil, err
 	}
-	return MatchLocationOptions(probe.Locations, loc), probe.Locations, nil
-}
-
-// SearchAllForLocations fetches every upstream page for each encoded
-// location value and returns the de-duplicated union (stable: location
-// order, then page order). Used by the adapter for multi-option fuzzy
-// location matches.
-func (c *Client) SearchAllForLocations(ctx context.Context, keyword string, locations []string) ([]Job, []LocationOption, error) {
-	var (
-		out  []Job
-		opts []LocationOption
-		seen = make(map[string]struct{})
-	)
-	for i, loc := range locations {
-		loc = strings.TrimSpace(loc)
-		if loc == "" {
-			continue
-		}
-		page := 0
-		for {
-			res, err := c.doSearch(ctx, keyword, loc, page)
-			if err != nil {
-				return nil, nil, err
-			}
-			if i == 0 && page == 0 {
-				opts = res.Locations
-			}
-			for _, j := range res.Jobs {
-				if _, dup := seen[j.ID]; dup {
-					continue
-				}
-				seen[j.ID] = struct{}{}
-				out = append(out, j)
-			}
-			if res.PageSize == 0 || page+1 >= res.TotalPages {
-				break
-			}
-			page++
-		}
+	jobs, err := c.collectMatchingFromProbe(ctx, keyword, loc, probe)
+	if err != nil {
+		return nil, nil, err
 	}
-	return out, opts, nil
+	return jobs, probe.Locations, nil
 }
 
-// searchMerged unions one upstream page across several location values.
-func (c *Client) searchMerged(ctx context.Context, keyword string, locations []string, page int, opts []LocationOption) (*SearchResponse, error) {
-	var (
-		jobs     []Job
-		seen     = make(map[string]struct{})
-		maxPages int
-	)
-	for _, loc := range locations {
-		res, err := c.doSearch(ctx, keyword, loc, page)
-		if err != nil {
-			return nil, err
-		}
-		if res.TotalPages > maxPages {
-			maxPages = res.TotalPages
-		}
-		if len(opts) == 0 {
-			opts = res.Locations
-		}
-		for _, j := range res.Jobs {
+func (c *Client) collectMatchingFromProbe(ctx context.Context, keyword, loc string, probe *SearchResponse) ([]Job, error) {
+	if probe.TotalPages > maxUpstreamPages {
+		return nil, fmt.Errorf("icims: board has %d upstream pages (cap %d); narrow keyword/location instead of scanning the full multi-location board", probe.TotalPages, maxUpstreamPages)
+	}
+	var out []Job
+	seen := make(map[string]struct{})
+	appendMatching := func(jobs []Job) {
+		for _, j := range jobs {
+			if !locationTextMatches(j.Location, loc) {
+				continue
+			}
 			if _, dup := seen[j.ID]; dup {
 				continue
 			}
 			seen[j.ID] = struct{}{}
-			jobs = append(jobs, j)
+			out = append(out, j)
 		}
 	}
-	if maxPages < 1 {
-		maxPages = 1
+	appendMatching(probe.Jobs)
+	for page := 1; page < probe.TotalPages; page++ {
+		res, err := c.doSearch(ctx, keyword, "", page)
+		if err != nil {
+			return nil, err
+		}
+		appendMatching(res.Jobs)
 	}
-	return &SearchResponse{
-		Jobs:       jobs,
-		TotalPages: maxPages,
-		PageSize:   len(jobs),
-		Locations:  opts,
-	}, nil
+	return out, nil
 }
 
 func (c *Client) doSearch(ctx context.Context, keyword, location string, page int) (*SearchResponse, error) {

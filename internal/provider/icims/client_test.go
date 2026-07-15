@@ -81,27 +81,50 @@ func TestSearchLocationMultiMatchFansOut(t *testing.T) {
 	defer srv.Close()
 	c := NewClient(srv.URL, srv.Client())
 
-	// "US" matches Austin and Lorton options; fan-out must keep both cities.
+	// "US" matches Austin and Lorton options; local filter keeps both cities
+	// in unfiltered board order (1977 Austin, 1925 Lorton, 1922 Austin).
 	got, err := c.Search(t.Context(), &SearchRequest{Location: "US"})
 	require.NoError(t, err)
 	require.Len(t, got.Jobs, 3)
 	ids := []string{got.Jobs[0].ID, got.Jobs[1].ID, got.Jobs[2].ID}
-	assert.Equal(t, []string{"1977", "1922", "1925"}, ids)
+	assert.Equal(t, []string{"1977", "1925", "1922"}, ids)
 }
 
-func TestSearchAllForLocations(t *testing.T) {
+func TestCollectJobsMatchingLocation(t *testing.T) {
 	srv := NewMockServer()
 	defer srv.Close()
 	c := NewClient(srv.URL, srv.Client())
 
-	jobs, _, err := c.SearchAllForLocations(t.Context(), "", []string{
-		"12781-12827-Austin",
-		"12781-12830-Lorton",
-	})
+	jobs, _, err := c.CollectJobsMatchingLocation(t.Context(), "", "US")
 	require.NoError(t, err)
 	require.Len(t, jobs, 3)
-	assert.Equal(t, "1977", jobs[0].ID)
-	assert.Equal(t, "1925", jobs[2].ID)
+	assert.Equal(t, []string{"1977", "1925", "1922"}, []string{jobs[0].ID, jobs[1].ID, jobs[2].ID})
+}
+
+func TestCollectJobsMatchingLocationCapsPages(t *testing.T) {
+	// Synthetic board advertising more pages than maxUpstreamPages.
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		_, _ = w.Write([]byte(`<!DOCTYPE html><html><body>
+<form id="searchForm"><input name="searchKeyword"/>
+<select name="searchLocation">
+<option value="1-1-Austin">TX Austin US</option>
+<option value="1-1-Lorton">VA Lorton US</option>
+</select></form>
+<div class="iCIMS_PagingBatch">Page 1 of 99</div>
+<ul class="iCIMS_JobsTable">
+<li class="iCIMS_JobCardItem">
+  <span class="sr-only field-label">Location</span><span>US-TX-Austin</span>
+  <a class="iCIMS_Anchor" href="/jobs/1/job-title/job"><h3>Job 1</h3></a>
+</li>
+</ul></body></html>`))
+	}))
+	defer srv.Close()
+	c := NewClient(srv.URL, srv.Client())
+
+	_, _, err := c.CollectJobsMatchingLocation(t.Context(), "", "US")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "cap")
 }
 
 func TestSearchNoResults(t *testing.T) {

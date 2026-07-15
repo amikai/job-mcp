@@ -39,6 +39,26 @@ func TestMatchLocationOptions(t *testing.T) {
 	// Broad country match must retain every US option, not collapse to one city.
 	assert.Equal(t, []string{"12781-12827-Austin", "12781-12830-Lorton"}, MatchLocationOptions(opts, "US"))
 	assert.Empty(t, MatchLocationOptions(opts, "Seattle"))
+
+	// Substring trap: "us" is embedded in "Austin" but must not match the
+	// value alone when the label has no separate US token.
+	assert.Empty(t, MatchLocationOptions([]LocationOption{
+		{Value: "1-1-Austin", Label: "Austin TX"},
+	}, "US"))
+	// State code must be a full token, not a substring of a city name.
+	assert.Empty(t, MatchLocationOptions([]LocationOption{
+		{Value: "1-1-Orlando", Label: "Orlando FL"},
+	}, "OR"))
+}
+
+func TestLocationTextMatches(t *testing.T) {
+	assert.True(t, locationTextMatches("US-TX-Austin", "US"))
+	assert.True(t, locationTextMatches("US-TX-Austin", "Austin"))
+	assert.True(t, locationTextMatches("US-VA-Lorton", "Lorton"))
+	assert.False(t, locationTextMatches("US-TX-Austin", "Seattle"))
+	// "us" inside "Austin" is not a token match against a city-only string
+	// that lacks a US token — but "US-TX-Austin" has an explicit US token.
+	assert.False(t, locationTextMatches("Austin", "US"))
 }
 
 func TestMatchLocationOption(t *testing.T) {

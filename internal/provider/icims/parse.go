@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"unicode"
 
 	"github.com/PuerkitoBio/goquery"
 )
@@ -79,17 +80,18 @@ func parseLocationOptions(doc *goquery.Document) []LocationOption {
 }
 
 // MatchLocationOptions maps free-text user input onto every matching portal
-// option value. Exact (case-insensitive) value/label hits are preferred when
-// any exist; otherwise every option whose label or value contains the text
-// is returned, in portal order. Callers that need a complete result set for
-// broad inputs such as a country or state must fan out across all values
-// (or otherwise merge), not pick one arbitrarily.
+// option value. Exact (case-insensitive) value/label hits win when any exist;
+// otherwise every option whose label or value tokens cover every query token
+// is returned, in portal order.
+//
+// Matching is token-based (split on non-alphanumeric), not raw substring, so
+// "US" hits "TX Austin US" / "VA Lorton US" but not a value that only embeds
+// those letters inside a city name such as "…-Austin".
 func MatchLocationOptions(opts []LocationOption, text string) []string {
 	text = strings.TrimSpace(text)
 	if text == "" || len(opts) == 0 {
 		return nil
 	}
-	lower := strings.ToLower(text)
 
 	var exact []string
 	for _, o := range opts {
@@ -101,15 +103,65 @@ func MatchLocationOptions(opts []LocationOption, text string) []string {
 		return exact
 	}
 
+	queryTokens := locationTokens(text)
+	if len(queryTokens) == 0 {
+		return nil
+	}
+
 	var fuzzy []string
 	for _, o := range opts {
-		lv := strings.ToLower(o.Value)
-		ll := strings.ToLower(o.Label)
-		if strings.Contains(ll, lower) || strings.Contains(lv, lower) {
+		if tokensCover(locationTokens(o.Label+" "+o.Value), queryTokens) {
 			fuzzy = append(fuzzy, o.Value)
 		}
 	}
 	return fuzzy
+}
+
+// locationTextMatches reports whether free-text loc matches a job/card
+// location string under the same token rules as MatchLocationOptions.
+func locationTextMatches(jobLocation, loc string) bool {
+	loc = strings.TrimSpace(loc)
+	jobLocation = strings.TrimSpace(jobLocation)
+	if loc == "" {
+		return true
+	}
+	if jobLocation == "" {
+		return false
+	}
+	if strings.EqualFold(jobLocation, loc) {
+		return true
+	}
+	q := locationTokens(loc)
+	if len(q) == 0 {
+		return false
+	}
+	return tokensCover(locationTokens(jobLocation), q)
+}
+
+// locationTokens lowercases s and splits on any non-letter/non-digit rune
+// (spaces, hyphens, commas, …).
+func locationTokens(s string) []string {
+	fields := strings.FieldsFunc(strings.ToLower(s), func(r rune) bool {
+		return !unicode.IsLetter(r) && !unicode.IsDigit(r)
+	})
+	return fields
+}
+
+// tokensCover reports whether every query token appears as a full token in hay.
+func tokensCover(hay, query []string) bool {
+	if len(query) == 0 {
+		return false
+	}
+	set := make(map[string]struct{}, len(hay))
+	for _, t := range hay {
+		set[t] = struct{}{}
+	}
+	for _, q := range query {
+		if _, ok := set[q]; !ok {
+			return false
+		}
+	}
+	return true
 }
 
 // MatchLocationOption is a convenience for the single-match case. ok is
