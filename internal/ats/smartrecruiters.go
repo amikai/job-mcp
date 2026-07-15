@@ -109,11 +109,11 @@ func (a *SmartRecruitersAdapter) searchSmartRecruitersPage(
 ) (*SearchResult, error) {
 	page := clampPage(requestedPage)
 	pageIndex := page - 1
-	if pageIndex > math.MaxInt/PageSize {
+	if pageIndex > math.MaxInt/pageSize {
 		return nil, fmt.Errorf("smartrecruiters: page %d is too large; retry with a smaller page", page)
 	}
-	params.Limit = smartrecruiters.NewOptInt(PageSize)
-	params.Offset = smartrecruiters.NewOptInt(pageIndex * PageSize)
+	params.Limit = smartrecruiters.NewOptInt(pageSize)
+	params.Offset = smartrecruiters.NewOptInt(pageIndex * pageSize)
 	rsp, err := a.client.ListPostings(ctx, params)
 	if err != nil {
 		return nil, fmt.Errorf("smartrecruiters: search %q: %w", slug, err)
