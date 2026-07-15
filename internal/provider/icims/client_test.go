@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -47,7 +48,7 @@ func TestSearchLocationFreeText(t *testing.T) {
 
 	// Free text must resolve to the encoded option value; mock only returns
 	// the Austin fixture when searchLocation contains "Austin".
-	got, err := c.Search(t.Context(), &SearchRequest{Location: "Austin"})
+	got, err := c.Search(t.Context(), &SearchRequest{Locations: []string{"Austin"}})
 	require.NoError(t, err)
 	require.Len(t, got.Jobs, 2)
 	for _, j := range got.Jobs {
@@ -62,7 +63,7 @@ func TestSearchLocationEncodedValue(t *testing.T) {
 	defer srv.Close()
 	c := NewClient(srv.URL, srv.Client())
 
-	got, err := c.Search(t.Context(), &SearchRequest{Location: "12781-12827-Austin"})
+	got, err := c.Search(t.Context(), &SearchRequest{Locations: []string{"12781-12827-Austin"}})
 	require.NoError(t, err)
 	require.Len(t, got.Jobs, 2)
 	assert.Equal(t, "1977", got.Jobs[0].ID)
@@ -73,42 +74,44 @@ func TestSearchLocationUnknown(t *testing.T) {
 	defer srv.Close()
 	c := NewClient(srv.URL, srv.Client())
 
-	got, err := c.Search(t.Context(), &SearchRequest{Location: "Seattle"})
+	got, err := c.Search(t.Context(), &SearchRequest{Locations: []string{"Seattle"}})
 	require.NoError(t, err)
 	assert.Empty(t, got.Jobs)
 	assert.Equal(t, 0, got.PageSize)
 }
 
-func TestSearchLocationMultiMatchFansOut(t *testing.T) {
+func TestSearchLocationMultiMatchORsInOneQuery(t *testing.T) {
 	srv := NewMockServer()
 	defer srv.Close()
 	c := NewClient(srv.URL, srv.Client())
 
-	// "US" matches Austin and Lorton options; encoded searches keep both
-	// cities in option order (Austin jobs, then Lorton jobs).
-	got, err := c.Search(t.Context(), &SearchRequest{Location: "US"})
+	// "US" matches the Austin and Lorton options; both encoded values ride
+	// one query as repeated searchLocation params and the server unions them
+	// in the board's native order.
+	got, err := c.Search(t.Context(), &SearchRequest{Locations: []string{"US"}})
 	require.NoError(t, err)
 	require.Len(t, got.Jobs, 3)
 	ids := []string{got.Jobs[0].ID, got.Jobs[1].ID, got.Jobs[2].ID}
-	assert.Equal(t, []string{"1977", "1922", "1925"}, ids)
+	assert.Equal(t, []string{"1977", "1925", "1922"}, ids)
 }
 
 func TestSearchLocationMultiMatchUsesEncodedOptions(t *testing.T) {
 	// Some tenants expose a country token in option labels while job cards
 	// only show city/state. Filtering unfiltered cards by the original "US"
-	// text would therefore drop both valid jobs; encoded option searches must
-	// remain the source of truth.
+	// text would therefore drop both valid jobs; encoded option values must
+	// remain the source of truth, sent together in a single request.
+	var requests atomic.Int32
+	var lastLocations []string
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		location := r.URL.Query().Get("searchLocation")
-		jobs := []string{
-			jobCardHTML("1", "Austin role", "Austin, TX"),
-			jobCardHTML("2", "Lorton role", "Lorton, VA"),
+		requests.Add(1)
+		locations := r.URL.Query()["searchLocation"]
+		lastLocations = locations
+		var jobs []string
+		if len(locations) == 0 || slices.Contains(locations, "1-1-Austin") {
+			jobs = append(jobs, jobCardHTML("1", "Austin role", "Austin, TX"))
 		}
-		switch location {
-		case "1-1-Austin":
-			jobs = jobs[:1]
-		case "1-2-Lorton":
-			jobs = jobs[1:]
+		if len(locations) == 0 || slices.Contains(locations, "1-2-Lorton") {
+			jobs = append(jobs, jobCardHTML("2", "Lorton role", "Lorton, VA"))
 		}
 		writeSearchHTML(w, []string{
 			`<option value="1-1-Austin">TX Austin US</option>`,
@@ -118,60 +121,36 @@ func TestSearchLocationMultiMatchUsesEncodedOptions(t *testing.T) {
 	defer srv.Close()
 
 	c := NewClient(srv.URL, srv.Client())
-	got, err := c.Search(t.Context(), &SearchRequest{Location: "US"})
+	got, err := c.Search(t.Context(), &SearchRequest{Locations: []string{"US"}})
 	require.NoError(t, err)
 	require.Len(t, got.Jobs, 2)
 	assert.Equal(t, []string{"1", "2"}, []string{got.Jobs[0].ID, got.Jobs[1].ID})
+	assert.Equal(t, []string{"1-1-Austin", "1-2-Lorton"}, lastLocations)
+	assert.Equal(t, int32(2), requests.Load(), "one probe plus one ORed search")
 }
 
-func TestSearchLocationTooBroadStopsAfterProbe(t *testing.T) {
+func TestSearchLocationBroadMatchStaysSingleQuery(t *testing.T) {
+	// A broad term matching many options (e.g. a state code on a large
+	// tenant) must not fan out into per-location requests.
 	var requests atomic.Int32
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		requests.Add(1)
-		options := make([]string, 11)
-		for i := range options {
-			options[i] = fmt.Sprintf(`<option value="1-%d-City">ST City %d US</option>`, i, i)
-		}
-		writeSearchHTML(w, options, nil, 1)
-	}))
-	defer srv.Close()
-
-	c := NewClient(srv.URL, srv.Client())
-	_, err := c.Search(t.Context(), &SearchRequest{Location: "US"})
-	require.ErrorIs(t, err, ErrLocationTooBroad)
-	assert.Equal(t, int32(1), requests.Load())
-}
-
-func TestSearchAllForLocations(t *testing.T) {
-	srv := NewMockServer()
-	defer srv.Close()
-	c := NewClient(srv.URL, srv.Client())
-
-	jobs, _, err := c.SearchAllForLocations(t.Context(), nil, []string{
-		"12781-12827-Austin",
-		"12781-12830-Lorton",
-	})
-	require.NoError(t, err)
-	require.Len(t, jobs, 3)
-	assert.Equal(t, []string{"1977", "1922", "1925"}, []string{jobs[0].ID, jobs[1].ID, jobs[2].ID})
-}
-
-func TestSearchAllForLocationsCapsRequests(t *testing.T) {
-	var requests atomic.Int32
+	var lastLocations []string
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		requests.Add(1)
-		writeSearchHTML(w,
-			[]string{`<option value="1-1-Austin">TX Austin US</option>`},
-			[]string{jobCardHTML("1", "Job 1", "Austin, TX")},
-			99,
-		)
+		lastLocations = r.URL.Query()["searchLocation"]
+		options := make([]string, 14)
+		for i := range options {
+			options[i] = fmt.Sprintf(`<option value="1-%d-City%d">CA City%d US</option>`, i, i, i)
+		}
+		writeSearchHTML(w, options, []string{jobCardHTML("1", "Role", "City0, CA")}, 1)
 	}))
 	defer srv.Close()
-	c := NewClient(srv.URL, srv.Client())
 
-	_, _, err := c.SearchAllForLocations(t.Context(), nil, []string{"1-1-Austin"})
-	require.ErrorIs(t, err, ErrLocationRequestLimit)
-	assert.Equal(t, int32(1), requests.Load())
+	c := NewClient(srv.URL, srv.Client())
+	got, err := c.Search(t.Context(), &SearchRequest{Locations: []string{"CA"}})
+	require.NoError(t, err)
+	assert.Len(t, got.Jobs, 1)
+	assert.Len(t, lastLocations, 14, "every matched option value rides the one query")
+	assert.Equal(t, int32(2), requests.Load(), "one probe plus one ORed search")
 }
 
 func TestSearchSendsFilterParams(t *testing.T) {

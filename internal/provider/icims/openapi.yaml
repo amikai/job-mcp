@@ -94,8 +94,9 @@ paths:
           description: |
             Encoded location option value from the portal's
             `select[name=searchLocation]` (e.g. `12781-12827-Austin`).
-            Free-text city names are ignored by the server; clients must
-            resolve user input against option labels/values first.
+            Repeat the parameter to OR several locations in one paginated
+            query. Free-text city names are ignored by the server; clients
+            must resolve user input against option labels/values first.
           schema:
             type: string
         - name: searchCategory

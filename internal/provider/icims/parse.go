@@ -214,12 +214,12 @@ func parseJobCard(card *goquery.Selection) (Job, bool) {
 		return Job{}, false
 	}
 
-	location := extractCardLocation(card)
 	return Job{
 		ID:       id,
 		Slug:     slug,
 		Title:    title,
-		Location: location,
+		Location: extractCardLocation(card),
+		PostedAt: extractCardPostedAt(card),
 	}, true
 }
 
@@ -240,6 +240,30 @@ func extractCardLocation(card *goquery.Selection) string {
 		return loc == ""
 	})
 	return loc
+}
+
+// extractCardPostedAt reads the card's posted date. The span following the
+// sr-only "… Posted Date" label shows relative text ("3 weeks ago") but
+// carries the absolute timestamp in its title attribute; prefer the latter.
+func extractCardPostedAt(card *goquery.Selection) string {
+	var posted string
+	card.Find("span.sr-only.field-label").EachWithBreak(func(_ int, s *goquery.Selection) bool {
+		label := strings.ToLower(strings.TrimSpace(s.Text()))
+		if !strings.Contains(label, "posted date") {
+			return true
+		}
+		next := s.NextFiltered("span")
+		if next.Length() == 0 {
+			return true
+		}
+		if title, ok := next.Attr("title"); ok && strings.TrimSpace(title) != "" {
+			posted = strings.TrimSpace(title)
+		} else {
+			posted = strings.Join(strings.Fields(next.Text()), " ")
+		}
+		return posted == ""
+	})
+	return posted
 }
 
 func jobIDAndSlugFromHref(href string) (id, slug string) {
@@ -382,6 +406,8 @@ func hiringOrgName(v any) string {
 	}
 }
 
+// locationFromJSONLD joins every jobLocation entry ("; "-separated, like the
+// other multi-location adapters); postings often list several places.
 func locationFromJSONLD(v any) string {
 	candidates, ok := v.([]any)
 	if !ok {
@@ -391,6 +417,8 @@ func locationFromJSONLD(v any) string {
 			return ""
 		}
 	}
+	var places []string
+	seen := make(map[string]struct{}, len(candidates))
 	for _, c := range candidates {
 		m, ok := c.(map[string]any)
 		if !ok {
@@ -406,11 +434,17 @@ func locationFromJSONLD(v any) string {
 				parts = append(parts, s)
 			}
 		}
-		if len(parts) > 0 {
-			return strings.Join(parts, ", ")
+		if len(parts) == 0 {
+			continue
 		}
+		place := strings.Join(parts, ", ")
+		if _, dup := seen[place]; dup {
+			continue
+		}
+		seen[place] = struct{}{}
+		places = append(places, place)
 	}
-	return ""
+	return strings.Join(places, "; ")
 }
 
 // isSearchLikeDetailBody reports whether a detail response body is actually

@@ -167,12 +167,12 @@ func runSearch(ctx context.Context, f searchFlags) error {
 	ctx, cancel := context.WithTimeout(ctx, f.timeout)
 	defer cancel()
 
+	req := icims.SearchRequest{Keyword: f.keyword, Page: f.page}
+	if f.location != "" {
+		req.Locations = []string{f.location}
+	}
 	client := icims.NewClient("https://"+c.Host, nil)
-	res, err := client.Search(ctx, &icims.SearchRequest{
-		Keyword:  f.keyword,
-		Location: f.location,
-		Page:     f.page,
-	})
+	res, err := client.Search(ctx, &req)
 	if err != nil {
 		return err
 	}

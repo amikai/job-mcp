@@ -92,39 +92,26 @@ func (a *ICIMSAdapter) Search(ctx context.Context, slug string, p SearchParams) 
 		return nil, err
 	}
 
-	var locValues []string
 	if location != "" {
-		locValues = icims.MatchLocationOptions(probe.Locations, location)
+		locValues := icims.MatchLocationOptions(probe.Locations, location)
 		if len(locValues) == 0 {
 			// Encoded option values that are not free-text matches still work
 			// when the caller already holds a portal token.
-			if icims.LooksLikeLocationValue(location) {
-				locValues = []string{location}
-			} else {
+			if !icims.LooksLikeLocationValue(location) {
 				return &SearchResult{Jobs: nil, TotalCount: 0, Page: page, TotalPages: 0}, nil
 			}
+			locValues = []string{location}
 		}
-	}
-
-	// Broad fuzzy inputs can hit several portal options. Use each encoded
-	// option as the source of truth because listing-card text may omit country
-	// or state tokens, while the provider client bounds matches and requests.
-	if len(locValues) > 1 {
-		all, _, err := client.SearchAllForLocations(ctx, &base, locValues)
-		if err != nil {
-			return nil, fmt.Errorf("icims: search %q: %w", host, err)
-		}
-		return icimsPageJobs(all, host, page, start), nil
-	}
-
-	if len(locValues) == 1 {
-		base.Location = locValues[0]
+		// Every match is kept: the server ORs repeated searchLocation values
+		// in one paginated query, and the encoded options stay the source of
+		// truth because listing-card text may omit country or state tokens.
+		base.Locations = locValues
 	}
 
 	// Discover the tenant page size from pr=0 under the active filters.
 	// When TotalPages > 1, pr=0 is always a full page.
 	first := probe
-	if base.Location != "" || len(base.Categories) > 0 || len(base.PositionTypes) > 0 {
+	if len(base.Locations) > 0 || len(base.Categories) > 0 || len(base.PositionTypes) > 0 {
 		first, err = client.Search(ctx, &base)
 		if err != nil {
 			return nil, fmt.Errorf("icims: search %q: %w", host, err)
@@ -187,20 +174,6 @@ func (a *ICIMSAdapter) Search(ctx context.Context, slug string, p SearchParams) 
 		Page:       page,
 		TotalPages: totalPages(total),
 	}, nil
-}
-
-func icimsPageJobs(all []icims.Job, host string, page, start int) *SearchResult {
-	total := len(all)
-	if start >= total {
-		return &SearchResult{Jobs: nil, TotalCount: total, Page: page, TotalPages: totalPages(total)}
-	}
-	end := min(start+pageSize, total)
-	return &SearchResult{
-		Jobs:       icimsJobSummaries(all[start:end], host),
-		TotalCount: total,
-		Page:       page,
-		TotalPages: totalPages(total),
-	}
 }
 
 // icimsExactTotal returns the job count for the current filters.
@@ -369,6 +342,7 @@ func icimsJobSummaries(jobs []icims.Job, host string) []JobSummary {
 			JobID:    j.ID,
 			Title:    j.Title,
 			Location: j.Location,
+			PostedAt: icimsPostedAt(j.PostedAt),
 			URL:      icims.JobURL(host, j.ID),
 		})
 	}
@@ -379,12 +353,15 @@ func icimsPostedAt(raw string) string {
 	if raw == "" {
 		return ""
 	}
-	// JSON-LD datePosted is typically ISO-8601 with Z.
+	// JSON-LD datePosted is typically ISO-8601 with Z; listing cards carry
+	// US-style timestamps in the date span's title attribute.
 	for _, layout := range []string{
 		time.RFC3339Nano,
 		time.RFC3339,
 		"2006-01-02T15:04:05.000Z",
 		"2006-01-02",
+		"1/2/2006 3:04 PM",
+		"1/2/2006",
 	} {
 		if t, err := time.Parse(layout, raw); err == nil {
 			return isoDate(t)

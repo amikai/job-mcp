@@ -108,15 +108,27 @@ func TestICIMSSearchLocation(t *testing.T) {
 
 func TestICIMSSearchLocationMultiMatch(t *testing.T) {
 	a := testICIMSAdapter(t)
-	// "US" hits Austin and Lorton options; must return all three board jobs
-	// in encoded option order.
+	// "US" hits the Austin and Lorton options; both ride one query as
+	// repeated searchLocation params, returning all three board jobs.
 	res, err := a.Search(t.Context(), mockFixtureHost, SearchParams{Location: "US"})
 	require.NoError(t, err)
 	require.Len(t, res.Jobs, 3)
 	assert.Equal(t, 3, res.TotalCount)
+	// The union keeps the board's native order.
 	assert.Equal(t, "1977", res.Jobs[0].JobID)
-	assert.Equal(t, "1922", res.Jobs[1].JobID)
-	assert.Equal(t, "1925", res.Jobs[2].JobID)
+	assert.Equal(t, "1925", res.Jobs[1].JobID)
+	assert.Equal(t, "1922", res.Jobs[2].JobID)
+}
+
+func TestICIMSSearchPostedAt(t *testing.T) {
+	a := testICIMSAdapter(t)
+	// The "posted" keyword routes the mock to the Peraton Lorton capture,
+	// whose single card carries a posted-date span.
+	res, err := a.Search(t.Context(), mockFixtureHost, SearchParams{Query: "posted"})
+	require.NoError(t, err)
+	require.Len(t, res.Jobs, 1)
+	assert.Equal(t, "167924", res.Jobs[0].JobID)
+	assert.Equal(t, "2026-06-25", res.Jobs[0].PostedAt)
 }
 
 func TestICIMSSearchPageOverflow(t *testing.T) {

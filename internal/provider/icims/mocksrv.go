@@ -22,6 +22,9 @@ var mockSearchLocationLortonRsp []byte
 //go:embed testdata/search_no_results_rsp.html
 var mockSearchNoResultsRsp []byte
 
+//go:embed testdata/search_posted_rsp.html
+var mockSearchPostedRsp []byte
+
 //go:embed testdata/search_unknown_company_rsp.html
 var mockSearchUnknownCompanyRsp []byte
 
@@ -37,14 +40,23 @@ func NewMockServer() *httptest.Server {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/jobs/search", func(w http.ResponseWriter, r *http.Request) {
 		q := r.URL.Query()
-		loc := q.Get("searchLocation")
+		// searchLocation repeats with OR semantics, mirroring the live portal.
+		locs := strings.ToLower(strings.Join(q["searchLocation"], " "))
+		hasAustin := strings.Contains(locs, "austin")
+		hasLorton := strings.Contains(locs, "lorton")
 		switch {
 		case q.Get("searchKeyword") == "zzzznonexistentkeyword12345":
 			serveHTML(mockSearchNoResultsRsp)(w, r)
-		case loc != "" && (strings.Contains(loc, "Austin") || strings.Contains(strings.ToLower(loc), "austin")):
+		case strings.Contains(strings.ToLower(q.Get("searchKeyword")), "posted"):
+			// Peraton Lorton capture — one card with a posted-date span.
+			serveHTML(mockSearchPostedRsp)(w, r)
+		case hasAustin && hasLorton:
+			// The union of both locations is the whole three-job board.
+			serveHTML(mockSearchRsp)(w, r)
+		case hasAustin:
 			// Encoded value (12781-12827-Austin) — Austin-only jobs 1977, 1922.
 			serveHTML(mockSearchLocationRsp)(w, r)
-		case loc != "" && (strings.Contains(loc, "Lorton") || strings.Contains(strings.ToLower(loc), "lorton")):
+		case hasLorton:
 			// Encoded value (12781-12830-Lorton) — Lorton-only job 1925.
 			serveHTML(mockSearchLocationLortonRsp)(w, r)
 		case strings.Contains(strings.ToLower(q.Get("searchKeyword")), "product"):

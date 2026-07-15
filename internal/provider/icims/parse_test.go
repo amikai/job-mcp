@@ -85,6 +85,19 @@ func TestLooksLikeLocationValue(t *testing.T) {
 	assert.False(t, LooksLikeLocationValue("TX Austin US"))
 }
 
+func TestParseSearchPostedFixture(t *testing.T) {
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(string(mockSearchPostedRsp)))
+	require.NoError(t, err)
+
+	res, err := parseSearchHTML(doc)
+	require.NoError(t, err)
+	require.Len(t, res.Jobs, 1)
+	assert.Equal(t, "167924", res.Jobs[0].ID)
+	// The date span's title attribute carries the absolute timestamp; the
+	// visible text is only relative ("3 weeks ago").
+	assert.Equal(t, "6/25/2026 4:15 PM", res.Jobs[0].PostedAt)
+}
+
 func TestParseSearchNoResults(t *testing.T) {
 	doc, err := goquery.NewDocumentFromReader(strings.NewReader(string(mockSearchNoResultsRsp)))
 	require.NoError(t, err)
@@ -106,6 +119,23 @@ func TestParseJobDetailFixture(t *testing.T) {
 	assert.Contains(t, d.Location, "Austin")
 	assert.Contains(t, d.DescriptionHTML, "Overview")
 	assert.Equal(t, "FULL_TIME", d.EmploymentType)
+}
+
+func TestParseJobDetailMultipleLocations(t *testing.T) {
+	// Mirrors live Peraton job 168635: two jobLocation entries must both
+	// survive, not just the first.
+	page := `<html><head><script type="application/ld+json">
+	{"@context":"https://schema.org","@type":"JobPosting","title":"Systems Engineer",
+	 "jobLocation":[
+	   {"@type":"Place","address":{"addressLocality":"Herndon","addressRegion":"VA","addressCountry":"US"}},
+	   {"@type":"Place","address":{"addressLocality":"Annapolis Junction","addressRegion":"MD","addressCountry":"US"}}
+	 ]}</script></head><body></body></html>`
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(page))
+	require.NoError(t, err)
+
+	d, ok := parseJobDetailHTML(doc, "168635")
+	require.True(t, ok)
+	assert.Equal(t, "Herndon, VA, US; Annapolis Junction, MD, US", d.Location)
 }
 
 func TestParseJobDetailNotFoundBody(t *testing.T) {
