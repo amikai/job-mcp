@@ -107,6 +107,7 @@ var careersHostPatternsByAdapter = map[string]string{
 	"recruitee":      "<company>.recruitee.com",
 	"eightfold":      "<tenant>.eightfold.ai/careers (roster tenants only)",
 	"successfactors": "jobs.<company>.com/search (roster tenants only)",
+	"icims":          "careers-<slug>.icims.com/jobs/search",
 }
 
 // careersHostPatterns lists the careers-page URL shapes for r's registered

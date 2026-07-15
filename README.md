@@ -13,8 +13,9 @@ sites from any MCP client: Claude Code, Codex, Gemini CLI, and others.
   **[Workday](https://www.workday.com)**, **[Ashby](https://www.ashbyhq.com)**,
   **[Greenhouse](https://www.greenhouse.com)**, **[Lever](https://www.lever.co)**,
   **[Teamtailor](https://www.teamtailor.com)**, **[Recruitee](https://recruitee.com)**,
-  **[Eightfold](https://eightfold.ai)**, and
-  **[SAP SuccessFactors](https://www.sap.com/products/hcm/recruiting-software.html)**
+  **[Eightfold](https://eightfold.ai)**,
+  **[SAP SuccessFactors](https://www.sap.com/products/hcm/recruiting-software.html)**,
+  and **[iCIMS](https://www.icims.com)**
   ATS platforms, all behind one company-search tool. A company outside the
   built-in roster works too: pass its careers-page URL on any of those platforms
   except Eightfold and SAP SuccessFactors, which support roster companies only.
