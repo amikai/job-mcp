@@ -90,8 +90,8 @@ House style (see v0.5.5, v0.6.0, v0.7.0 for worked examples):
   lead story, opening phrase bolded), `Added`, `Changed`, `Fixed`.
 - Bullets are full sentences about user-visible outcomes, not commit
   restatements; concrete numbers (roster counts) when they carry the
-  story; each bullet ends with its PR links
-  `([#N](https://github.com/amikai/openings-mcp/pull/N))`.
+  story; each bullet ends with its PR refs `(#N)` — GitHub autolinks
+  them in release notes, no full URL needed.
 - Internal-only changes (CI, refactors, docs, skills) are omitted
   unless users can observe the difference.
 - Last line: `**Full Changelog**:
