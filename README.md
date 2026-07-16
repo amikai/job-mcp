@@ -17,7 +17,8 @@ sites from any MCP client: Claude Code, Codex, Gemini CLI, and others.
   **[Eightfold](https://eightfold.ai)**,
   **[SAP SuccessFactors](https://www.sap.com/products/hcm/recruiting-software.html)**,
   **[SmartRecruiters](https://www.smartrecruiters.com)**,
-  and **[iCIMS](https://www.icims.com)**
+  **[iCIMS](https://www.icims.com)**,
+  and **[Oracle Recruiting Cloud](https://www.oracle.com/human-capital-management/recruiting/)**
   ATS platforms, all behind one company-search tool. A company outside the
   built-in roster works too: pass its careers-page URL on any of those platforms
   except Eightfold and SAP SuccessFactors, which support roster companies only.
