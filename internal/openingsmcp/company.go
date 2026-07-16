@@ -16,7 +16,7 @@ var companySearchInputRawSchema = []byte(`{
 	"properties": {
 		"company": {
 			"type": "string",
-			"description": "Company name or slug, e.g. 'nvidia' or 'NVIDIA Corp', or a recognized public careers-page URL hosted by a supported ATS, e.g. 'https://nvidia.wd5.myworkdayjobs.com/NVIDIAExternalCareerSite'. Arbitrary or custom careers sites are not supported; Eightfold and SAP SuccessFactors URLs only work for companies already in the curated roster. If a name isn't recognized, the error suggests the closest supported companies.",
+			"description": "Company name or slug, e.g. 'nvidia', or a recognized public careers-page URL on a supported ATS. Other careers URLs are unsupported; some ATS providers accept URLs only for companies in the curated roster.",
 			"minLength": 1
 		},
 		"query": {
@@ -109,7 +109,7 @@ func companySearch(ctx context.Context, reg *ats.Registry, in *companySearchInpu
 }
 
 type companyFiltersInput struct {
-	Company string `json:"company" jsonschema:"Company name or slug, or a recognized public careers-page URL hosted by a supported ATS. Arbitrary or custom careers sites are unsupported; Eightfold and SAP SuccessFactors URLs only work for curated companies."`
+	Company string `json:"company" jsonschema:"Company name or slug, or a recognized public careers-page URL on a supported ATS. Other careers URLs are unsupported; some ATS providers accept URLs only for companies in the curated roster."`
 }
 
 type companyFiltersOutput struct {
@@ -129,7 +129,7 @@ func companyFilters(ctx context.Context, reg *ats.Registry, in *companyFiltersIn
 }
 
 type companyDetailInput struct {
-	Company string `json:"company" jsonschema:"Company name or slug, or a recognized public careers-page URL hosted by a supported ATS. Arbitrary or custom careers sites are unsupported; Eightfold and SAP SuccessFactors URLs only work for curated companies."`
+	Company string `json:"company" jsonschema:"Company name or slug, or a recognized public careers-page URL on a supported ATS. Other careers URLs are unsupported; some ATS providers accept URLs only for companies in the curated roster."`
 	JobID   string `json:"job_id" jsonschema:"job_id from search_jobs_by_company results."`
 }
 
@@ -167,7 +167,7 @@ func companyDetail(ctx context.Context, reg *ats.Registry, in *companyDetailInpu
 func RegisterCompany(s *mcp.Server, reg *ats.Registry) {
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "search_jobs_by_company",
-		Description: "Search a specific company's official job openings. Covers thousands of curated companies and accepts recognized public careers-page URLs hosted by supported ATS providers. Arbitrary or custom careers sites are unsupported; unlisted Eightfold and SAP SuccessFactors tenants cannot be addressed by URL. If a company name isn't recognized, the error suggests the closest supported names. Results are summaries — use get_job_detail_by_company for full descriptions.",
+		Description: "Search official job postings for a specific company.",
 		Annotations: &mcp.ToolAnnotations{Title: "Search jobs by company", ReadOnlyHint: true},
 		InputSchema: companySearchInputSchema,
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, in *companySearchInput) (*mcp.CallToolResult, *companySearchOutput, error) {

@@ -110,3 +110,13 @@ func TestResolveUnrecognizedCareersURLTeaches(t *testing.T) {
 	require.ErrorContains(t, err, "careers URL", "URL misses should get the URL error, not name suggestions")
 	assert.NotContains(t, err.Error(), "closest matches", "no levenshtein suggestions for URLs")
 }
+
+func TestResolveUnlistedEightfoldURLTeachesRosterRequirement(t *testing.T) {
+	r, err := NewRegistry(&fakeAdapter{name: "eightfold"})
+	require.NoError(t, err)
+
+	_, _, err = r.Resolve("https://unlisted-tenant.eightfold.ai/careers")
+	require.ErrorContains(t, err, "Eightfold")
+	assert.ErrorContains(t, err, `tenant "unlisted-tenant" is not in the curated roster`)
+	assert.ErrorContains(t, err, "cannot be searched by URL")
+}

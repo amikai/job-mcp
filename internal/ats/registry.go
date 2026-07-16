@@ -4,6 +4,7 @@ import (
 	"cmp"
 	"errors"
 	"fmt"
+	"net/url"
 	"slices"
 	"strings"
 	"unicode"
@@ -105,10 +106,42 @@ func (r *Registry) Resolve(company string) (Adapter, string, error) {
 				return a, slug, nil
 			}
 		}
+		if err := r.rosterOnlyCareersURLError(u); err != nil {
+			return nil, "", err
+		}
 		return nil, "", fmt.Errorf("unrecognized careers URL %q; supported careers-page hosts: %s", company, strings.Join(r.careersHostPatterns(), ", "))
 	}
 	return nil, "", fmt.Errorf("unknown company %q; closest matches: %s. %d companies are supported — pass one of the suggested slugs",
 		company, strings.Join(r.suggest(key, 3), ", "), len(r.bySlug))
+}
+
+// rosterOnlyCareersURLError gives a provider-specific explanation when a URL
+// has a recognizable shared host but still requires curated tenant metadata.
+// SuccessFactors cannot use this path because its tenants have unrelated
+// custom domains with no reliable host pattern.
+func (r *Registry) rosterOnlyCareersURLError(u *url.URL) error {
+	if !r.hasAdapter("eightfold") {
+		return nil
+	}
+	host := strings.ToLower(u.Hostname())
+	if !strings.HasSuffix(host, ".eightfold.ai") {
+		return nil
+	}
+	tenant := strings.TrimSuffix(host, ".eightfold.ai")
+	if tenant == "" {
+		return nil
+	}
+	return fmt.Errorf(
+		"unrecognized Eightfold careers URL %q: tenant %q is not in the curated roster and cannot be searched by URL",
+		u.String(),
+		tenant,
+	)
+}
+
+func (r *Registry) hasAdapter(name string) bool {
+	return slices.ContainsFunc(r.adapters, func(a Adapter) bool {
+		return a.Name() == name
+	})
 }
 
 // careersHostPatterns lists the careers-page URL shapes for r's registered

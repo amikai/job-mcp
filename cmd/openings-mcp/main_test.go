@@ -93,8 +93,7 @@ func TestServerListsJobTools(t *testing.T) {
 	}
 
 	companyTool := got["search_jobs_by_company"]
-	assert.Contains(t, companyTool.Description, "thousands of curated companies")
-	assert.Contains(t, companyTool.Description, "Arbitrary or custom careers sites are unsupported")
+	assert.Equal(t, "Search official job postings for a specific company.", companyTool.Description)
 
 	companyInput, ok := companyTool.InputSchema.(map[string]any)
 	require.True(t, ok)
@@ -104,6 +103,10 @@ func TestServerListsJobTools(t *testing.T) {
 	require.True(t, ok)
 	assert.Equal(t, float64(1), companyProperty["minLength"])
 	assert.Contains(t, companyProperty["description"], "recognized public careers-page URL")
+	assert.Contains(t, companyProperty["description"], "Other careers URLs are unsupported")
+	assert.Contains(t, companyProperty["description"], "some ATS providers accept URLs only for companies in the curated roster")
+	assert.NotContains(t, companyProperty["description"], "Eightfold")
+	assert.NotContains(t, companyProperty["description"], "SuccessFactors")
 
 	filtersProperty, ok := companyProperties["filters"].(map[string]any)
 	require.True(t, ok)
@@ -162,8 +165,10 @@ func TestServerListsJobTools(t *testing.T) {
 
 func TestServerInstructionsDisambiguateCompanyAndSourceRouting(t *testing.T) {
 	assert.Contains(t, serverInstructions, "A company name by itself is not a source selection.")
-	assert.Contains(t, serverInstructions, "recognized public careers-page URLs hosted by supported ATS providers")
-	assert.Contains(t, serverInstructions, "Eightfold and SAP SuccessFactors URLs only work for companies already in the curated roster")
+	assert.Contains(t, serverInstructions, "recognized public careers-page URLs on supported ATS providers")
+	assert.Contains(t, serverInstructions, "some ATS providers accept URLs only for companies already in the curated roster")
+	assert.NotContains(t, serverInstructions, "Eightfold")
+	assert.NotContains(t, serverInstructions, "SuccessFactors")
 	assert.NotContains(t, serverInstructions, "When the user names a site or company, use that provider's tools.")
 }
 
