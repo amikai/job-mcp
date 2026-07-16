@@ -196,3 +196,26 @@ func TestATSRegistryIncludesTeamtailor(t *testing.T) {
 	assert.Equal(t, "teamtailor", adapter.Name())
 	assert.Equal(t, "unlisted.na.teamtailor.com", slug)
 }
+
+func TestATSRegistryIncludesOracle(t *testing.T) {
+	registry, err := newATSRegistry(http.DefaultClient, http.DefaultClient)
+	require.NoError(t, err)
+
+	adapter, slug, err := registry.Resolve("Mayo Clinic")
+	require.NoError(t, err)
+	assert.Equal(t, "oracle", adapter.Name())
+	assert.Equal(t, "fa-euwp-saasfaprod1.fa.ocs.oraclecloud.com/CX_1", slug)
+
+	adapter, slug, err = registry.Resolve(
+		"https://fa-example.fa.us2.oraclecloud.com/" +
+			"hcmUI/CandidateExperience/en/sites/Acme/jobs",
+	)
+	require.NoError(t, err)
+	assert.Equal(t, "oracle", adapter.Name())
+	assert.Equal(
+		t,
+		"https://fa-example.fa.us2.oraclecloud.com/"+
+			"hcmUI/CandidateExperience/en/sites/Acme/jobs",
+		slug,
+	)
+}

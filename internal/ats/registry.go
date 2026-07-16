@@ -46,6 +46,7 @@ var careersHostPatternsByAdapter = map[string]string{
 	"successfactors":  "jobs.<company>.com/search (roster tenants only)",
 	"smartrecruiters": "jobs.smartrecruiters.com/<company>",
 	"icims":           "careers-<slug>.icims.com/jobs/search",
+	"oracle":          "<fusion>.oraclecloud.com/hcmUI/CandidateExperience/<lang>/sites/<site>/jobs",
 }
 
 // NewRegistry unions the adapters' rosters. A slug or normalized display

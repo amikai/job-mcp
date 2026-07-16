@@ -205,6 +205,7 @@ func newATSRegistry(hc, hcEightfold *http.Client) (*ats.Registry, error) {
 		ats.NewSuccessFactorsAdapter(hc),
 		smartrecruitersAdapter,
 		ats.NewICIMSAdapter(hc),
+		ats.NewOracleAdapter(hc),
 	)
 }
 
