@@ -12,7 +12,7 @@ func TestCompaniesLoaded(t *testing.T) {
 	require.NotEmpty(t, Companies)
 	for _, c := range Companies {
 		assert.NotEmpty(t, c.Name)
-		assert.Contains(t, c.Host, "oraclecloud.com")
+		assert.True(t, strings.HasSuffix(c.Host, ".oraclecloud.com"))
 		assert.Equal(t, strings.ToLower(c.Host), c.Host)
 		assert.NotEmpty(t, c.Site)
 		assert.NotEmpty(t, c.SiteNumber)
@@ -25,13 +25,26 @@ func TestCompaniesLoaded(t *testing.T) {
 }
 
 func TestLoadCompaniesRejectsBadHost(t *testing.T) {
-	_, err := loadCompanies([]byte(`- company: "X"
-  host: "example.com"
+	tests := []struct {
+		name string
+		host string
+	}{
+		{name: "unrelated domain", host: "example.com"},
+		{name: "spoofed suffix", host: "foo.oraclecloud.com.example.com"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			data := []byte(`- company: "X"
+  host: "` + tt.host + `"
   site: "CX_1"
   site_number: "CX_1"
-`))
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "oraclecloud.com")
+`)
+			_, err := loadCompanies(data)
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), "oraclecloud.com")
+		})
+	}
 }
 
 func TestLoadCompaniesRejectsDuplicateKey(t *testing.T) {

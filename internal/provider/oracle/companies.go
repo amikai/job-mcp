@@ -85,7 +85,7 @@ func validateCompany(c Company) error {
 		return fmt.Errorf("company %q: host is required", c.Name)
 	case c.Host != strings.ToLower(c.Host):
 		return fmt.Errorf("company %q: host %q must be lowercase", c.Name, c.Host)
-	case !strings.Contains(c.Host, "oraclecloud.com"):
+	case !strings.HasSuffix(c.Host, ".oraclecloud.com"):
 		return fmt.Errorf("company %q: host %q must be an oraclecloud.com Fusion host", c.Name, c.Host)
 	case strings.TrimSpace(c.Site) == "":
 		return fmt.Errorf("company %q: site is required", c.Name)
