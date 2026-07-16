@@ -63,7 +63,6 @@ type SearchParams struct {
 	Page int
 }
 
-// SearchResult is one page returned by [Adapter.Search].
 type SearchResult struct {
 	Jobs       []JobSummary
 	TotalCount int
