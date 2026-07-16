@@ -62,7 +62,7 @@ func TestSearchJobsFacets(t *testing.T) {
 	client := newTestClient(t)
 
 	got, err := client.SearchJobs(t.Context(), searchParams(
-		"findReqs;siteNumber=CX_1,facetsList=TITLES;LOCATIONS;CATEGORIES;WORKPLACE_TYPES,limit=1,offset=0",
+		"findReqs;siteNumber=CX_1,facetsList=TITLES;LOCATIONS;CATEGORIES;WORKPLACE_TYPES;POSTING_DATES;WORK_LOCATIONS;ORGANIZATIONS,limit=1,offset=0",
 	))
 	require.NoError(t, err)
 	require.Len(t, got.Items, 1)
@@ -72,11 +72,17 @@ func TestSearchJobsFacets(t *testing.T) {
 	require.Len(t, page.LocationsFacet, 10)
 	require.Len(t, page.CategoriesFacet, 10)
 	require.Len(t, page.WorkplaceTypesFacet, 1)
+	require.Len(t, page.PostingDatesFacet, 3)
+	require.Len(t, page.WorkLocationsFacet, 10)
+	require.Len(t, page.OrganizationsFacet, 8)
 
 	assert.Equal(t, "NURSING", page.TitlesFacet[0].ID.Or(""))
 	assert.EqualValues(t, 300000006426003, page.LocationsFacet[2].ID.Or(0))
 	assert.Equal(t, "Rochester, MN, United States", page.LocationsFacet[2].Name.Or(""))
 	assert.Equal(t, "ORA_ON_SITE", page.WorkplaceTypesFacet[0].ID.Or(""))
+	assert.EqualValues(t, 7, page.PostingDatesFacet[0].ID.Or(0))
+	assert.EqualValues(t, 300000034547579, page.WorkLocationsFacet[0].ID.Or(0))
+	assert.EqualValues(t, 1, page.OrganizationsFacet[0].ID.Or(0))
 }
 
 func TestGetJobDetail(t *testing.T) {

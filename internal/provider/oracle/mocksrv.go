@@ -7,19 +7,19 @@ import (
 	"strings"
 )
 
-//go:embed testdata/search_resp.json
+//go:embed testdata/search_rsp.json
 var mockSearchResponse []byte
 
-//go:embed testdata/search_filtered_resp.json
+//go:embed testdata/search_filtered_rsp.json
 var mockFilteredSearchResponse []byte
 
-//go:embed testdata/search_facets_resp.json
+//go:embed testdata/search_facets_rsp.json
 var mockFacetSearchResponse []byte
 
-//go:embed testdata/job_detail_resp.json
+//go:embed testdata/job_detail_rsp.json
 var mockJobDetailResponse []byte
 
-//go:embed testdata/job_detail_not_found_resp.json
+//go:embed testdata/job_detail_not_found_rsp.json
 var mockJobDetailNotFoundResponse []byte
 
 // NewMockServer returns an httptest.Server that mimics the Oracle Recruiting
@@ -32,7 +32,7 @@ func NewMockServer() *httptest.Server {
 		switch {
 		case strings.Contains(finder, `keyword="analyst"`):
 			serveMockJSON(mockFilteredSearchResponse)(w, r)
-		case strings.Contains(finder, "facetsList=TITLES;LOCATIONS;CATEGORIES;WORKPLACE_TYPES"):
+		case strings.Contains(finder, "facetsList=TITLES;LOCATIONS;CATEGORIES;WORKPLACE_TYPES;POSTING_DATES;WORK_LOCATIONS;ORGANIZATIONS"):
 			serveMockJSON(mockFacetSearchResponse)(w, r)
 		default:
 			serveMockJSON(mockSearchResponse)(w, r)
