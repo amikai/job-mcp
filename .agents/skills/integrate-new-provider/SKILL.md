@@ -1,6 +1,6 @@
 ---
 name: integrate-new-provider
-description: Use when adding a new job-listings provider to openings-mcp — a new ATS platform (like Workday, Greenhouse, Lever, Ashby, SmartRecruiters) or a dedicated job board or careers site (like 104, Cake, Google, NVIDIA, TSMC) — or when wiring an existing provider package into the MCP server.
+description: Use when adding a new job-listings provider to openings-mcp — a new ATS platform (like Workday, Greenhouse, Lever, Ashby, SmartRecruiters) or a dedicated job board or careers site (like 104, Cake, Google, NVIDIA, TSMC) — or when finishing a stalled integration by wiring an existing provider package into the MCP server, e.g. its client, tests, and debug CLI all work but its companies aren't reachable through the MCP tools.
 ---
 
 # Integrate a New Provider
@@ -10,8 +10,13 @@ description: Use when adding a new job-listings provider to openings-mcp — a n
 Every provider follows the same pipeline: hunt for an official API spec →
 capture real API traffic as fixtures → minimal OpenAPI spec →
 ogen-generated client → provider package
-with fixture-replaying tests → debug CLI → user-facing surface (ATS adapter
-or dedicated MCP tools). Land each stage as its own PR; don't skip ahead.
+with fixture-replaying tests → debug CLI → MCP surface (ATS adapter or
+dedicated tools, wired into the server). Work the stages in order —
+each builds on the previous one's verified output; don't skip ahead.
+The integration is done when the provider is reachable
+through the MCP server, not when the debug CLI works — if a session
+stops before the surface stage, hand off the remaining stages
+explicitly.
 SmartRecruiters (`internal/provider/smartrecruiters`, `cmd/smartrecruiters`)
 is the most recent worked example.
 
@@ -81,7 +86,7 @@ is the most recent worked example.
    `detail`, and `companies` subcommands for live manual checks. Validate
    pagination flags and reject stray positional args (mirror
    `cmd/smartrecruiters`).
-6. **Surface**
+6. **MCP surface**
    - ATS adapter: `internal/ats/<name>.go` implementing `Adapter`
      (Name, Roster, ParseCareersURL, Search, Filters, Detail) + tests.
      Register it in `newATSRegistry` (`cmd/openings-mcp/main.go`), add its
@@ -90,6 +95,26 @@ is the most recent worked example.
      (`cmd/verify-companies/main.go`).
    - Dedicated tools: `internal/openingsmcp/<name>.go` with
      `Register<Name>` + tests; wire the client in `newServer`.
+
+   Finish the stage with a live smoke test through the real MCP path:
+   sample 3–5 companies from the provider's `companies.yaml` and send
+   actual MCP requests into the server — every sampled company must
+   return live listings via `search_jobs_by_company`, and
+   `get_job_detail_by_company` must work on at least one returned
+   job_id. Over stdio that is initialize → notifications/initialized →
+   tools/call, keeping stdin open (trailing `sleep`) so the server
+   doesn't EOF before answering:
+
+   ```bash
+   (echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"smoke","version":"0"}}}'
+    echo '{"jsonrpc":"2.0","method":"notifications/initialized"}'
+    echo '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"search_jobs_by_company","arguments":{"company":"<roster company>"}}}'
+    sleep 15) | go run ./cmd/openings-mcp
+   ```
+
+   Dedicated-tool providers have no roster: run the same requests
+   against the new `<name>_search_jobs` / `<name>_get_job_detail`
+   tools with a few real queries instead.
 7. **Roster curation** — bulk-discovered candidates go in
    `unverified/<name>.yaml`; verify entries with `cmd/verify-companies`
    (runs the real adapter path) before promoting them into the curated
@@ -106,10 +131,12 @@ is the most recent worked example.
 
 ## Common Mistakes
 
+- Stopping after the debug CLI (step 5): users only reach the provider
+  through the MCP server, so a provider package that isn't registered in
+  `cmd/openings-mcp` is invisible no matter how complete its client,
+  tests, and CLI are.
 - Forgetting to add the new `openapi.yaml` to `OPENAPI_SPECS`, so
   `make validate-openapi` silently skips it.
 - Roster slug or display-name collisions across adapters:
   `ats.NewRegistry` fails at startup by design — check the other
   `companies.yaml` files before adding entries.
-- Building the whole integration in one PR; each pipeline stage is
-  independently reviewable and should land separately.
