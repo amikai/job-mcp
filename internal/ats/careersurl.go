@@ -47,19 +47,3 @@ func matchCareersSlug(re *regexp.Regexp, u *url.URL) (string, bool) {
 	}
 	return slug, true
 }
-
-// firstPathSegment returns the first non-empty path segment, URL-decoded,
-// or "" when the path has none (or decoding fails).
-func firstPathSegment(u *url.URL) string {
-	for seg := range strings.SplitSeq(strings.Trim(u.EscapedPath(), "/"), "/") {
-		if seg == "" {
-			continue
-		}
-		dec, err := url.PathUnescape(seg)
-		if err != nil {
-			return ""
-		}
-		return dec
-	}
-	return ""
-}

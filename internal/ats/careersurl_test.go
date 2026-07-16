@@ -3,6 +3,7 @@ package ats
 import (
 	"net/http"
 	"net/url"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -40,6 +41,23 @@ func TestParseCareersInput(t *testing.T) {
 	}
 }
 
+// firstPathSegment returns the first non-empty path segment, URL-decoded,
+// or "" when the path has none (or decoding fails). Test-only helper for
+// fakeAdapter; production ParseCareersURL paths use matchCareersSlug.
+func firstPathSegment(u *url.URL) string {
+	for seg := range strings.SplitSeq(strings.Trim(u.EscapedPath(), "/"), "/") {
+		if seg == "" {
+			continue
+		}
+		dec, err := url.PathUnescape(seg)
+		if err != nil {
+			return ""
+		}
+		return dec
+	}
+	return ""
+}
+
 func TestFirstPathSegment(t *testing.T) {
 	assert.Equal(t, "acme", firstPathSegment(mustParseURL(t, "https://x.co/acme/jobs/1")))
 	assert.Equal(t, "acme co", firstPathSegment(mustParseURL(t, "https://x.co/acme%20co")))
@@ -75,6 +93,11 @@ func TestSlugAdaptersParseCareersURL(t *testing.T) {
 		{name: "ashby", adapter: ab, raw: "https://jobs.ashbyhq.com/acme", slug: "acme", ok: true},
 		{name: "ashby url-encoded org", adapter: ab, raw: "https://jobs.ashbyhq.com/Acme%20Inc", slug: "Acme Inc", ok: true},
 		{name: "ashby wrong host", adapter: ab, raw: "https://jobs.lever.co/acme", ok: false},
+		// Empty path segments are rejected (unlike firstPathSegment, which
+		// skipped them). A double slash is not a real careers URL shape.
+		{name: "lever double slash rejected", adapter: lv, raw: "https://jobs.lever.co//acme", ok: false},
+		{name: "ashby double slash rejected", adapter: ab, raw: "https://jobs.ashbyhq.com//acme", ok: false},
+		{name: "greenhouse double slash rejected", adapter: gh, raw: "https://job-boards.greenhouse.io//acme", ok: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

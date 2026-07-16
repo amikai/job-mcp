@@ -20,6 +20,9 @@ var _ Adapter = (*ICIMSAdapter)(nil)
 
 // icimsCareersHostRE matches *.icims.com hosts. login*, cdn*, api.*, and
 // www.icims.com are rejected after the match — they are not job boards.
+// Host labels must start and end alphanumeric (stricter than a bare
+// HasSuffix check); intentional, since iCIMS has no roster gate and the
+// host is the slug.
 //
 // Examples (hostname):
 //   - careers-peraton.icims.com
