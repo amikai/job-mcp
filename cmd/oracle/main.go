@@ -21,35 +21,31 @@ import (
 func main() {
 	rootFlags := ff.NewFlagSet("oracle")
 	var (
-		careersURL = rootFlags.StringLong("url", "", "Oracle Candidate Experience careers URL")
-		timeout    = rootFlags.DurationLong("timeout", 60*time.Second, "combined discovery and API request timeout")
-		format     = rootFlags.StringEnumLong("format", "output format", "text", "json")
+		company = rootFlags.StringLong("company", "", "curated company name or Oracle Candidate Experience careers URL")
+		timeout = rootFlags.DurationLong("timeout", 60*time.Second, "combined discovery and API request timeout")
+		format  = rootFlags.StringEnumLong("format", "output format", "text", "json")
 	)
 	rootCmd := &ff.Command{
 		Name:  "oracle",
-		Usage: "oracle --url CAREERS-URL [FLAGS] <discover|search|facets|detail> [FLAGS]",
+		Usage: "oracle --company COMPANY [FLAGS] <companies|search|facets|detail> [FLAGS]",
 		Flags: rootFlags,
 	}
 	env := commandEnv{httpClient: http.DefaultClient, out: os.Stdout}
 
-	discoverFlags := ff.NewFlagSet("discover").SetParent(rootFlags)
-	discoverCmd := &ff.Command{
-		Name:      "discover",
-		Usage:     "oracle --url CAREERS-URL discover [--format text|json]",
-		ShortHelp: "resolve the public site alias, internal site number, and API origin",
-		Flags:     discoverFlags,
+	companiesFlags := ff.NewFlagSet("companies").SetParent(rootFlags)
+	companiesCmd := &ff.Command{
+		Name:      "companies",
+		Usage:     "oracle companies [--format text|json]",
+		ShortHelp: "list curated Oracle companies (company name and careers URL)",
+		Flags:     companiesFlags,
 		Exec: func(ctx context.Context, args []string) error {
 			if len(args) > 0 {
-				return fmt.Errorf("discover takes no positional arguments, got %v", args)
+				return fmt.Errorf("companies takes no positional arguments, got %v", args)
 			}
-			return runDiscover(ctx, commonFlags{
-				careersURL: *careersURL,
-				timeout:    *timeout,
-				format:     *format,
-			}, env)
+			return runCompanies(*format, env)
 		},
 	}
-	rootCmd.Subcommands = append(rootCmd.Subcommands, discoverCmd)
+	rootCmd.Subcommands = append(rootCmd.Subcommands, companiesCmd)
 
 	searchFlagsSet := ff.NewFlagSet("search").SetParent(rootFlags)
 	var (
@@ -60,7 +56,7 @@ func main() {
 	)
 	searchCmd := &ff.Command{
 		Name:      "search",
-		Usage:     "oracle --url CAREERS-URL search [--keyword TEXT] [--filter name=id]... [--limit N] [--offset N] [--format text|json]",
+		Usage:     "oracle --company COMPANY search [--keyword TEXT] [--filter name=id]... [--limit N] [--offset N] [--format text|json]",
 		ShortHelp: "search public requisitions with server-side keyword and facet filters",
 		Flags:     searchFlagsSet,
 		Exec: func(ctx context.Context, args []string) error {
@@ -69,9 +65,9 @@ func main() {
 			}
 			return runSearch(ctx, searchFlags{
 				commonFlags: commonFlags{
-					careersURL: *careersURL,
-					timeout:    *timeout,
-					format:     *format,
+					company: *company,
+					timeout: *timeout,
+					format:  *format,
 				},
 				keyword: *searchKeyword,
 				limit:   *searchLimit,
@@ -89,7 +85,7 @@ func main() {
 	)
 	facetsCmd := &ff.Command{
 		Name:      "facets",
-		Usage:     "oracle --url CAREERS-URL facets [--keyword TEXT] [--filter name=id]... [--format text|json]",
+		Usage:     "oracle --company COMPANY facets [--keyword TEXT] [--filter name=id]... [--format text|json]",
 		ShortHelp: "list standard Oracle facets and their live option counts",
 		Flags:     facetsFlagsSet,
 		Exec: func(ctx context.Context, args []string) error {
@@ -98,9 +94,9 @@ func main() {
 			}
 			return runFacets(ctx, facetsFlags{
 				commonFlags: commonFlags{
-					careersURL: *careersURL,
-					timeout:    *timeout,
-					format:     *format,
+					company: *company,
+					timeout: *timeout,
+					format:  *format,
 				},
 				keyword: *facetsKeyword,
 				filters: *facetsFilters,
@@ -113,7 +109,7 @@ func main() {
 	jobID := detailFlagsSet.StringLong("id", "", "job id from a search result")
 	detailCmd := &ff.Command{
 		Name:      "detail",
-		Usage:     "oracle --url CAREERS-URL detail --id JOB-ID [--format text|json]",
+		Usage:     "oracle --company COMPANY detail --id JOB-ID [--format text|json]",
 		ShortHelp: "print one public requisition and its description sections",
 		Flags:     detailFlagsSet,
 		Exec: func(ctx context.Context, args []string) error {
@@ -122,9 +118,9 @@ func main() {
 			}
 			return runDetail(ctx, detailFlags{
 				commonFlags: commonFlags{
-					careersURL: *careersURL,
-					timeout:    *timeout,
-					format:     *format,
+					company: *company,
+					timeout: *timeout,
+					format:  *format,
 				},
 				jobID: *jobID,
 			}, env)
@@ -142,7 +138,7 @@ func main() {
 	}
 	if rootCmd.GetSelected() == rootCmd {
 		fmt.Fprintln(os.Stderr, ffhelp.Command(rootCmd))
-		fmt.Fprintln(os.Stderr, "err: a subcommand (discover, search, facets, or detail) is required")
+		fmt.Fprintln(os.Stderr, "err: a subcommand (companies, search, facets, or detail) is required")
 		os.Exit(1)
 	}
 	if err := rootCmd.Run(context.Background()); err != nil {
@@ -157,15 +153,12 @@ type commandEnv struct {
 }
 
 type commonFlags struct {
-	careersURL string
-	timeout    time.Duration
-	format     string
+	company string
+	timeout time.Duration
+	format  string
 }
 
 func (f commonFlags) context(parent context.Context) (context.Context, context.CancelFunc, error) {
-	if strings.TrimSpace(f.careersURL) == "" {
-		return nil, nil, errors.New("--url is required")
-	}
 	if f.timeout <= 0 {
 		return nil, nil, fmt.Errorf("--timeout must be greater than zero, got %s", f.timeout)
 	}
@@ -173,25 +166,50 @@ func (f commonFlags) context(parent context.Context) (context.Context, context.C
 	return ctx, cancel, nil
 }
 
-func runDiscover(parent context.Context, flags commonFlags, env commandEnv) error {
-	ctx, cancel, err := flags.context(parent)
-	if err != nil {
-		return err
+func resolveCompany(
+	ctx context.Context,
+	company string,
+	httpClient *http.Client,
+) (oracle.Site, string, error) {
+	company = strings.TrimSpace(company)
+	if company == "" {
+		return oracle.Site{}, "", errors.New("--company is required")
 	}
-	defer cancel()
 
-	site, err := oracle.DiscoverSite(ctx, flags.careersURL, env.httpClient)
-	if err != nil {
-		return err
+	if strings.Contains(company, "://") {
+		site, err := oracle.DiscoverSite(ctx, company, httpClient)
+		if err != nil {
+			return oracle.Site{}, "", err
+		}
+		return site, site.Site, nil
 	}
-	if flags.format == "json" {
-		return writeJSON(env.out, site)
+
+	for _, candidate := range oracle.Companies {
+		if !strings.EqualFold(candidate.Name, company) {
+			continue
+		}
+		return oracle.Site{
+			CareersURL: candidate.CareersURL(),
+			APIBaseURL: candidate.APIBaseURL(),
+			Site:       candidate.Site,
+			SiteNumber: candidate.SiteNumber,
+			Language:   "en",
+		}, candidate.Name, nil
 	}
-	fmt.Fprintf(env.out, "Careers URL: %s\n", site.CareersURL)
-	fmt.Fprintf(env.out, "API Base URL: %s\n", site.APIBaseURL)
-	fmt.Fprintf(env.out, "Site: %s\n", site.Site)
-	fmt.Fprintf(env.out, "Site Number: %s\n", site.SiteNumber)
-	fmt.Fprintf(env.out, "Language: %s\n", site.Language)
+
+	return oracle.Site{}, "", fmt.Errorf(
+		"company %q not found; run 'oracle companies' to see supported companies, or pass an Oracle Candidate Experience careers URL",
+		company,
+	)
+}
+
+func runCompanies(format string, env commandEnv) error {
+	if format == "json" {
+		return writeJSON(env.out, oracle.Companies)
+	}
+	for _, company := range oracle.Companies {
+		fmt.Fprintf(env.out, "%s (%s)\n", company.Name, company.CareersURL())
+	}
 	return nil
 }
 
@@ -208,13 +226,23 @@ func runSearch(parent context.Context, flags searchFlags, env commandEnv) error 
 	if err != nil {
 		return err
 	}
+	if flags.limit < 1 || flags.limit > 100 {
+		return fmt.Errorf("--limit must be between 1 and 100, got %d", flags.limit)
+	}
+	if flags.offset < 0 {
+		return fmt.Errorf("--offset must be >= 0, got %d", flags.offset)
+	}
 	ctx, cancel, err := flags.context(parent)
 	if err != nil {
 		return err
 	}
 	defer cancel()
 
-	client, err := oracle.DiscoverClient(ctx, flags.careersURL, env.httpClient)
+	site, company, err := resolveCompany(ctx, flags.company, env.httpClient)
+	if err != nil {
+		return err
+	}
+	client, err := oracle.NewSiteClient(site, env.httpClient)
 	if err != nil {
 		return err
 	}
@@ -231,8 +259,13 @@ func runSearch(parent context.Context, flags searchFlags, env commandEnv) error 
 		return writeJSON(env.out, result)
 	}
 
-	site := client.Site()
-	fmt.Fprintf(env.out, "Oracle Recruiting Cloud Jobs (site: %s, site number: %s)\n", site.Site, site.SiteNumber)
+	fmt.Fprintf(
+		env.out,
+		"Oracle Recruiting Cloud Jobs (company: %s, site: %s, site number: %s)\n",
+		company,
+		site.Site,
+		site.SiteNumber,
+	)
 	fmt.Fprintf(env.out, "Found %d jobs; showing %d\n\n", result.Total, len(result.Jobs))
 	for i, job := range result.Jobs {
 		fmt.Fprintf(env.out, "%d. %s\n", i+1, job.Title)
@@ -268,7 +301,11 @@ func runFacets(parent context.Context, flags facetsFlags, env commandEnv) error 
 	}
 	defer cancel()
 
-	client, err := oracle.DiscoverClient(ctx, flags.careersURL, env.httpClient)
+	site, _, err := resolveCompany(ctx, flags.company, env.httpClient)
+	if err != nil {
+		return err
+	}
+	client, err := oracle.NewSiteClient(site, env.httpClient)
 	if err != nil {
 		return err
 	}
@@ -313,7 +350,11 @@ func runDetail(parent context.Context, flags detailFlags, env commandEnv) error 
 	}
 	defer cancel()
 
-	client, err := oracle.DiscoverClient(ctx, flags.careersURL, env.httpClient)
+	site, _, err := resolveCompany(ctx, flags.company, env.httpClient)
+	if err != nil {
+		return err
+	}
+	client, err := oracle.NewSiteClient(site, env.httpClient)
 	if err != nil {
 		return err
 	}

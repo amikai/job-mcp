@@ -3,13 +3,13 @@
 ## Goal
 
 Turn the generated Oracle Candidate Experience client into an end-to-end
-provider path that starts from a public careers URL, discovers the internal
-site number and API origin, and supports search, facets, and detail through a
-debug CLI.
+provider path that supports curated companies and direct public careers URLs,
+discovers the internal site number and API origin when needed, and supports
+search, facets, and detail through a debug CLI.
 
 This stage deliberately does not modify the Oracle company roster. The CLI
-accepts `--url` directly, so discovery and API behavior can be tested for both
-curated and uncurated sites without depending on concurrent roster work.
+reads the existing roster through `--company`, while also accepting a direct
+Candidate Experience careers URL for uncurated sites.
 
 ## Provider shape
 
@@ -32,26 +32,27 @@ send `Accept: application/json`, matching the captured Hurl requests.
 
 ## CLI
 
-`cmd/oracle` uses `ff/v4` and requires a Candidate Experience `--url`.
+`cmd/oracle` uses `ff/v4` and aligns with the other multi-company provider
+CLIs. `--company` accepts either a curated company name or a Candidate
+Experience careers URL. URL discovery remains an internal provider operation
+rather than a separate public CLI command.
 
 Commands:
 
-- `discover`: print the canonical careers URL, API origin, site alias, internal
-  site number, and language;
+- `companies`: list curated Oracle companies and their careers URLs;
 - `search`: keyword search, absolute-offset pagination, and repeatable
   `--filter name=id` facet filters;
 - `facets`: retrieve all standard facets and live counts;
 - `detail`: retrieve and render one posting's public description sections.
 
-Every command supports text and JSON output. Discovery and the API request
-share one caller-controlled timeout.
+Every command supports text and JSON output. For direct URL input, discovery
+and the API request share one caller-controlled timeout.
 
 ## Validation
 
 - fixture-backed discovery, search, facet, detail, and missing-detail tests;
-- CLI tests that execute the full careers-page discovery plus API flow against
-  `NewMockServer`;
+- CLI tests for curated company resolution, company listing, and the full
+  careers-page discovery plus API flow against `NewMockServer`;
 - live Mayo Clinic checks for discovery, keyword search, facets, location
   filtering, detail, and missing detail;
 - live KPMG check for the legacy theme fallback and search.
-

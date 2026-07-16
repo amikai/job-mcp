@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -47,20 +48,38 @@ func TestParseFilters(t *testing.T) {
 	}
 }
 
-func TestRunDiscoverEndToEnd(t *testing.T) {
-	server := oracle.NewMockServer()
-	defer server.Close()
+func TestRunCompanies(t *testing.T) {
 	var out bytes.Buffer
 
-	err := runDiscover(t.Context(), commonFlags{
-		careersURL: careersURL(server.URL),
-		timeout:    time.Second,
-		format:     "json",
-	}, commandEnv{httpClient: server.Client(), out: &out})
+	err := runCompanies("json", commandEnv{out: &out})
 	require.NoError(t, err)
 
-	var site oracle.Site
-	require.NoError(t, json.Unmarshal(out.Bytes(), &site))
+	var companies []oracle.Company
+	require.NoError(t, json.Unmarshal(out.Bytes(), &companies))
+	assert.Equal(t, oracle.Companies, companies)
+}
+
+func TestResolveCompanyByName(t *testing.T) {
+	require.NotEmpty(t, oracle.Companies)
+	company := oracle.Companies[0]
+
+	site, name, err := resolveCompany(t.Context(), strings.ToLower(company.Name), nil)
+	require.NoError(t, err)
+
+	assert.Equal(t, company.Name, name)
+	assert.Equal(t, company.Site, site.Site)
+	assert.Equal(t, company.SiteNumber, site.SiteNumber)
+	assert.Equal(t, company.CareersURL(), site.CareersURL)
+}
+
+func TestResolveCompanyByCareersURL(t *testing.T) {
+	server := oracle.NewMockServer()
+	defer server.Close()
+
+	site, name, err := resolveCompany(t.Context(), careersURL(server.URL), server.Client())
+	require.NoError(t, err)
+
+	assert.Equal(t, "Mayo-US", name)
 	assert.Equal(t, "Mayo-US", site.Site)
 	assert.Equal(t, "CX_1", site.SiteNumber)
 	assert.Equal(t, server.URL, site.APIBaseURL)
@@ -73,9 +92,9 @@ func TestRunSearchEndToEnd(t *testing.T) {
 
 	err := runSearch(t.Context(), searchFlags{
 		commonFlags: commonFlags{
-			careersURL: careersURL(server.URL),
-			timeout:    time.Second,
-			format:     "json",
+			company: careersURL(server.URL),
+			timeout: time.Second,
+			format:  "json",
 		},
 		limit: 3,
 	}, commandEnv{httpClient: server.Client(), out: &out})
@@ -96,9 +115,9 @@ func TestRunFacetsEndToEnd(t *testing.T) {
 
 	err := runFacets(t.Context(), facetsFlags{
 		commonFlags: commonFlags{
-			careersURL: careersURL(server.URL),
-			timeout:    time.Second,
-			format:     "json",
+			company: careersURL(server.URL),
+			timeout: time.Second,
+			format:  "json",
 		},
 	}, commandEnv{httpClient: server.Client(), out: &out})
 	require.NoError(t, err)
@@ -117,9 +136,9 @@ func TestRunDetailEndToEnd(t *testing.T) {
 
 	err := runDetail(t.Context(), detailFlags{
 		commonFlags: commonFlags{
-			careersURL: careersURL(server.URL),
-			timeout:    time.Second,
-			format:     "text",
+			company: careersURL(server.URL),
+			timeout: time.Second,
+			format:  "text",
 		},
 		jobID: "386920",
 	}, commandEnv{httpClient: server.Client(), out: &out})
@@ -136,9 +155,9 @@ func TestRunDetailNotFound(t *testing.T) {
 
 	err := runDetail(t.Context(), detailFlags{
 		commonFlags: commonFlags{
-			careersURL: careersURL(server.URL),
-			timeout:    time.Second,
-			format:     "json",
+			company: careersURL(server.URL),
+			timeout: time.Second,
+			format:  "json",
 		},
 		jobID: "999999999999",
 	}, commandEnv{httpClient: server.Client(), out: &out})
@@ -153,18 +172,24 @@ func TestCommandValidation(t *testing.T) {
 		commonFlags: commonFlags{timeout: time.Second},
 		limit:       20,
 	}, env)
-	assert.ErrorContains(t, err, "--url is required")
+	assert.ErrorContains(t, err, "--company is required")
 
 	err = runDetail(t.Context(), detailFlags{
-		commonFlags: commonFlags{careersURL: "https://example.com", timeout: time.Second},
+		commonFlags: commonFlags{company: "Mayo Clinic", timeout: time.Second},
 	}, env)
 	assert.ErrorContains(t, err, "--id is required")
 
-	err = runDiscover(t.Context(), commonFlags{
-		careersURL: "https://example.com",
-		timeout:    0,
+	err = runSearch(t.Context(), searchFlags{
+		commonFlags: commonFlags{company: "Mayo Clinic", timeout: 0},
+		limit:       20,
 	}, env)
 	assert.ErrorContains(t, err, "--timeout must be greater than zero")
+
+	err = runSearch(t.Context(), searchFlags{
+		commonFlags: commonFlags{company: "Mayo Clinic", timeout: time.Second},
+		limit:       101,
+	}, env)
+	assert.ErrorContains(t, err, "--limit must be between 1 and 100")
 }
 
 func careersURL(baseURL string) string {
