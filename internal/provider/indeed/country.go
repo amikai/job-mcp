@@ -6,7 +6,7 @@ import "strings"
 // Domain is the subdomain of the country-specific Indeed website (used to
 // build public job_url links, e.g. "tw" -> tw.indeed.com), and APICode is
 // the value the indeed-co request header must carry for that country's
-// catalogue. The two must travel together — see openapi.yaml's Key
+// catalogue. The two must travel together — see API.md's Key
 // Behaviors on what happens when indeed-co doesn't match the search
 // location.
 type Country struct {

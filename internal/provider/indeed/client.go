@@ -13,7 +13,7 @@ import (
 // per-caller secret: it identifies "a request from the Indeed app," the same
 // way a Google Maps or Firebase client key does, and is recoverable by
 // anyone who decompiles the app or inspects its traffic — which is how
-// python-jobspy's constant.py (and this client) got it. See openapi.yaml's
+// python-jobspy's constant.py (and this client) got it. See API.md's
 // Key Behaviors for why this is not a value to invent or rotate yourself.
 const mobileAppKey = "161092c2017b5bbab13edb12461a62d5a833871e7cad6d9d475304573de67ac8"
 
@@ -142,7 +142,7 @@ func (c *Client) Jobs(ctx context.Context, r *JobsRequest) (*JobsResponse, error
 
 // searchFilters builds the jobSearch filters list. The live API takes
 // filters: [JobSearchFilterInput!]! — always a list (empty when none).
-// Precedence matches python-jobspy's _build_filters and openapi.yaml:
+// Precedence matches python-jobspy's _build_filters and API.md:
 // HoursOld, then EasyApply, then JobType/Remote.
 func searchFilters(r *JobsRequest) []JobSearchFilterInput {
 	switch {
@@ -186,7 +186,7 @@ func searchFilters(r *JobsRequest) []JobSearchFilterInput {
 
 // JobDetail looks up one job by its key (Job.Key from a prior Jobs call).
 // A key with no matching job (removed, expired, or never valid) returns
-// (nil, nil) rather than an error — see openapi.yaml's Key Behaviors on
+// (nil, nil) rather than an error — see API.md's Key Behaviors on
 // jobData's empty-list-not-404 shape.
 func (c *Client) JobDetail(ctx context.Context, country, jobKey string) (*JobDetail, error) {
 	if jobKey == "" {

@@ -25,7 +25,7 @@ var JobTypeIDs = map[string]string{
 type JobsRequest struct {
 	Keywords string
 	// Location is free-text, e.g. "Taipei". Must correspond to Country —
-	// see openapi.yaml's Key Behaviors on what a mismatch does.
+	// see API.md's Key Behaviors on what a mismatch does.
 	Location string
 	// RadiusMiles defaults to 25 (python-jobspy's default distance) when 0.
 	RadiusMiles int
@@ -39,7 +39,7 @@ type JobsRequest struct {
 	// jobs_per_page); defaults to 25 when 0.
 	Limit int
 	// HoursOld, JobType/Remote, and EasyApply are mutually exclusive filters
-	// in the reference query shape (see openapi.yaml); when more than one is
+	// in the reference query shape (see API.md); when more than one is
 	// set, HoursOld wins, then EasyApply, then JobType/Remote — the same
 	// precedence as python-jobspy's _build_filters.
 	HoursOld  int
