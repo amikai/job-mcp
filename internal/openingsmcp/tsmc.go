@@ -24,7 +24,6 @@ var tsmcSearchInputRawSchema = []byte(`{
 		"location": {
 			"type": "string",
 			"description": "Location filter.",
-			"minLength": 1,
 			"enum": [
 				"Taiwan", "Canada", "China", "Germany-Dresden", "Germany-Munich",
 				"Japan-Yokohama", "Japan-Osaka", "Japan-Tsukuba", "Japan-Kumamoto",

@@ -68,7 +68,6 @@ func TestTsmcSearchJobsE2E(t *testing.T) {
 			"location": map[string]any{
 				"type":        "string",
 				"description": "Location filter.",
-				"minLength":   float64(1),
 				"enum": []any{
 					"Taiwan", "Canada", "China", "Germany-Dresden", "Germany-Munich",
 					"Japan-Yokohama", "Japan-Osaka", "Japan-Tsukuba", "Japan-Kumamoto",

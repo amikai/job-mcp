@@ -20,7 +20,6 @@ var job104SearchInputRawSchema = []byte(`{
 		"area": {
 			"type": "string",
 			"description": "City/region filter.",
-			"minLength": 1,
 			"enum": [
 				"Taipei", "NewTaipei", "Yilan", "Keelung", "Taoyuan",
 				"Hsinchu", "Miaoli", "Taichung", "Changhua", "Nantou",

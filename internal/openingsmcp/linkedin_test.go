@@ -167,10 +167,12 @@ func TestLinkedinSearchJobsE2E(t *testing.T) {
 			"keyword": map[string]any{
 				"type":        "string",
 				"description": "Free-text search query: role titles, skills, or technologies.",
+				"minLength":   float64(1),
 			},
 			"location": map[string]any{
 				"type":        "string",
 				"description": "Free-text location, e.g. 'Taipei, Taiwan'; omit to search worldwide.",
+				"minLength":   float64(1),
 			},
 			"workplace_type": map[string]any{
 				"type":        "string",
@@ -185,6 +187,8 @@ func TestLinkedinSearchJobsE2E(t *testing.T) {
 			"company_ids": map[string]any{
 				"type":        "array",
 				"description": "LinkedIn numeric company IDs, e.g. 1441. IDs are opaque and must come from a company's LinkedIn page, never guessed; search results do not include them.",
+				"minItems":    float64(1),
+				"uniqueItems": true,
 				"items": map[string]any{
 					"type": "string",
 				},

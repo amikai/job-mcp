@@ -13,11 +13,13 @@ var indeedSearchInputRawSchema = []byte(`{
 	"properties": {
 		"keyword": {
 			"type": "string",
-			"description": "Free-text search query: role titles, skills, or technologies."
+			"description": "Free-text search query: role titles, skills, or technologies.",
+			"minLength": 1
 		},
 		"location": {
 			"type": "string",
-			"description": "Free-text location, e.g. 'Taipei'. Must correspond to country (e.g. don't pair 'Taipei' with country 'United States') or results are wrong or empty."
+			"description": "Free-text location, e.g. 'Taipei'. Must correspond to country (e.g. don't pair 'Taipei' with country 'United States') or results are wrong or empty.",
+			"minLength": 1
 		},
 		"country": {
 			"type": "string",
@@ -32,7 +34,8 @@ var indeedSearchInputRawSchema = []byte(`{
 		},
 		"cursor": {
 			"type": "string",
-			"description": "Pagination cursor from a previous search's next_cursor. Omit for the first page."
+			"description": "Pagination cursor from a previous search's next_cursor. Omit for the first page.",
+			"minLength": 1
 		},
 		"hours_old": {
 			"type": "integer",

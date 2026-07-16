@@ -58,6 +58,11 @@ func TestNvidiaSearchJobsE2E(t *testing.T) {
 	require.True(t, ok)
 
 	assert.Equal(t, "object", schema["type"])
+	properties, ok := schema["properties"].(map[string]any)
+	require.True(t, ok)
+	country, ok := properties["country"].(map[string]any)
+	require.True(t, ok)
+	assert.NotContains(t, country, "minLength")
 
 	// Test calling nvidia_search_jobs tool
 	callRes, err := clientSession.CallTool(t.Context(), &mcp.CallToolParams{

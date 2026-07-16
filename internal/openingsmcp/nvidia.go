@@ -49,7 +49,6 @@ var nvidiaSearchInputRawSchema = []byte(`{
 		"country": {
 			"type": "string",
 			"description": "Country filter.",
-			"minLength": 1,
 			"enum": [
 				"Armenia", "Australia", "Brazil", "Canada", "China", "Czechia", "Denmark",
 				"Finland", "France", "Germany", "Greece", "Hong Kong", "Hungary", "India",

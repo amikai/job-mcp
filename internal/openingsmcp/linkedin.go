@@ -13,11 +13,13 @@ var linkedinSearchInputRawSchema = []byte(`{
 	"properties": {
 		"keyword": {
 			"type": "string",
-			"description": "Free-text search query: role titles, skills, or technologies."
+			"description": "Free-text search query: role titles, skills, or technologies.",
+			"minLength": 1
 		},
 		"location": {
 			"type": "string",
-			"description": "Free-text location, e.g. 'Taipei, Taiwan'; omit to search worldwide."
+			"description": "Free-text location, e.g. 'Taipei, Taiwan'; omit to search worldwide.",
+			"minLength": 1
 		},
 		"workplace_type": {
 			"type": "string",
@@ -32,6 +34,8 @@ var linkedinSearchInputRawSchema = []byte(`{
 		"company_ids": {
 			"type": "array",
 			"description": "LinkedIn numeric company IDs, e.g. 1441. IDs are opaque and must come from a company's LinkedIn page, never guessed; search results do not include them.",
+			"minItems": 1,
+			"uniqueItems": true,
 			"items": {
 				"type": "string"
 			}

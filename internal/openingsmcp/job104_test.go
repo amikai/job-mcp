@@ -79,7 +79,6 @@ func TestJob104SearchJobE2E(t *testing.T) {
 			"area": map[string]any{
 				"type":        "string",
 				"description": "City/region filter.",
-				"minLength":   float64(1),
 				"enum": []any{
 					"Taipei", "NewTaipei", "Yilan", "Keelung", "Taoyuan",
 					"Hsinchu", "Miaoli", "Taichung", "Changhua", "Nantou",
