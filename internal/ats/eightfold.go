@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -17,6 +18,16 @@ import (
 )
 
 var _ Adapter = (*EightfoldAdapter)(nil)
+
+// eightfoldCareersHostRE matches Eightfold career-site hosts and captures
+// the tenant subdomain. Roster membership is still required after the match.
+//
+// Examples:
+//   - https://eaton.eightfold.ai/careers
+//   - https://eaton.eightfold.ai/careers/job/687237347150
+var eightfoldCareersHostRE = regexp.MustCompile(
+	`(?i)^(.+)\.eightfold\.ai$`,
+)
 
 // upstreamPageSize is Eightfold's fixed search page size: every observed
 // tenant returns exactly 10 positions per request regardless of any
@@ -73,11 +84,11 @@ func (a *EightfoldAdapter) Roster() []CompanyInfo {
 // resolves tenants already on the roster — see the domain-derivation note
 // on [EightfoldAdapter].
 func (a *EightfoldAdapter) ParseCareersURL(u *url.URL) (string, bool) {
-	host := strings.ToLower(u.Hostname())
-	if !strings.HasSuffix(host, ".eightfold.ai") {
+	m := eightfoldCareersHostRE.FindStringSubmatch(strings.ToLower(u.Hostname()))
+	if m == nil {
 		return "", false
 	}
-	tenant := strings.TrimSuffix(host, ".eightfold.ai")
+	tenant := m[1]
 	if _, ok := eightfold.CompaniesByTenant[tenant]; !ok {
 		return "", false
 	}

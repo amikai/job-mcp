@@ -2,6 +2,7 @@ package ats
 
 import (
 	"net/url"
+	"regexp"
 	"strings"
 )
 
@@ -25,6 +26,20 @@ func parseCareersInput(s string) (*url.URL, bool) {
 		return nil, false
 	}
 	return u, true
+}
+
+// matchCareersSlug matches re against lowercase(host)+escapedPath and
+// returns the URL-decoded first capture group.
+func matchCareersSlug(re *regexp.Regexp, u *url.URL) (string, bool) {
+	m := re.FindStringSubmatch(strings.ToLower(u.Hostname()) + u.EscapedPath())
+	if m == nil {
+		return "", false
+	}
+	slug, err := url.PathUnescape(m[1])
+	if err != nil || slug == "" {
+		return "", false
+	}
+	return slug, true
 }
 
 // firstPathSegment returns the first non-empty path segment, URL-decoded,

@@ -7,6 +7,7 @@ import (
 	"math"
 	"net/http"
 	"net/url"
+	"regexp"
 	"slices"
 	"strings"
 	"time"
@@ -14,6 +15,18 @@ import (
 	"github.com/jaytaylor/html2text"
 
 	"github.com/amikai/openings-mcp/internal/provider/oracle"
+)
+
+// oracleCareersPathRE matches Candidate Experience paths and captures
+// language + public site name. Fixed segments are case-insensitive; the
+// site may sit under an optional path prefix.
+//
+// Examples:
+//   - https://fa-euwp-saasfaprod1.fa.ocs.oraclecloud.com/hcmUI/CandidateExperience/en/sites/Mayo-US/job/386920
+//   - https://fa-example.fa.us2.oraclecloud.com/hcmUI/CandidateExperience/en-US/sites/Acme/jobs
+//   - http://fa-example.fa.us2.oraclecloud.com/hcmUI/CandidateExperience/en/sites/Acme/job/123?source=test
+var oracleCareersPathRE = regexp.MustCompile(
+	`(?i)(?:^|/)hcmUI/CandidateExperience/([^/]+)/sites/([^/]+)(?:/|$)`,
 )
 
 var _ Adapter = (*OracleAdapter)(nil)
@@ -392,30 +405,25 @@ func parseOracleCareersURL(
 		return "", "", "", "", false
 	}
 
-	segments := strings.Split(strings.Trim(u.Path, "/"), "/")
-	for i := 0; i+4 < len(segments); i++ {
-		if !strings.EqualFold(segments[i], "hcmUI") ||
-			!strings.EqualFold(segments[i+1], "CandidateExperience") ||
-			!strings.EqualFold(segments[i+3], "sites") {
-			continue
-		}
-		language = strings.TrimSpace(segments[i+2])
-		site = strings.TrimSpace(segments[i+4])
-		if language == "" || site == "" {
-			return "", "", "", "", false
-		}
-		canonicalURL := url.URL{
-			Scheme: "https",
-			Host:   host,
-			Path: fmt.Sprintf(
-				"/hcmUI/CandidateExperience/%s/sites/%s/jobs",
-				language,
-				site,
-			),
-		}
-		return host, language, site, canonicalURL.String(), true
+	m := oracleCareersPathRE.FindStringSubmatch(u.Path)
+	if m == nil {
+		return "", "", "", "", false
 	}
-	return "", "", "", "", false
+	language = strings.TrimSpace(m[1])
+	site = strings.TrimSpace(m[2])
+	if language == "" || site == "" {
+		return "", "", "", "", false
+	}
+	canonicalURL := url.URL{
+		Scheme: "https",
+		Host:   host,
+		Path: fmt.Sprintf(
+			"/hcmUI/CandidateExperience/%s/sites/%s/jobs",
+			language,
+			site,
+		),
+	}
+	return host, language, site, canonicalURL.String(), true
 }
 
 func oracleLocation(primary string, secondary []string) string {

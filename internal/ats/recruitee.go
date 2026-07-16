@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -16,6 +17,17 @@ import (
 )
 
 var _ Adapter = (*RecruiteeAdapter)(nil)
+
+// recruiteeCareersHostRE matches Recruitee career-site hosts and captures
+// the company slug (subdomain). Reserved product hosts are rejected after
+// the match.
+//
+// Examples:
+//   - https://bunq.recruitee.com/o/role-1
+//   - https://acme.recruitee.com/o/job
+var recruiteeCareersHostRE = regexp.MustCompile(
+	`(?i)^(.+)\.recruitee\.com$`,
+)
 
 // RecruiteeAdapter serves Recruitee career sites. The public /api/offers
 // endpoint returns the complete board with full descriptions, so all search,
@@ -59,15 +71,11 @@ var recruiteeReservedHosts = map[string]bool{
 
 // ParseCareersURL recognizes Recruitee subdomain career pages.
 func (a *RecruiteeAdapter) ParseCareersURL(u *url.URL) (string, bool) {
-	host := strings.ToLower(u.Hostname())
-	if !strings.HasSuffix(host, ".recruitee.com") {
+	m := recruiteeCareersHostRE.FindStringSubmatch(strings.ToLower(u.Hostname()))
+	if m == nil || recruiteeReservedHosts[m[1]] {
 		return "", false
 	}
-	slug := strings.TrimSuffix(host, ".recruitee.com")
-	if slug == "" || recruiteeReservedHosts[slug] {
-		return "", false
-	}
-	return slug, true
+	return m[1], true
 }
 
 func (a *RecruiteeAdapter) Search(

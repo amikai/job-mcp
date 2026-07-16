@@ -7,6 +7,7 @@ import (
 	"math"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strings"
 	"time"
 
@@ -16,6 +17,16 @@ import (
 )
 
 var _ Adapter = (*ICIMSAdapter)(nil)
+
+// icimsCareersHostRE matches *.icims.com hosts. login*, cdn*, api.*, and
+// www.icims.com are rejected after the match — they are not job boards.
+//
+// Examples:
+//   - https://careers-peraton.icims.com/jobs/search?ss=1
+//   - https://uscareers-example.icims.com/jobs/1/x/job
+var icimsCareersHostRE = regexp.MustCompile(
+	`(?i)^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?\.icims\.com$`,
+)
 
 // ICIMSAdapter serves public iCIMS career portals. Search and detail are
 // server-rendered HTML (see internal/provider/icims/openapi.yaml). Roster
@@ -49,10 +60,9 @@ func (a *ICIMSAdapter) Roster() []CompanyInfo {
 // callers can pass a careers URL directly.
 func (a *ICIMSAdapter) ParseCareersURL(u *url.URL) (string, bool) {
 	host := strings.ToLower(u.Hostname())
-	if !strings.HasSuffix(host, ".icims.com") || host == "icims.com" {
+	if !icimsCareersHostRE.MatchString(host) {
 		return "", false
 	}
-	// login / CDN hosts are not career portals.
 	if strings.HasPrefix(host, "login") || strings.HasPrefix(host, "cdn") ||
 		strings.HasPrefix(host, "api.") || host == "www.icims.com" {
 		return "", false
