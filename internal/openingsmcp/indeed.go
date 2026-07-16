@@ -264,7 +264,7 @@ func indeedHTTPToMCPDetail(d *indeed.JobDetail) *indeedDetailOutput {
 func RegisterIndeed(s *mcp.Server, c *indeed.Client) {
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "indeed_search_jobs",
-		Description: "Search jobs on Indeed via its GraphQL job-search API.",
+		Description: "Search Indeed job postings by keyword, location, country, posting age, job type, remote status, or Easy Apply. Returns summaries and a cursor for pagination.",
 		Annotations: &mcp.ToolAnnotations{Title: "Search Indeed jobs", ReadOnlyHint: true},
 		InputSchema: indeedSearchInputSchema,
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, in *indeedSearchInput) (*mcp.CallToolResult, *indeedSearchOutput, error) {

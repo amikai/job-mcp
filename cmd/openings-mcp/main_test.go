@@ -146,6 +146,9 @@ func TestServerListsJobTools(t *testing.T) {
 	assert.Contains(t, nvidiaExternalPath["description"], "nvidia_get_job_detail")
 
 	indeedTool := got["indeed_search_jobs"]
+	assert.Contains(t, indeedTool.Description, "keyword, location, country")
+	assert.Contains(t, indeedTool.Description, "cursor for pagination")
+	assert.NotContains(t, indeedTool.Description, "GraphQL")
 	indeedInput, ok := indeedTool.InputSchema.(map[string]any)
 	require.True(t, ok)
 	indeedProperties, ok := indeedInput["properties"].(map[string]any)
