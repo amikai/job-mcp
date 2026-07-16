@@ -30,7 +30,7 @@ type LeverAdapter struct {
 //   - jobs.eu.lever.co/acme
 //   - jobs.lever.co/acme/00000000-0000
 var leverCareersURLRE = regexp.MustCompile(
-	`(?i)^jobs(?:\.eu)?\.lever\.co/([^/]+)`,
+	`(?i)^jobs(?:\.eu)?\.lever\.co/(?P<slug>[^/]+)`,
 )
 
 func NewLeverAdapter(baseURL string, hc *http.Client) (*LeverAdapter, error) {

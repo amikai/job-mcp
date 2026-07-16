@@ -33,7 +33,7 @@ type GreenhouseAdapter struct {
 //   - boards.greenhouse.io/acme/jobs/123
 //   - job-boards.eu.greenhouse.io/acme
 var greenhouseCareersURLRE = regexp.MustCompile(
-	`(?i)^(?:job-boards|boards)(?:\.eu)?\.greenhouse\.io/([^/]+)`,
+	`(?i)^(?:job-boards|boards)(?:\.eu)?\.greenhouse\.io/(?P<slug>[^/]+)`,
 )
 
 func NewGreenhouseAdapter(baseURL string, hc *http.Client) (*GreenhouseAdapter, error) {

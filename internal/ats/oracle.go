@@ -26,7 +26,7 @@ import (
 //   - /hcmUI/CandidateExperience/en-US/sites/Acme/jobs
 //   - /hcmUI/CandidateExperience/en/sites/Acme/job/123
 var oracleCareersPathRE = regexp.MustCompile(
-	`(?i)(?:^|/)hcmUI/CandidateExperience/([^/]+)/sites/([^/]+)(?:/|$)`,
+	`(?i)(?:^|/)hcmUI/CandidateExperience/(?P<language>[^/]+)/sites/(?P<site>[^/]+)(?:/|$)`,
 )
 
 var _ Adapter = (*OracleAdapter)(nil)
@@ -409,8 +409,8 @@ func parseOracleCareersURL(
 	if m == nil {
 		return "", "", "", "", false
 	}
-	language = strings.TrimSpace(m[1])
-	site = strings.TrimSpace(m[2])
+	language = strings.TrimSpace(namedGroup(oracleCareersPathRE, m, "language"))
+	site = strings.TrimSpace(namedGroup(oracleCareersPathRE, m, "site"))
 	if language == "" || site == "" {
 		return "", "", "", "", false
 	}

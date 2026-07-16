@@ -29,11 +29,11 @@ func parseCareersInput(s string) (*url.URL, bool) {
 }
 
 // matchCareersSlug matches re against lowercase(host)+escapedPath and
-// returns the URL-decoded first capture group.
+// returns the URL-decoded named capture group "slug".
 //
 // Example:
 //
-//	re := regexp.MustCompile(`(?i)^jobs\.ashbyhq\.com/([^/]+)`)
+//	re := regexp.MustCompile(`(?i)^jobs\.ashbyhq\.com/(?P<slug>[^/]+)`)
 //	u, _ := url.Parse("https://jobs.ashbyhq.com/Acme%20Inc")
 //	slug, ok := matchCareersSlug(re, u) // "Acme Inc", true
 func matchCareersSlug(re *regexp.Regexp, u *url.URL) (string, bool) {
@@ -41,9 +41,18 @@ func matchCareersSlug(re *regexp.Regexp, u *url.URL) (string, bool) {
 	if m == nil {
 		return "", false
 	}
-	slug, err := url.PathUnescape(m[1])
+	slug, err := url.PathUnescape(namedGroup(re, m, "slug"))
 	if err != nil || slug == "" {
 		return "", false
 	}
 	return slug, true
+}
+
+// namedGroup returns the named capture from m, or "" if missing.
+func namedGroup(re *regexp.Regexp, m []string, name string) string {
+	i := re.SubexpIndex(name)
+	if i < 0 || i >= len(m) {
+		return ""
+	}
+	return m[i]
 }

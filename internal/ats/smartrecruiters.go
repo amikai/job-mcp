@@ -27,7 +27,7 @@ var _ Adapter = (*SmartRecruitersAdapter)(nil)
 //   - jobs.smartrecruiters.com/Equinox/744000137225639-female-locker-room-associate-houston
 //   - jobs.smartrecruiters.com/SomeUnknownCo
 var smartRecruitersCareersURLRE = regexp.MustCompile(
-	`(?i)^jobs\.smartrecruiters\.com/([^/]+)`,
+	`(?i)^jobs\.smartrecruiters\.com/(?P<slug>[^/]+)`,
 )
 
 const (

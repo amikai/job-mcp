@@ -26,7 +26,7 @@ var _ Adapter = (*RecruiteeAdapter)(nil)
 //   - bunq.recruitee.com
 //   - acme.recruitee.com
 var recruiteeCareersHostRE = regexp.MustCompile(
-	`(?i)^(.+)\.recruitee\.com$`,
+	`(?i)^(?P<slug>.+)\.recruitee\.com$`,
 )
 
 // RecruiteeAdapter serves Recruitee career sites. The public /api/offers
@@ -72,10 +72,14 @@ var recruiteeReservedHosts = map[string]bool{
 // ParseCareersURL recognizes Recruitee subdomain career pages.
 func (a *RecruiteeAdapter) ParseCareersURL(u *url.URL) (string, bool) {
 	m := recruiteeCareersHostRE.FindStringSubmatch(strings.ToLower(u.Hostname()))
-	if m == nil || recruiteeReservedHosts[m[1]] {
+	if m == nil {
 		return "", false
 	}
-	return m[1], true
+	slug := namedGroup(recruiteeCareersHostRE, m, "slug")
+	if slug == "" || recruiteeReservedHosts[slug] {
+		return "", false
+	}
+	return slug, true
 }
 
 func (a *RecruiteeAdapter) Search(

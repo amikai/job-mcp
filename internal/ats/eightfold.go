@@ -25,7 +25,7 @@ var _ Adapter = (*EightfoldAdapter)(nil)
 // Examples (hostname):
 //   - eaton.eightfold.ai
 var eightfoldCareersHostRE = regexp.MustCompile(
-	`(?i)^(.+)\.eightfold\.ai$`,
+	`(?i)^(?P<tenant>.+)\.eightfold\.ai$`,
 )
 
 // upstreamPageSize is Eightfold's fixed search page size: every observed
@@ -87,7 +87,7 @@ func (a *EightfoldAdapter) ParseCareersURL(u *url.URL) (string, bool) {
 	if m == nil {
 		return "", false
 	}
-	tenant := m[1]
+	tenant := namedGroup(eightfoldCareersHostRE, m, "tenant")
 	if _, ok := eightfold.CompaniesByTenant[tenant]; !ok {
 		return "", false
 	}

@@ -27,7 +27,8 @@ type CareersSite struct {
 //
 // myworkdaysite.com is deliberately unsupported (#113).
 var careersURLRE = regexp.MustCompile(
-	`(?i)^([^.]+)\.wd[^.]+\.myworkdayjobs\.com/(?:([a-z]{2}(?:-[a-z]{2})?)/)?([^/]+)`,
+	`(?i)^(?P<tenant>[^.]+)\.wd[^.]+\.myworkdayjobs\.com/` +
+		`(?:(?P<locale>[a-z]{2}(?:-[a-z]{2})?)/)?(?P<site>[^/]+)`,
 )
 
 // localeSegment matches a lone language prefix used to reject locale-only
@@ -51,12 +52,14 @@ func ParseCareersURL(u *url.URL) (CareersSite, bool) {
 	if m == nil {
 		return CareersSite{}, false
 	}
-	site := m[3]
+	tenant := m[careersURLRE.SubexpIndex("tenant")]
+	locale := m[careersURLRE.SubexpIndex("locale")]
+	site := m[careersURLRE.SubexpIndex("site")]
 	// Locale-only paths like /en-US leave the locale in the site group.
-	if m[2] == "" && localeSegment.MatchString(site) {
+	if locale == "" && localeSegment.MatchString(site) {
 		return CareersSite{}, false
 	}
-	return CareersSite{Host: host, Tenant: m[1], Site: site}, true
+	return CareersSite{Host: host, Tenant: tenant, Site: site}, true
 }
 
 // BaseURL derives the CXS API base URL, mirroring Company.BaseURL.

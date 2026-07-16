@@ -29,7 +29,7 @@ type AshbyAdapter struct {
 //   - jobs.ashbyhq.com/Acme%20Inc
 //   - jobs.ashbyhq.com/acme/application/job-id
 var ashbyCareersURLRE = regexp.MustCompile(
-	`(?i)^jobs\.ashbyhq\.com/([^/]+)`,
+	`(?i)^jobs\.ashbyhq\.com/(?P<slug>[^/]+)`,
 )
 
 func NewAshbyAdapter(baseURL string, hc *http.Client) (*AshbyAdapter, error) {
