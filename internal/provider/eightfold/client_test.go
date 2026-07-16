@@ -1,6 +1,8 @@
 package eightfold
 
 import (
+	"net/http"
+	"net/http/httptest"
 	"strconv"
 	"testing"
 
@@ -99,8 +101,47 @@ func TestPositionDetails(t *testing.T) {
 
 	assert.Equal(t, int64(MockPositionID), got.Data.ID)
 	assert.Equal(t, "Vice President - Prin Software Eng", got.Data.Name)
-	assert.Equal(t, "https://morganstanley.eightfold.ai/careers/job/"+strconv.Itoa(MockPositionID), got.Data.PublicUrl)
+	publicURL, ok := got.Data.PublicUrl.Get()
+	require.True(t, ok)
+	assert.Equal(t, "https://morganstanley.eightfold.ai/careers/job/"+strconv.Itoa(MockPositionID), publicURL)
 	assert.Contains(t, got.Data.JobDescription, "<")
+}
+
+func TestPositionDetailsNullPublicURL(t *testing.T) {
+	// Some tenants (NetApp, Houston ISD) send publicUrl: null while still
+	// filling positionUrl — decode must not fail.
+	const body = `{
+	  "status": 200,
+	  "data": {
+	    "id": 42830280,
+	    "name": "Global Supply Manager",
+	    "locations": ["Taipei"],
+	    "postedTs": 1782864873,
+	    "positionUrl": "/careers/job/42830280",
+	    "jobDescription": "<p>Summary</p>",
+	    "publicUrl": null
+	  }
+	}`
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(body))
+	}))
+	defer srv.Close()
+
+	client, err := NewClient(srv.URL)
+	require.NoError(t, err)
+
+	res, err := client.PositionDetails(t.Context(), PositionDetailsParams{
+		PositionID: 42830280,
+		Domain:     "netapp.com",
+	})
+	require.NoError(t, err)
+
+	got, ok := res.(*PositionDetailsResponse)
+	require.True(t, ok, "want *PositionDetailsResponse, got %T", res)
+	assert.True(t, got.Data.PublicUrl.IsNull())
+	assert.Equal(t, "/careers/job/42830280", got.Data.PositionUrl)
+	assert.Equal(t, "Global Supply Manager", got.Data.Name)
 }
 
 func TestPositionDetailsNotFound(t *testing.T) {

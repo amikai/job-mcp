@@ -41,9 +41,11 @@ func TestJobDetailKeyFromPath(t *testing.T) {
 			wantOK:       false,
 		},
 		{
-			name:         "no second segment fails",
-			externalPath: "/job/onlyonesegment",
-			wantOK:       false,
+			name:         "location-less single segment is accepted",
+			externalPath: "/job/APSCA-Certified-Social-Compliance-Auditor_JR0019413",
+			wantLocation: "",
+			wantTitle:    "APSCA-Certified-Social-Compliance-Auditor_JR0019413",
+			wantOK:       true,
 		},
 		{
 			name:         "trailing slash (empty titleSlug) fails",
@@ -51,13 +53,20 @@ func TestJobDetailKeyFromPath(t *testing.T) {
 			wantOK:       false,
 		},
 		{
-			name:         "empty location fails",
+			name:         "empty location with titleSlug is accepted",
 			externalPath: "/job//Software-Engineer_JR12345",
-			wantOK:       false,
+			wantLocation: "",
+			wantTitle:    "Software-Engineer_JR12345",
+			wantOK:       true,
 		},
 		{
 			name:         "extra path segments fail instead of percent-encoding the slash",
 			externalPath: "/job/US/CA/Software-Engineer_JR12345",
+			wantOK:       false,
+		},
+		{
+			name:         "bare /job/ with no slug fails",
+			externalPath: "/job/",
 			wantOK:       false,
 		},
 	}

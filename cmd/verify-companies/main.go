@@ -216,15 +216,24 @@ func buildChecks(adapters []ats.Adapter) []check {
 }
 
 // runChecks executes checks through a worker pool of size concurrency and
-// returns results in check order.
+// returns results in check order. Recruitee's public API rate-limits hard
+// around concurrent board fetches (HTTP 429 at the default pool size), so
+// recruitee checks share a tighter sub-cap of at most 2 workers without
+// raising overall concurrency past the user-requested limit.
 func runChecks(ctx context.Context, checks []check, timeout time.Duration, concurrency int) []result {
 	results := make([]result, len(checks))
 	sem := make(chan struct{}, concurrency)
+	recruiteeCap := min(2, concurrency)
+	recruiteeSem := make(chan struct{}, recruiteeCap)
 	var wg sync.WaitGroup
 	for i, c := range checks {
 		wg.Go(func() {
 			sem <- struct{}{}
 			defer func() { <-sem }()
+			if c.adapter.Name() == "recruitee" {
+				recruiteeSem <- struct{}{}
+				defer func() { <-recruiteeSem }()
+			}
 			results[i] = c.do(ctx, timeout)
 		})
 	}

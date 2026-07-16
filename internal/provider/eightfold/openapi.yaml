@@ -348,14 +348,18 @@ components:
       allOf:
         - $ref: "#/components/schemas/Position"
         - type: object
-          required: [jobDescription, publicUrl]
+          required: [jobDescription]
           properties:
             jobDescription:
               type: string
               description: Full posting description as HTML.
             publicUrl:
               type: string
-              description: Absolute, human-clickable posting URL.
+              nullable: true
+              description: >
+                Absolute, human-clickable posting URL. Some tenants send
+                JSON null here; callers should fall back to composing the
+                origin with positionUrl when this is null or empty.
 
     PositionDetailsResponse:
       type: object

@@ -166,6 +166,34 @@ func TestParseJobDetailHTMLH1TitleTemplate(t *testing.T) {
 	assert.Equal(t, want, got)
 }
 
+// Multi-brand SuccessFactors tenants (Endress+Hauser, Knorr-Bremse,
+// MediaMarktSaturn) omit itemprop="title" while still setting og:title and a
+// "… Détails du poste | Company" document title. Description remains on
+// itemprop="description".
+func TestParseJobDetailHTMLOgTitleFallback(t *testing.T) {
+	const page = `<html><head>
+<title>Pilote S&amp;OP &amp; Planification (h/f) Détails du poste | Endress+Hauser</title>
+<meta property="og:title" content="Pilote S&amp;OP &amp; Planification (h/f)">
+</head><body>
+<span itemprop="description" class="jobdescription"><p>Chez Endress+Hauser.</p></span>
+</body></html>`
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(page))
+	require.NoError(t, err)
+
+	got, ok := parseJobDetailHTML(doc, "1385729333")
+	require.True(t, ok)
+	assert.Equal(t, "Pilote S&OP & Planification (h/f)", got.Title)
+	assert.Equal(t, "<p>Chez Endress+Hauser.</p>", got.DescriptionHTML)
+}
+
+func TestTitleFromDocumentTitle(t *testing.T) {
+	t.Parallel()
+	assert.Equal(t, "Account Manager", titleFromDocumentTitle("Account Manager Job Details | Knorr-Bremse"))
+	assert.Equal(t, "Pilote S&OP", titleFromDocumentTitle("Pilote S&OP Détails du poste | Endress+Hauser"))
+	assert.Equal(t, "", titleFromDocumentTitle("Jobs at Endress+Hauser"))
+	assert.Equal(t, "", titleFromDocumentTitle(""))
+}
+
 func TestFacetValuesJSON(t *testing.T) {
 	f, err := os.Open("testdata/facet_values_rsp.json")
 	require.NoError(t, err)

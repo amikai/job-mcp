@@ -147,6 +147,34 @@ func TestParseJobDetailNotFoundBody(t *testing.T) {
 	assert.True(t, isSearchLikeDetailBody(doc))
 }
 
+// Portals without JobPosting JSON-LD still render the iframe chrome
+// (h1.iCIMS_Header + expandable description sections).
+func TestParseJobDetailPortalHTMLFallback(t *testing.T) {
+	const page = `<html><body>
+<div class="container-fluid iCIMS_JobsTable">
+  <div class="row">
+    <div class="col-xs-12 title">
+      <h1 class="iCIMS_Header">Event Bartender | Part-Time</h1>
+    </div>
+    <div class="col-xs-6 header left"><span class="sr-only field-label">Location</span><span>US-TX-Lubbock</span></div>
+    <div class="col-xs-6 header right"><span title="7/16/2026 5:21 PM">15 minutes ago</span></div>
+  </div>
+  <div class="iCIMS_Expandable_Text"><p>Oak View Group (OVG) is the global leader.</p></div>
+  <div class="iCIMS_Expandable_Text"><p>Responsibilities include setup.</p></div>
+</div>
+</body></html>`
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(page))
+	require.NoError(t, err)
+
+	d, ok := parseJobDetailHTML(doc, "33322")
+	require.True(t, ok)
+	assert.Equal(t, "Event Bartender | Part-Time", d.Title)
+	assert.Equal(t, "US-TX-Lubbock", d.Location)
+	assert.Equal(t, "7/16/2026 5:21 PM", d.PostedAtRaw)
+	assert.Contains(t, d.DescriptionHTML, "Oak View Group")
+	assert.Contains(t, d.DescriptionHTML, "Responsibilities include setup")
+}
+
 func TestJobIDAndSlugFromHref(t *testing.T) {
 	id, slug := jobIDAndSlugFromHref("https://careers-buspatrol.icims.com/jobs/1977/senior-product-manager/job?in_iframe=1")
 	assert.Equal(t, "1977", id)

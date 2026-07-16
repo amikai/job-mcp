@@ -375,8 +375,9 @@ type PositionDetail struct {
 	PositionUrl string `json:"positionUrl"`
 	// Full posting description as HTML.
 	JobDescription string `json:"jobDescription"`
-	// Absolute, human-clickable posting URL.
-	PublicUrl string `json:"publicUrl"`
+	// Absolute, human-clickable posting URL. Some tenants send JSON null here; callers should fall back to
+	// composing the origin with positionUrl when this is null or empty.
+	PublicUrl OptNilString `json:"publicUrl"`
 }
 
 // GetID returns the value of ID.
@@ -420,7 +421,7 @@ func (s *PositionDetail) GetJobDescription() string {
 }
 
 // GetPublicUrl returns the value of PublicUrl.
-func (s *PositionDetail) GetPublicUrl() string {
+func (s *PositionDetail) GetPublicUrl() OptNilString {
 	return s.PublicUrl
 }
 
@@ -465,7 +466,7 @@ func (s *PositionDetail) SetJobDescription(val string) {
 }
 
 // SetPublicUrl sets the value of PublicUrl.
-func (s *PositionDetail) SetPublicUrl(val string) {
+func (s *PositionDetail) SetPublicUrl(val OptNilString) {
 	s.PublicUrl = val
 }
 

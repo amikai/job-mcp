@@ -231,7 +231,7 @@ func (a *EightfoldAdapter) Detail(ctx context.Context, slug, jobID string) (*Job
 			Company:     c.Name,
 			Location:    strings.Join(d.Data.Locations, "; "),
 			PostedAt:    isoDate(time.Unix(int64(d.Data.PostedTs), 0)),
-			URL:         d.Data.PublicUrl,
+			URL:         eightfoldPublicURL(a.baseURL(c.Tenant), d.Data.PublicUrl, d.Data.PositionUrl),
 			Description: desc,
 		}, nil
 	case *eightfold.PositionNotFoundResponse:
@@ -239,6 +239,20 @@ func (a *EightfoldAdapter) Detail(ctx context.Context, slug, jobID string) (*Job
 	default:
 		return nil, fmt.Errorf("eightfold: unexpected response type %T", res)
 	}
+}
+
+// eightfoldPublicURL prefers publicUrl when the tenant sent a non-null
+// absolute URL; otherwise composes origin + site-relative positionUrl.
+// Several tenants (NetApp, Houston ISD) return publicUrl: null while still
+// filling positionUrl.
+func eightfoldPublicURL(origin string, publicURL eightfold.OptNilString, positionURL string) string {
+	if u, ok := publicURL.Get(); ok && u != "" {
+		return u
+	}
+	if positionURL == "" {
+		return ""
+	}
+	return strings.TrimRight(origin, "/") + positionURL
 }
 
 // detailV2Args groups the inputs for a pcsx-disabled v2 position detail fetch.

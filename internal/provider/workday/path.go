@@ -6,28 +6,36 @@ import (
 	"strings"
 )
 
-// JobDetailKeyFromPath extracts the two [GetJobDetailParams] values from
-// [JobSummary.ExternalPath] (e.g.
-// "/job/US-CA-Remote/Software-Engineer--CUDA_JR12345"). The API rejects a
-// single combined path parameter because standard URI encoders escape the
-// "/" between them, so callers need the segments split apart.
+// JobDetailKeyFromPath extracts the [GetJobDetailParams] values from
+// [JobSummary.ExternalPath]. Two shapes are accepted:
 //
-// It only accepts the exact "/job/{location}/{titleSlug}" shape, and
-// returns ok=false for anything else: a missing "/job/" prefix, an empty
-// segment, or extra path segments, whose "/" a URI encoder would
-// percent-encode into a shape the server rejects. Callers can then fall
-// back instead of sending a request that's guaranteed to fail.
+//   - "/job/{location}/{titleSlug}" — the common form (e.g.
+//     "/job/US-CA-Remote/Software-Engineer--CUDA_JR12345")
+//   - "/job/{titleSlug}" — location-less paths some tenants emit (e.g.
+//     "/job/APSCA-Certified-Social-Compliance-Auditor_JR0019413"). The
+//     empty location is encoded as a zero-length path segment
+//     (`/job//{titleSlug}`), which the CXS API accepts.
+//
+// A single combined path parameter fails because standard URI encoders
+// escape the "/" between segments, so callers need the parts split
+// apart. Anything else — a missing "/job/" prefix, an empty titleSlug, or
+// extra path segments — returns ok=false so callers can fall back
+// instead of sending a request that's guaranteed to fail.
 func JobDetailKeyFromPath(externalPath string) (location, titleSlug string, ok bool) {
 	rest, found := strings.CutPrefix(externalPath, "/job/")
-	if !found {
+	if !found || rest == "" {
 		return "", "", false
 	}
-	location, titleSlug, ok = strings.Cut(rest, "/")
-	missingSegs := !ok || location == "" || titleSlug == ""
-	extraSlash := strings.Contains(titleSlug, "/")
-	if missingSegs || extraSlash {
+	location, titleSlug, cut := strings.Cut(rest, "/")
+	if !cut {
+		// Location-less: "/job/{titleSlug}".
+		return "", location, true
+	}
+	if titleSlug == "" || strings.Contains(titleSlug, "/") {
 		return "", "", false
 	}
+	// "/job//{titleSlug}" (empty location segment) is accepted; a
+	// non-empty location is the typical two-segment form.
 	return location, titleSlug, true
 }
 
