@@ -14,7 +14,8 @@ var job104SearchInputRawSchema = []byte(`{
 	"properties": {
 		"keyword": {
 			"type": "string",
-			"description": "Free-text keyword search."
+			"description": "Free-text keyword search.",
+			"minLength": 1
 		},
 		"area": {
 			"type": "string",
@@ -53,12 +54,13 @@ var job104SearchInputRawSchema = []byte(`{
 		},
 		"remote": {
 			"type": "string",
-			"description": "Remote work. Soft filter — verify each result's remote. Omit for on-site.",
+			"description": "Remote-work preference. Full and Partial are soft filters — verify each result's remote. Omit to include all workplace arrangements; no on-site-only filter is available.",
 			"enum": ["Full", "Partial"]
 		},
 		"edu": {
 			"type": "array",
 			"description": "Education levels, OR'd together.",
+			"minItems": 1,
 			"uniqueItems": true,
 			"items": {
 				"type": "string",
@@ -68,6 +70,7 @@ var job104SearchInputRawSchema = []byte(`{
 		"experience": {
 			"type": "array",
 			"description": "Minimum-experience brackets, OR'd together. Soft filter — verify each result's experience.",
+			"minItems": 1,
 			"uniqueItems": true,
 			"items": {
 				"type": "string",
@@ -77,7 +80,8 @@ var job104SearchInputRawSchema = []byte(`{
 		"page": {
 			"type": "integer",
 			"description": "1-based page number.",
-			"minimum": 1
+			"minimum": 1,
+			"default": 1
 		}
 	},
 	"required": ["keyword", "area"],

@@ -13,24 +13,29 @@ var indeedSearchInputRawSchema = []byte(`{
 	"properties": {
 		"keyword": {
 			"type": "string",
-			"description": "Free-text search query: role titles, skills, or technologies."
+			"description": "Free-text search query: role titles, skills, or technologies.",
+			"minLength": 1
 		},
 		"location": {
 			"type": "string",
-			"description": "Free-text location, e.g. 'Taipei'. Must correspond to country (e.g. don't pair 'Taipei' with country 'United States') or results are wrong or empty."
+			"description": "Free-text location, e.g. 'Taipei'. Must correspond to country (e.g. don't pair 'Taipei' with country 'United States') or results are wrong or empty.",
+			"minLength": 1
 		},
 		"country": {
 			"type": "string",
-			"description": "Country name selecting Indeed's country catalogue and site domain, e.g. 'Taiwan', 'United States', 'Japan'. Defaults to Taiwan when omitted. Echoed on each result for indeed_get_job_detail."
+			"description": "Country name selecting Indeed's country catalogue and site domain, e.g. 'Taiwan', 'United States', 'Japan'. Defaults to Taiwan when omitted. Echoed on each result for indeed_get_job_detail.",
+			"default": "Taiwan"
 		},
 		"radius_miles": {
 			"type": "integer",
 			"description": "Search radius in miles around location. Omit to default to 25; set to 0 for exact-location search.",
-			"minimum": 0
+			"minimum": 0,
+			"default": 25
 		},
 		"cursor": {
 			"type": "string",
-			"description": "Pagination cursor from a previous search's next_cursor. Omit for the first page."
+			"description": "Pagination cursor from a previous search's next_cursor. Omit for the first page.",
+			"minLength": 1
 		},
 		"hours_old": {
 			"type": "integer",
@@ -149,11 +154,13 @@ var indeedDetailInputRawSchema = []byte(`{
 	"properties": {
 		"job_key": {
 			"type": "string",
-			"description": "Opaque Indeed job key (key from indeed_search_jobs results)."
+			"description": "Opaque Indeed job key (key from indeed_search_jobs results).",
+			"minLength": 1
 		},
 		"country": {
 			"type": "string",
-			"description": "Country used for the original search (country field on each search result). Required: jobData is country-scoped; omitting it or using the wrong country returns a false not-found."
+			"description": "Country used for the original search (country field on each search result). Required: jobData is country-scoped; omitting it or using the wrong country returns a false not-found.",
+			"minLength": 1
 		}
 	},
 	"required": ["job_key", "country"],
@@ -260,7 +267,7 @@ func indeedHTTPToMCPDetail(d *indeed.JobDetail) *indeedDetailOutput {
 func RegisterIndeed(s *mcp.Server, c *indeed.Client) {
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "indeed_search_jobs",
-		Description: "Search jobs on Indeed via its GraphQL job-search API.",
+		Description: "Search job postings on Indeed.",
 		Annotations: &mcp.ToolAnnotations{Title: "Search Indeed jobs", ReadOnlyHint: true},
 		InputSchema: indeedSearchInputSchema,
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, in *indeedSearchInput) (*mcp.CallToolResult, *indeedSearchOutput, error) {
@@ -277,7 +284,7 @@ func RegisterIndeed(s *mcp.Server, c *indeed.Client) {
 
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "indeed_get_job_detail",
-		Description: "Get the full job description by Indeed job key (key from indeed_search_jobs results). country is required and must match the search that produced the key.",
+		Description: "Get full details for an Indeed job posting.",
 		Annotations: &mcp.ToolAnnotations{Title: "Get Indeed job details", ReadOnlyHint: true},
 		InputSchema: indeedDetailInputSchema,
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, in *indeedDetailInput) (*mcp.CallToolResult, *indeedDetailOutput, error) {

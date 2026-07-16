@@ -176,6 +176,22 @@ func TestRegisterIndeed(t *testing.T) {
 func TestIndeedSearchJobsE2E(t *testing.T) {
 	clientSession, _ := testIndeedMCPClientServer(t)
 
+	res, err := clientSession.ListTools(t.Context(), nil)
+	require.NoError(t, err)
+
+	tool := findTool(res.Tools, "indeed_search_jobs")
+	require.NotNil(t, tool)
+
+	schema, ok := tool.InputSchema.(map[string]any)
+	require.True(t, ok)
+	properties, ok := schema["properties"].(map[string]any)
+	require.True(t, ok)
+	for _, name := range []string{"keyword", "location", "cursor"} {
+		property, ok := properties[name].(map[string]any)
+		require.True(t, ok)
+		assert.Equal(t, float64(1), property["minLength"])
+	}
+
 	callRes, err := clientSession.CallTool(t.Context(), &mcp.CallToolParams{
 		Name: "indeed_search_jobs",
 		Arguments: map[string]any{

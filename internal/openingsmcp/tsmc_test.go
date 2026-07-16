@@ -63,6 +63,7 @@ func TestTsmcSearchJobsE2E(t *testing.T) {
 			"keyword": map[string]any{
 				"type":        "string",
 				"description": "Free-text keyword search across job titles.",
+				"minLength":   float64(1),
 			},
 			"location": map[string]any{
 				"type":        "string",
@@ -105,6 +106,7 @@ func TestTsmcSearchJobsE2E(t *testing.T) {
 				"type":        "integer",
 				"description": "1-based page number; 10 results per page.",
 				"minimum":     float64(1),
+				"default":     float64(1),
 			},
 		},
 		"required":             []any{"keyword", "location"},

@@ -65,10 +65,12 @@ func TestCakeSearchJobsE2E(t *testing.T) {
 			"keyword": map[string]any{
 				"type":        "string",
 				"description": "Free-text keyword search.",
+				"minLength":   float64(1),
 			},
 			"location": map[string]any{
 				"type":        "string",
 				"description": "Location name as shown on Cake.me, localized English or Chinese, e.g. \"Taiwan\", \"台灣\", \"Taipei City, Taiwan\".",
+				"minLength":   float64(1),
 			},
 			"job_type": map[string]any{
 				"type":        "string",
@@ -78,6 +80,7 @@ func TestCakeSearchJobsE2E(t *testing.T) {
 			"seniority": map[string]any{
 				"type":        "array",
 				"description": "Seniority levels, OR'd together.",
+				"minItems":    float64(1),
 				"uniqueItems": true,
 				"items": map[string]any{
 					"type": "string",
@@ -93,11 +96,13 @@ func TestCakeSearchJobsE2E(t *testing.T) {
 				"type":        "string",
 				"description": "Result order. Defaults to popularity.",
 				"enum":        []any{"popularity", "latest"},
+				"default":     "popularity",
 			},
 			"page": map[string]any{
 				"type":        "integer",
 				"description": "1-based page number.",
 				"minimum":     float64(1),
+				"default":     float64(1),
 			},
 		},
 		"required":             []any{"keyword", "location"},

@@ -19,11 +19,13 @@ var cakeSearchInputRawSchema = []byte(`{
 	"properties": {
 		"keyword": {
 			"type": "string",
-			"description": "Free-text keyword search."
+			"description": "Free-text keyword search.",
+			"minLength": 1
 		},
 		"location": {
 			"type": "string",
-			"description": "Location name as shown on Cake.me, localized English or Chinese, e.g. \"Taiwan\", \"台灣\", \"Taipei City, Taiwan\"."
+			"description": "Location name as shown on Cake.me, localized English or Chinese, e.g. \"Taiwan\", \"台灣\", \"Taipei City, Taiwan\".",
+			"minLength": 1
 		},
 		"job_type": {
 			"type": "string",
@@ -33,6 +35,7 @@ var cakeSearchInputRawSchema = []byte(`{
 		"seniority": {
 			"type": "array",
 			"description": "Seniority levels, OR'd together.",
+			"minItems": 1,
 			"uniqueItems": true,
 			"items": {
 				"type": "string",
@@ -47,12 +50,14 @@ var cakeSearchInputRawSchema = []byte(`{
 		"sort": {
 			"type": "string",
 			"description": "Result order. Defaults to popularity.",
-			"enum": ["popularity", "latest"]
+			"enum": ["popularity", "latest"],
+			"default": "popularity"
 		},
 		"page": {
 			"type": "integer",
 			"description": "1-based page number.",
-			"minimum": 1
+			"minimum": 1,
+			"default": 1
 		}
 	},
 	"required": ["keyword", "location"],

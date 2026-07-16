@@ -9,6 +9,7 @@ import (
 
 	"github.com/amikai/openings-mcp/internal/provider/cake"
 	"github.com/amikai/openings-mcp/internal/provider/google"
+	"github.com/amikai/openings-mcp/internal/provider/indeed"
 	"github.com/amikai/openings-mcp/internal/provider/job104"
 	"github.com/amikai/openings-mcp/internal/provider/linkedin"
 	"github.com/amikai/openings-mcp/internal/provider/nvidia"
@@ -35,6 +36,7 @@ func TestServerListsJobTools(t *testing.T) {
 	cTsmc := tsmc.NewClient("https://careers.tsmc.com", http.DefaultClient)
 	cGoogle := google.NewClient("https://www.google.com/about/careers/applications", http.DefaultClient)
 	cLinkedin := linkedin.NewClient("https://www.linkedin.com", http.DefaultClient)
+	cIndeed := indeed.NewClient("https://apis.indeed.com/graphql", http.DefaultClient)
 	registry, err := newATSRegistry(http.DefaultClient, http.DefaultClient)
 	require.NoError(t, err)
 	server := newServer(providerClients{
@@ -44,6 +46,7 @@ func TestServerListsJobTools(t *testing.T) {
 		tsmc:     cTsmc,
 		google:   cGoogle,
 		linkedin: cLinkedin,
+		indeed:   cIndeed,
 	}, registry, slog.New(slog.NewTextHandler(io.Discard, nil)))
 	client := mcp.NewClient(&mcp.Implementation{Name: "smoke", Version: "v0"}, nil)
 	serverTransport, clientTransport := mcp.NewInMemoryTransports()
@@ -56,9 +59,9 @@ func TestServerListsJobTools(t *testing.T) {
 
 	res, err := clientSession.ListTools(ctx, nil)
 	require.NoError(t, err)
-	got := make(map[string]bool, len(res.Tools))
+	got := make(map[string]*mcp.Tool, len(res.Tools))
 	for _, tool := range res.Tools {
-		got[tool.Name] = true
+		got[tool.Name] = tool
 	}
 	for _, name := range []string{
 		"104_search_jobs",
@@ -73,12 +76,101 @@ func TestServerListsJobTools(t *testing.T) {
 		"google_get_job_detail",
 		"linkedin_search_jobs",
 		"linkedin_get_job_detail",
+		"indeed_search_jobs",
+		"indeed_get_job_detail",
 		"search_jobs_by_company",
 		"get_filters_by_company",
 		"get_job_detail_by_company",
 	} {
-		assert.Contains(t, got, name)
+		tool := got[name]
+		require.NotNil(t, tool, name)
+		assert.NotEmpty(t, tool.Description, name)
+		assert.NotNil(t, tool.InputSchema, name)
+		assert.NotNil(t, tool.OutputSchema, name)
+		require.NotNil(t, tool.Annotations, name)
+		assert.NotEmpty(t, tool.Annotations.Title, name)
+		assert.True(t, tool.Annotations.ReadOnlyHint, name)
 	}
+
+	companyTool := got["search_jobs_by_company"]
+	assert.Equal(t, "Search official job postings for a specific company.", companyTool.Description)
+	assert.Equal(t, "Get company-specific filters when a job search needs narrowing beyond query and location.", got["get_filters_by_company"].Description)
+
+	companyInput, ok := companyTool.InputSchema.(map[string]any)
+	require.True(t, ok)
+	companyProperties, ok := companyInput["properties"].(map[string]any)
+	require.True(t, ok)
+	companyProperty, ok := companyProperties["company"].(map[string]any)
+	require.True(t, ok)
+	assert.Equal(t, float64(1), companyProperty["minLength"])
+	assert.Contains(t, companyProperty["description"], "recognized public careers-page URL")
+	assert.Contains(t, companyProperty["description"], "Other careers URLs are unsupported")
+	assert.Contains(t, companyProperty["description"], "some ATS providers accept URLs only for companies in the curated roster")
+	assert.NotContains(t, companyProperty["description"], "Eightfold")
+	assert.NotContains(t, companyProperty["description"], "SuccessFactors")
+
+	filtersProperty, ok := companyProperties["filters"].(map[string]any)
+	require.True(t, ok)
+	filterValues, ok := filtersProperty["additionalProperties"].(map[string]any)
+	require.True(t, ok)
+	assert.Equal(t, float64(1), filterValues["minItems"])
+	assert.Equal(t, true, filterValues["uniqueItems"])
+
+	pageProperty, ok := companyProperties["page"].(map[string]any)
+	require.True(t, ok)
+	assert.Equal(t, float64(1), pageProperty["default"])
+
+	companyOutput, ok := companyTool.OutputSchema.(map[string]any)
+	require.True(t, ok)
+	companyOutputProperties, ok := companyOutput["properties"].(map[string]any)
+	require.True(t, ok)
+	assert.NotContains(t, companyOutputProperties, "next_cursor")
+
+	nvidiaTool := got["nvidia_search_jobs"]
+	nvidiaInput, ok := nvidiaTool.InputSchema.(map[string]any)
+	require.True(t, ok)
+	nvidiaProperties, ok := nvidiaInput["properties"].(map[string]any)
+	require.True(t, ok)
+	nvidiaLimit, ok := nvidiaProperties["limit"].(map[string]any)
+	require.True(t, ok)
+	assert.Equal(t, float64(20), nvidiaLimit["default"])
+
+	nvidiaOutput, ok := nvidiaTool.OutputSchema.(map[string]any)
+	require.True(t, ok)
+	nvidiaOutputProperties, ok := nvidiaOutput["properties"].(map[string]any)
+	require.True(t, ok)
+	nvidiaData, ok := nvidiaOutputProperties["data"].(map[string]any)
+	require.True(t, ok)
+	nvidiaItems, ok := nvidiaData["items"].(map[string]any)
+	require.True(t, ok)
+	nvidiaItemProperties, ok := nvidiaItems["properties"].(map[string]any)
+	require.True(t, ok)
+	nvidiaExternalPath, ok := nvidiaItemProperties["external_path"].(map[string]any)
+	require.True(t, ok)
+	assert.Contains(t, nvidiaExternalPath["description"], "nvidia_get_job_detail")
+
+	indeedTool := got["indeed_search_jobs"]
+	assert.Equal(t, "Search job postings on Indeed.", indeedTool.Description)
+	assert.Equal(t, "Get full details for an Indeed job posting.", got["indeed_get_job_detail"].Description)
+	indeedInput, ok := indeedTool.InputSchema.(map[string]any)
+	require.True(t, ok)
+	indeedProperties, ok := indeedInput["properties"].(map[string]any)
+	require.True(t, ok)
+	indeedCountry, ok := indeedProperties["country"].(map[string]any)
+	require.True(t, ok)
+	assert.Equal(t, "Taiwan", indeedCountry["default"])
+	indeedRadius, ok := indeedProperties["radius_miles"].(map[string]any)
+	require.True(t, ok)
+	assert.Equal(t, float64(25), indeedRadius["default"])
+}
+
+func TestServerInstructionsDisambiguateCompanyAndSourceRouting(t *testing.T) {
+	assert.Contains(t, serverInstructions, "A company name by itself is not a source selection.")
+	assert.Contains(t, serverInstructions, "recognized public careers-page URLs on supported ATS providers")
+	assert.Contains(t, serverInstructions, "some ATS providers accept URLs only for companies already in the curated roster")
+	assert.NotContains(t, serverInstructions, "Eightfold")
+	assert.NotContains(t, serverInstructions, "SuccessFactors")
+	assert.NotContains(t, serverInstructions, "When the user names a site or company, use that provider's tools.")
 }
 
 func TestRunWithTransportTreatsStdinEOFAsCleanExit(t *testing.T) {

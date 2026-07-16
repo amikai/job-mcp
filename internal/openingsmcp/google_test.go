@@ -63,10 +63,12 @@ func TestGoogleSearchJobsE2E(t *testing.T) {
 			"keyword": map[string]any{
 				"type":        "string",
 				"description": "Free-text search query matched against job title and description.",
+				"minLength":   float64(1),
 			},
 			"location": map[string]any{
 				"type":        "string",
 				"description": `Location filter; a city, region, or country name (e.g. "Taiwan", "New York, NY, USA").`,
+				"minLength":   float64(1),
 			},
 			"has_remote": map[string]any{
 				"type":        "boolean",
@@ -100,11 +102,13 @@ func TestGoogleSearchJobsE2E(t *testing.T) {
 				"type":        "string",
 				"description": "Sort order. Defaults to relevance; date sorts newest first.",
 				"enum":        []any{"relevance", "date"},
+				"default":     "relevance",
 			},
 			"page": map[string]any{
 				"type":        "integer",
 				"description": "1-based page number; 20 results per page.",
 				"minimum":     float64(1),
+				"default":     float64(1),
 			},
 		},
 		"required":             []any{"keyword", "location"},

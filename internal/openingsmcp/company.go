@@ -16,7 +16,8 @@ var companySearchInputRawSchema = []byte(`{
 	"properties": {
 		"company": {
 			"type": "string",
-			"description": "Company name or slug, e.g. 'nvidia' or 'NVIDIA Corp', or a company's public careers-page URL, e.g. 'https://nvidia.wd5.myworkdayjobs.com/NVIDIAExternalCareerSite'. If a name isn't recognized, the error message suggests the closest supported companies."
+			"description": "Company name or slug, e.g. 'nvidia', or a recognized public careers-page URL on a supported ATS. Other careers URLs are unsupported; some ATS providers accept URLs only for companies in the curated roster.",
+			"minLength": 1
 		},
 		"query": {
 			"type": "string",
@@ -31,13 +32,19 @@ var companySearchInputRawSchema = []byte(`{
 			"description": "Optional precise filters. Keys and values are company-specific; discover them with get_filters_by_company. Multiple values for one key are OR'd; different keys are AND'd.",
 			"additionalProperties": {
 				"type": "array",
-				"items": { "type": "string" }
+				"minItems": 1,
+				"uniqueItems": true,
+				"items": {
+					"type": "string",
+					"minLength": 1
+				}
 			}
 		},
 		"page": {
 			"type": "integer",
 			"description": "1-based page number; each page returns at most 20 jobs.",
-			"minimum": 1
+			"minimum": 1,
+			"default": 1
 		}
 	},
 	"required": ["company"],
@@ -67,9 +74,6 @@ type companySearchOutput struct {
 	TotalCount int                 `json:"total_count"`
 	Page       int                 `json:"page"`
 	TotalPages int                 `json:"total_pages"`
-	// NextCursor is reserved for a future keyset-pagination upgrade; it is
-	// always empty today.
-	NextCursor string `json:"next_cursor,omitempty"`
 }
 
 func companySearch(ctx context.Context, reg *ats.Registry, in *companySearchInput) (*companySearchOutput, error) {
@@ -105,7 +109,7 @@ func companySearch(ctx context.Context, reg *ats.Registry, in *companySearchInpu
 }
 
 type companyFiltersInput struct {
-	Company string `json:"company" jsonschema:"Company name, slug, or public careers-page URL, e.g. 'nvidia' or 'https://nvidia.wd5.myworkdayjobs.com/NVIDIAExternalCareerSite'."`
+	Company string `json:"company" jsonschema:"Company name or slug, or a recognized public careers-page URL on a supported ATS. Other careers URLs are unsupported; some ATS providers accept URLs only for companies in the curated roster."`
 }
 
 type companyFiltersOutput struct {
@@ -125,7 +129,7 @@ func companyFilters(ctx context.Context, reg *ats.Registry, in *companyFiltersIn
 }
 
 type companyDetailInput struct {
-	Company string `json:"company" jsonschema:"Company name, slug, or public careers-page URL, e.g. 'nvidia' or 'https://nvidia.wd5.myworkdayjobs.com/NVIDIAExternalCareerSite'."`
+	Company string `json:"company" jsonschema:"Company name or slug, or a recognized public careers-page URL on a supported ATS. Other careers URLs are unsupported; some ATS providers accept URLs only for companies in the curated roster."`
 	JobID   string `json:"job_id" jsonschema:"job_id from search_jobs_by_company results."`
 }
 
@@ -163,7 +167,7 @@ func companyDetail(ctx context.Context, reg *ats.Registry, in *companyDetailInpu
 func RegisterCompany(s *mcp.Server, reg *ats.Registry) {
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "search_jobs_by_company",
-		Description: "Search a specific company's official job openings by company name. Covers hundreds of companies; if the company isn't recognized, the error suggests the closest supported names. Companies outside the list can be searched by passing their public careers-page URL as company. Results are summaries — use get_job_detail_by_company for full descriptions.",
+		Description: "Search official job postings for a specific company.",
 		Annotations: &mcp.ToolAnnotations{Title: "Search jobs by company", ReadOnlyHint: true},
 		InputSchema: companySearchInputSchema,
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, in *companySearchInput) (*mcp.CallToolResult, *companySearchOutput, error) {
@@ -176,7 +180,7 @@ func RegisterCompany(s *mcp.Server, reg *ats.Registry) {
 
 	mcp.AddTool(s, &mcp.Tool{
 		Name:        "get_filters_by_company",
-		Description: "Discover a company's currently valid job-search filter dimensions and values (e.g. job family, employment type). Optional: only call it when a search needs precise narrowing beyond query and location.",
+		Description: "Get company-specific filters when a job search needs narrowing beyond query and location.",
 		Annotations: &mcp.ToolAnnotations{Title: "Get company job filters", ReadOnlyHint: true},
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, in *companyFiltersInput) (*mcp.CallToolResult, *companyFiltersOutput, error) {
 		out, err := companyFilters(ctx, reg, in)

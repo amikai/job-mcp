@@ -18,7 +18,8 @@ var tsmcSearchInputRawSchema = []byte(`{
 	"properties": {
 		"keyword": {
 			"type": "string",
-			"description": "Free-text keyword search across job titles."
+			"description": "Free-text keyword search across job titles.",
+			"minLength": 1
 		},
 		"location": {
 			"type": "string",
@@ -60,7 +61,8 @@ var tsmcSearchInputRawSchema = []byte(`{
 		"page": {
 			"type": "integer",
 			"description": "1-based page number; 10 results per page.",
-			"minimum": 1
+			"minimum": 1,
+			"default": 1
 		}
 	},
 	"required": ["keyword", "location"],
