@@ -502,7 +502,10 @@ type ListPostingsParams struct {
 	// Identifier of a company — the slug from its career site URL, e.g. "Equinox" in
 	// jobs.smartrecruiters.com/Equinox. Case-insensitive in practice.
 	CompanyIdentifier string
-	// Full-text search query based on a job title, location.
+	// Full-text search over job titles and location text. Terms are OR'd, not AND'd — adding a term
+	// broadens the result (verified live against Equinox, 2026-07-13: q=trainer → 138, q=Houston → 9,
+	// q=trainer Houston → 146 ≈ their union). Never fold multiple constraints into one q value
+	// expecting them to all apply.
 	Q OptString `json:",omitempty,omitzero"`
 	// Number of elements to return. max value is 100.
 	Limit OptInt `json:",omitempty,omitzero"`

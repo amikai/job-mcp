@@ -64,7 +64,9 @@ info:
 
     `q`, `country`, `region`, `city`, `department`, and
     `custom_field.{fieldId}` all narrow `totalFound` (verified against
-    Equinox's ~662-posting board): `q` keyword-matches titles, and
+    Equinox's ~662-posting board): `q` keyword-matches titles AND location
+    text with OR semantics across terms (see the `q` parameter's
+    description — a multi-term `q` is a union, not an intersection), and
     `department`/`custom_field.{fieldId}=<valueId>` are equivalent ways to
     filter the same dimension (a `department` query value is the
     `department.id` from a posting, not a display label).
@@ -100,7 +102,12 @@ paths:
             type: string
         - in: query
           name: q
-          description: full-text search query based on a job title, location
+          description: >
+            Full-text search over job titles and location text. Terms are
+            OR'd, not AND'd — adding a term broadens the result (verified
+            live against Equinox, 2026-07-13: q=trainer → 138, q=Houston →
+            9, q=trainer Houston → 146 ≈ their union). Never fold multiple
+            constraints into one q value expecting them to all apply.
           required: false
           schema:
             type: string
