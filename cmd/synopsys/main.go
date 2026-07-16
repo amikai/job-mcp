@@ -41,7 +41,7 @@ func main() {
 	for i, job := range results.Jobs {
 		detail, err := c.JobDetail(ctx, job.City, job.Slug, job.JobID)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "job detail %s: %v\n", job.JobID, err)
+			fmt.Fprintf(os.Stderr, "job detail %q: %v\n", job.JobID, err)
 			os.Exit(1)
 		}
 		fmt.Printf("%d. [%s] %s\n", i+1, job.DisplayID, job.Title)

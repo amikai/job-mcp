@@ -142,10 +142,11 @@ func parseSiteDocument(doc *goquery.Document, pageURL *url.URL) (Site, error) {
 
 func candidateExperiencePath(rawPath string) (language, site string, ok bool) {
 	segments := strings.Split(strings.Trim(rawPath, "/"), "/")
-	for i := 0; i+4 < len(segments); i++ {
-		if !strings.EqualFold(segments[i], "hcmUI") ||
-			!strings.EqualFold(segments[i+1], "CandidateExperience") ||
-			!strings.EqualFold(segments[i+3], "sites") {
+	for i := range max(0, len(segments)-4) {
+		isCEPath := strings.EqualFold(segments[i], "hcmUI") &&
+			strings.EqualFold(segments[i+1], "CandidateExperience") &&
+			strings.EqualFold(segments[i+3], "sites")
+		if !isCEPath {
 			continue
 		}
 		if segments[i+2] == "" || segments[i+4] == "" {
@@ -489,14 +490,14 @@ func (c *SiteClient) searchFinder(request SearchRequest) (string, error) {
 
 func validateFinderAtom(name, value string) error {
 	if strings.TrimSpace(value) == "" {
-		return fmt.Errorf("oracle: %s is required", name)
+		return fmt.Errorf("oracle: %q is required", name)
 	}
 	if strings.ContainsAny(value, ",;\"") {
-		return fmt.Errorf("oracle: %s %q contains finder syntax", name, value)
+		return fmt.Errorf("oracle: %q %q contains finder syntax", name, value)
 	}
 	for _, r := range value {
 		if unicode.IsControl(r) {
-			return fmt.Errorf("oracle: %s contains a control character", name)
+			return fmt.Errorf("oracle: %q contains a control character", name)
 		}
 	}
 	return nil

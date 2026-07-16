@@ -293,11 +293,12 @@ func TestParseSearchHTMLRemoteEligible(t *testing.T) {
 	require.NoError(t, err)
 
 	want := []Job{{
-		ID:       "123",
-		Title:    "Forward Deployed Engineer",
-		Company:  "Google",
-		Location: "San Francisco, CA, USA",
-		Remote:   true,
+		ID:                    "123",
+		Title:                 "Forward Deployed Engineer",
+		Company:               "Google",
+		Location:              "San Francisco, CA, USA",
+		Remote:                true,
+		MinimumQualifications: []string{},
 	}}
 	assert.Equal(t, want, got)
 }

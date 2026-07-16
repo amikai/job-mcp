@@ -37,7 +37,7 @@ func main() {
 		Flags:     companiesFlags,
 		Exec: func(ctx context.Context, args []string) error {
 			if len(args) > 0 {
-				return fmt.Errorf("companies takes no positional arguments, got %v", args)
+				return fmt.Errorf("companies takes no positional arguments, got %q", args)
 			}
 			return runCompanies(*format)
 		},
@@ -61,7 +61,7 @@ func main() {
 		Flags:     searchFS,
 		Exec: func(ctx context.Context, args []string) error {
 			if len(args) > 0 {
-				return fmt.Errorf("search takes no positional arguments, got %v (did you forget a flag name?)", args)
+				return fmt.Errorf("search takes no positional arguments, got %q (did you forget a flag name?)", args)
 			}
 			return runSearch(ctx, searchFlags{
 				company:      *company,
@@ -88,7 +88,7 @@ func main() {
 		Flags:     facetsFS,
 		Exec: func(ctx context.Context, args []string) error {
 			if len(args) > 0 {
-				return fmt.Errorf("facets takes no positional arguments, got %v", args)
+				return fmt.Errorf("facets takes no positional arguments, got %q", args)
 			}
 			return runFacets(ctx, facetsFlags{company: *company, timeout: *timeout, keyword: *facetsKeyword, format: *format})
 		},
@@ -104,7 +104,7 @@ func main() {
 		Flags:     detailFS,
 		Exec: func(ctx context.Context, args []string) error {
 			if len(args) > 0 {
-				return fmt.Errorf("detail takes no positional arguments, got %v (did you mean --id %q?)", args, args[0])
+				return fmt.Errorf("detail takes no positional arguments, got %q (did you mean --id %q?)", args, args[0])
 			}
 			return runDetail(ctx, detailFlags{company: *company, timeout: *timeout, jobID: *jobID, format: *format})
 		},

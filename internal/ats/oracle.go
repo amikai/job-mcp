@@ -315,7 +315,7 @@ func resolveOracleFacetValues(
 	ids := make([]string, 0, len(values))
 	for _, value := range values {
 		value = strings.TrimSpace(value)
-		matched := false
+		var matched bool
 		for _, option := range options {
 			if !strings.EqualFold(strings.TrimSpace(option.Name), value) {
 				continue
@@ -393,10 +393,11 @@ func parseOracleCareersURL(
 	}
 
 	segments := strings.Split(strings.Trim(u.Path, "/"), "/")
-	for i := 0; i+4 < len(segments); i++ {
-		if !strings.EqualFold(segments[i], "hcmUI") ||
-			!strings.EqualFold(segments[i+1], "CandidateExperience") ||
-			!strings.EqualFold(segments[i+3], "sites") {
+	for i := range max(0, len(segments)-4) {
+		isCEPath := strings.EqualFold(segments[i], "hcmUI") &&
+			strings.EqualFold(segments[i+1], "CandidateExperience") &&
+			strings.EqualFold(segments[i+3], "sites")
+		if !isCEPath {
 			continue
 		}
 		language = strings.TrimSpace(segments[i+2])

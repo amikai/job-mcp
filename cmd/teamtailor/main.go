@@ -39,7 +39,7 @@ func main() {
 		Flags:     companiesFlags,
 		Exec: func(_ context.Context, args []string) error {
 			if len(args) > 0 {
-				return fmt.Errorf("companies takes no positional arguments, got %v", args)
+				return fmt.Errorf("companies takes no positional arguments, got %q", args)
 			}
 			return runCompanies(*format)
 		},
@@ -55,7 +55,7 @@ func main() {
 		Flags:     searchFS,
 		Exec: func(ctx context.Context, args []string) error {
 			if len(args) > 0 {
-				return fmt.Errorf("search takes no positional arguments, got %v (did you forget a flag name?)", args)
+				return fmt.Errorf("search takes no positional arguments, got %q (did you forget a flag name?)", args)
 			}
 			return runSearch(ctx, searchFlags{host: *host, timeout: *timeout, keyword: *keyword, format: *format})
 		},
@@ -71,7 +71,7 @@ func main() {
 		Flags:     getFS,
 		Exec: func(ctx context.Context, args []string) error {
 			if len(args) > 0 {
-				return fmt.Errorf("get takes no positional arguments, got %v (did you mean --id %q?)", args, args[0])
+				return fmt.Errorf("get takes no positional arguments, got %q (did you mean --id %q?)", args, args[0])
 			}
 			return runGet(ctx, getFlags{host: *host, timeout: *timeout, jobID: *jobID, format: *format})
 		},

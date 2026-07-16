@@ -273,7 +273,8 @@ func printSummary(s jobSummaryJSON) {
 	}
 	// Some boards send null workplaceType/isRemote; skip the line rather
 	// than printing a made-up default.
-	if s.WorkplaceType != "" || (s.IsRemote != nil && *s.IsRemote) {
+	showWorkplace := s.WorkplaceType != "" || (s.IsRemote != nil && *s.IsRemote)
+	if showWorkplace {
 		workplace := s.WorkplaceType
 		if workplace == "" {
 			workplace = "(unspecified)"

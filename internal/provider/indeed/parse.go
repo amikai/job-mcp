@@ -37,7 +37,8 @@ func compensationFromParts(base *baseSalary, estimated *baseSalary, currency, es
 	// Still expose a Compensation when only unit/currency is set and min/max
 	// are zero — callers treat zero amounts as "not disclosed" the same way
 	// the prior *float64 path did when min/max were null.
-	if comp.MinAmount == 0 && comp.MaxAmount == 0 && bs.UnitOfWork == "" && cur == "" {
+	empty := comp.MinAmount == 0 && comp.MaxAmount == 0 && bs.UnitOfWork == "" && cur == ""
+	if empty {
 		return nil
 	}
 	return comp
@@ -128,7 +129,7 @@ func jobFromSearch(j GetJobSearchJobSearchJobSearchConnectionResultsJobSearchRes
 	}
 	attrs := make([]struct{ Key, Label string }, len(j.Attributes))
 	for i, a := range j.Attributes {
-		attrs[i] = struct{ Key, Label string }{a.Key, a.Label}
+		attrs[i] = struct{ Key, Label string }{Key: a.Key, Label: a.Label}
 	}
 	var base, estimated *baseSalary
 	if j.Compensation.BaseSalary != nil {
@@ -137,7 +138,7 @@ func jobFromSearch(j GetJobSearchJobSearchJobSearchConnectionResultsJobSearchRes
 			Range:      rangeMinMax(j.Compensation.BaseSalary.Range),
 		}
 	}
-	estCurrency := ""
+	var estCurrency string
 	if j.Compensation.Estimated != nil {
 		estCurrency = j.Compensation.Estimated.CurrencyCode
 		if j.Compensation.Estimated.BaseSalary != nil {
@@ -187,7 +188,7 @@ func jobDetailFromDetail(j GetJobDetailJobDataJobDataConnectionResultsJobDataRes
 	if len(j.Attributes) > 0 {
 		attrs := make([]struct{ Key, Label string }, len(j.Attributes))
 		for i, a := range j.Attributes {
-			attrs[i] = struct{ Key, Label string }{a.Key, a.Label}
+			attrs[i] = struct{ Key, Label string }{Key: a.Key, Label: a.Label}
 		}
 		detail.JobTypes = jobTypesFromAttributes(attrs)
 	}
@@ -198,7 +199,7 @@ func jobDetailFromDetail(j GetJobDetailJobDataJobDataConnectionResultsJobDataRes
 			Range:      rangeMinMax(j.Compensation.BaseSalary.Range),
 		}
 	}
-	estCurrency := ""
+	var estCurrency string
 	if j.Compensation.Estimated != nil {
 		estCurrency = j.Compensation.Estimated.CurrencyCode
 		if j.Compensation.Estimated.BaseSalary != nil {

@@ -166,8 +166,9 @@ func (c *Client) getHTML(ctx context.Context, rawURL, referer string) (*goquery.
 
 func addAll(q url.Values, key string, values []string) {
 	for _, value := range values {
-		if value != "" {
-			q.Add(key, value)
+		if value == "" {
+			continue
 		}
+		q.Add(key, value)
 	}
 }

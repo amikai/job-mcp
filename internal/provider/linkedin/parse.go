@@ -31,7 +31,7 @@ func looksRemote(parts ...string) bool {
 // but no cards is a challenge page or selector drift and must error instead
 // of reading as an empty search.
 func parseJobsHTML(doc *goquery.Document) ([]Job, error) {
-	var jobs []Job
+	jobs := []Job{}
 	for _, card := range doc.Find("div.base-search-card").EachIter() {
 		if job, ok := parseJobCard(card); ok {
 			jobs = append(jobs, job)

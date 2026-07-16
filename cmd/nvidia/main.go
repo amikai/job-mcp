@@ -99,7 +99,7 @@ func main() {
 		}
 		detail, err := client.GetJobDetail(ctx, nvidia.GetJobDetailParams{Location: location, TitleSlug: titleSlug})
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "job detail %s: %v\n", job.ExternalPath.Value, err)
+			fmt.Fprintf(os.Stderr, "job detail %q: %v\n", job.ExternalPath.Value, err)
 			// Fallback URL when the detail fetch (which carries the
 			// authoritative externalUrl) failed. Must include the site's
 			// "/NVIDIAExternalCareerSite" path segment or the link 404s.

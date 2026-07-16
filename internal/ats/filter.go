@@ -108,13 +108,14 @@ func containsAllWords(text string, words []string) bool {
 
 // matchLocation takes the already-lowercased, trimmed location.
 func matchLocation(j *dumpJob, loc string) bool {
-	if loc == "" {
+	switch loc {
+	case "":
 		return true
-	}
-	if loc == "remote" {
+	case "remote":
 		return j.isRemote || strings.Contains(strings.ToLower(j.locations), "remote")
+	default:
+		return strings.Contains(strings.ToLower(j.locations), loc)
 	}
-	return strings.Contains(strings.ToLower(j.locations), loc)
 }
 
 func matchFilters(j *dumpJob, filters map[string][]string) bool {

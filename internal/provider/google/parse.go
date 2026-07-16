@@ -13,7 +13,7 @@ import (
 // zero-result page from a bot challenge or redesigned page — the latter must
 // error, not read as an empty search.
 func parseJobsHTML(doc *goquery.Document) ([]Job, error) {
-	var jobs []Job
+	jobs := []Job{}
 	for _, li := range doc.Find("li.lLd3Je").EachIter() {
 		if job, ok := parseJobCard(li); ok {
 			jobs = append(jobs, job)
@@ -66,7 +66,7 @@ func parseJobCard(li *goquery.Selection) (Job, bool) {
 
 // bulletTexts collects the whitespace-normalized text of every <li> under sel.
 func bulletTexts(sel *goquery.Selection) []string {
-	var bullets []string
+	bullets := []string{}
 	for _, li := range sel.Find("li").EachIter() {
 		bullets = append(bullets, strings.Join(strings.Fields(li.Text()), " "))
 	}

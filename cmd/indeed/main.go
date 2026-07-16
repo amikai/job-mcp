@@ -77,7 +77,7 @@ func main() {
 	for _, job := range jobs {
 		detail, err := client.JobDetail(ctx, *country, job.Key)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "job detail %s: %v\n", job.Key, err)
+			fmt.Fprintf(os.Stderr, "job detail %q: %v\n", job.Key, err)
 			continue
 		}
 		details[job.Key] = detail

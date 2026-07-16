@@ -98,7 +98,7 @@ func main() {
 	for _, job := range search.Data {
 		detail, err := client.GetJobDetail(ctx, cake.GetJobDetailParams{Path: job.Path})
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "job detail %s: %v\n", job.Path, err)
+			fmt.Fprintf(os.Stderr, "job detail %q: %v\n", job.Path, err)
 			os.Exit(1)
 		}
 		details[job.Path] = detail
@@ -170,7 +170,8 @@ func buildSearchRequest(f searchFlags) (cake.JobSearchRequest, error) {
 		return req, err
 	}
 
-	if f.salaryType != "" || f.salaryCurrency != "" || f.salaryMin != 0 || f.salaryMax != 0 {
+	hasSalary := f.salaryType != "" || f.salaryCurrency != "" || f.salaryMin != 0 || f.salaryMax != 0
+	if hasSalary {
 		salary := cake.JobSearchFiltersSalary{}
 		if f.salaryType != "" {
 			salary.Type = cake.NewOptJobSearchFiltersSalaryType(cake.JobSearchFiltersSalaryType(f.salaryType))

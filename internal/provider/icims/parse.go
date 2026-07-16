@@ -32,7 +32,7 @@ type SelectOption struct {
 // genuine empty result set. A page that looks nothing like the portal is an
 // error so bot-challenge / login walls surface clearly.
 func parseSearchHTML(doc *goquery.Document) (*SearchResponse, error) {
-	var jobs []Job
+	jobs := []Job{}
 	seen := make(map[string]struct{})
 	doc.Find("li.iCIMS_JobCardItem").Each(func(_ int, card *goquery.Selection) {
 		job, ok := parseJobCard(card)

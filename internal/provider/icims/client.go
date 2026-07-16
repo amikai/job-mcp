@@ -142,7 +142,7 @@ func (c *Client) Search(ctx context.Context, req *SearchRequest) (*SearchRespons
 		}
 		resolved = normalizeLocationValues(resolved)
 		if len(resolved) == 0 {
-			probe.Jobs = nil
+			probe.Jobs = []Job{}
 			probe.TotalPages = 1
 			probe.PageSize = 0
 			return probe, nil
@@ -200,10 +200,12 @@ func (c *Client) doSearch(ctx context.Context, req *SearchRequest) (*SearchRespo
 	if err != nil {
 		return nil, fmt.Errorf("search jobs: %w", err)
 	}
-	if status == http.StatusNotFound {
+	switch status {
+	case http.StatusOK:
+		// continue
+	case http.StatusNotFound:
 		return nil, fmt.Errorf("search jobs: %w", ErrCompanyNotFound)
-	}
-	if status != http.StatusOK {
+	default:
 		return nil, fmt.Errorf("search jobs: HTTP %d", status)
 	}
 
@@ -238,10 +240,12 @@ func (c *Client) JobDetail(ctx context.Context, id string) (*JobDetailResponse, 
 	if err != nil {
 		return nil, fmt.Errorf("job detail %q: %w", id, err)
 	}
-	if status == http.StatusGone || status == http.StatusNotFound {
+	switch status {
+	case http.StatusOK:
+		// continue
+	case http.StatusGone, http.StatusNotFound:
 		return nil, fmt.Errorf("job detail %q: %w", id, ErrJobNotFound)
-	}
-	if status != http.StatusOK {
+	default:
 		return nil, fmt.Errorf("job detail %q: HTTP %d", id, status)
 	}
 

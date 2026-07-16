@@ -10,10 +10,12 @@ import (
 // get https; anything without both a dot and a path stays a name.
 func parseCareersInput(s string) (*url.URL, bool) {
 	s = strings.TrimSpace(s)
-	if !strings.Contains(s, "://") {
-		if !strings.Contains(s, ".") || !strings.Contains(s, "/") {
-			return nil, false
-		}
+	schemeLess := !strings.Contains(s, "://")
+	looksLikeName := !strings.Contains(s, ".") || !strings.Contains(s, "/")
+	if schemeLess && looksLikeName {
+		return nil, false
+	}
+	if schemeLess {
 		s = "https://" + s
 	}
 	u, err := url.Parse(s)

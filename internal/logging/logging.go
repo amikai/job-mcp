@@ -27,18 +27,32 @@ func LoggingMiddleware(logger *slog.Logger) mcp.Middleware {
 
 			res, err := next(ctx, method, request)
 
-			reqLogger.Debug("request completed", "method", method, "duration", time.Since(start))
+			reqLogger.Debug(
+				"request completed",
+				"method", method,
+				"duration", time.Since(start),
+			)
 
 			if r, ok := res.(*mcp.CallToolResult); ok && r.IsError {
 				for _, c := range r.Content {
-					if tc, ok := c.(*mcp.TextContent); ok {
-						reqLogger.Error("tool call error", "method", method, "error", tc.Text)
+					tc, ok := c.(*mcp.TextContent)
+					if !ok {
+						continue
 					}
+					reqLogger.Error(
+						"tool call error",
+						"method", method,
+						"error", tc.Text,
+					)
 				}
 			}
 
 			if err != nil {
-				reqLogger.Error("MCP protocol handler error", "method", method, "error", err)
+				reqLogger.Error(
+					"MCP protocol handler error",
+					"method", method,
+					"error", err,
+				)
 			}
 
 			return res, err

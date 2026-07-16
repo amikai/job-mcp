@@ -168,8 +168,7 @@ func runFacets(ctx context.Context, f facetsFlags) error {
 	if f.tenant == "" {
 		return errors.New("--tenant is required")
 	}
-	_, ok := workday.CompaniesByTenant[strings.ToLower(f.tenant)]
-	if !ok {
+	if _, ok := workday.CompaniesByTenant[strings.ToLower(f.tenant)]; !ok {
 		return fmt.Errorf("tenant %q not found; run 'workday companies' to see supported tenants", f.tenant)
 	}
 
@@ -363,7 +362,12 @@ func printResultLocations(r jobResultJSON) {
 // cmd/nvidia's existing per-job fallback behavior. A summary with no
 // ExternalPath (an incomplete/transient Workday posting) can't be fetched at
 // all, so it's returned with a "no detail available" note rather than dropped.
-func fetchJobResult(ctx context.Context, client *workday.TenantClient, tenant, baseURL string, job workday.JobSummary) jobResultJSON {
+func fetchJobResult(
+	ctx context.Context,
+	client *workday.TenantClient,
+	tenant, baseURL string,
+	job workday.JobSummary,
+) jobResultJSON {
 	r := jobResultJSON{Title: job.Title.Value, PostedOn: job.PostedOn.Value}
 
 	if job.ExternalPath.Value == "" {

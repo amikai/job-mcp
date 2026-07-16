@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/Khan/genqlient/graphql"
 )
@@ -133,7 +134,7 @@ func (c *Client) Jobs(ctx context.Context, r *JobsRequest) (*JobsResponse, error
 		return nil, fmt.Errorf("search jobs: %w", err)
 	}
 	if wire.JobSearch == nil {
-		return &JobsResponse{}, nil
+		return &JobsResponse{Jobs: []Job{}}, nil
 	}
 	base := siteBaseURL(country)
 	jobs := make([]Job, 0, len(wire.JobSearch.Results))
@@ -157,7 +158,7 @@ func searchFilters(r *JobsRequest) []JobSearchFilterInput {
 		return []JobSearchFilterInput{{
 			Date: &DateFilterInput{
 				Field: "dateOnIndeed",
-				Start: fmt.Sprintf("%dh", r.HoursOld),
+				Start: strconv.Itoa(r.HoursOld) + "h",
 			},
 		}}
 	case r.EasyApply:

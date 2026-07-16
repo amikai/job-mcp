@@ -181,7 +181,7 @@ func (a *SuccessFactorsAdapter) resolveFilters(ctx context.Context, c successfac
 		return nil, nil
 	}
 
-	hasSingleValue := false
+	var hasSingleValue bool
 	for _, values := range filters {
 		if len(values) == 1 {
 			hasSingleValue = true

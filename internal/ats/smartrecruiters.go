@@ -86,7 +86,7 @@ func (a *SmartRecruitersAdapter) Search(ctx context.Context, slug string, p Sear
 	location := strings.TrimSpace(p.Location)
 	if strings.EqualFold(location, "remote") {
 		if len(params.LocationType) > 0 && !slices.Contains(params.LocationType, smartrecruiters.ListPostingsLocationTypeItemREMOTE) {
-			return &SearchResult{Page: clampPage(p.Page)}, nil
+			return &SearchResult{Jobs: []JobSummary{}, Page: clampPage(p.Page)}, nil
 		}
 		params.LocationType = []smartrecruiters.ListPostingsLocationTypeItem{
 			smartrecruiters.ListPostingsLocationTypeItemREMOTE,
@@ -96,7 +96,31 @@ func (a *SmartRecruitersAdapter) Search(ctx context.Context, slug string, p Sear
 	if query == "" && location == "" {
 		return a.searchSmartRecruitersPage(ctx, slug, p.Page, params)
 	}
-	return a.searchSmartRecruitersCandidates(ctx, slug, query, location, p.Page, params)
+	return a.searchSmartRecruitersCandidates(ctx, smartRecruitersCandidateSearch{
+		Slug:     slug,
+		Query:    query,
+		Location: location,
+		Page:     p.Page,
+		Base:     params,
+	})
+}
+
+// smartRecruitersCandidateSearch groups the query/location candidate path
+// parameters that would otherwise exceed the four-argument guideline.
+type smartRecruitersCandidateSearch struct {
+	Slug     string
+	Query    string
+	Location string
+	Page     int
+	Base     smartrecruiters.ListPostingsParams
+}
+
+type smartRecruitersCandidatePage struct {
+	Slug   string
+	Query  string
+	Offset int
+	Limit  int
+	Base   smartrecruiters.ListPostingsParams
 }
 
 // searchSmartRecruitersPage is the cheap path when no local text matching is
@@ -134,93 +158,108 @@ func (a *SmartRecruitersAdapter) searchSmartRecruitersPage(
 // boards that can contain tens of thousands of postings.
 func (a *SmartRecruitersAdapter) searchSmartRecruitersCandidates(
 	ctx context.Context,
-	slug, query, location string,
-	page int,
-	base smartrecruiters.ListPostingsParams,
+	req smartRecruitersCandidateSearch,
 ) (*SearchResult, error) {
-	seed, first, err := a.chooseSmartRecruitersCandidates(ctx, slug, query, location, base)
+	seed, first, err := a.chooseSmartRecruitersCandidates(ctx, req)
 	if err != nil {
 		return nil, err
 	}
 	if first.TotalFound > maxSmartRecruitersCandidates {
 		return nil, fmt.Errorf("smartrecruiters: search is too broad (%d candidates); add a more specific query, location, department, or location_type filter", first.TotalFound)
 	}
-	items, err := a.collectSmartRecruitersCandidates(ctx, slug, seed, base, first)
+	items, err := a.collectSmartRecruitersCandidates(ctx, smartRecruitersCandidatePage{
+		Slug:  req.Slug,
+		Query: seed,
+		Base:  req.Base,
+	}, first)
 	if err != nil {
 		return nil, err
 	}
-	identifier, _ := resolveSmartRecruitersCompany(slug)
+	identifier, _ := resolveSmartRecruitersCompany(req.Slug)
 	jobs := make([]dumpJob, 0, len(items))
 	for _, it := range items {
 		if job, ok := smartRecruitersDumpJob(identifier, it); ok {
 			jobs = append(jobs, job)
 		}
 	}
-	return searchDump(jobs, SearchParams{Query: query, Location: location, Page: page})
+	return searchDump(jobs, SearchParams{Query: req.Query, Location: req.Location, Page: req.Page})
 }
 
 func (a *SmartRecruitersAdapter) chooseSmartRecruitersCandidates(
 	ctx context.Context,
-	slug, query, location string,
-	base smartrecruiters.ListPostingsParams,
+	req smartRecruitersCandidateSearch,
 ) (string, *smartrecruiters.PostingList, error) {
-	seed := query
+	seed := req.Query
 	if seed == "" {
-		seed = location
+		seed = req.Location
 	}
-	first, err := a.listSmartRecruitersCandidates(ctx, slug, seed, 0, smartRecruitersCandidatePageSize, base)
+	first, err := a.listSmartRecruitersCandidates(ctx, smartRecruitersCandidatePage{
+		Slug:  req.Slug,
+		Query: seed,
+		Limit: smartRecruitersCandidatePageSize,
+		Base:  req.Base,
+	})
 	if err != nil {
 		return "", nil, err
 	}
-	hasDistinctLocation := location != "" && !strings.EqualFold(query, location)
-	if query == "" || first.TotalFound == 0 || !hasDistinctLocation {
+	hasDistinctLocation := req.Location != "" && !strings.EqualFold(req.Query, req.Location)
+	if req.Query == "" || first.TotalFound == 0 || !hasDistinctLocation {
 		return seed, first, nil
 	}
-	locationFirst, err := a.listSmartRecruitersCandidates(ctx, slug, location, 0, smartRecruitersCandidatePageSize, base)
+	locationFirst, err := a.listSmartRecruitersCandidates(ctx, smartRecruitersCandidatePage{
+		Slug:  req.Slug,
+		Query: req.Location,
+		Limit: smartRecruitersCandidatePageSize,
+		Base:  req.Base,
+	})
 	if err != nil {
 		return "", nil, err
 	}
 	if locationFirst.TotalFound < first.TotalFound {
-		return location, locationFirst, nil
+		return req.Location, locationFirst, nil
 	}
 	return seed, first, nil
 }
 
 func (a *SmartRecruitersAdapter) listSmartRecruitersCandidates(
 	ctx context.Context,
-	slug, query string,
-	offset, limit int,
-	params smartrecruiters.ListPostingsParams,
+	page smartRecruitersCandidatePage,
 ) (*smartrecruiters.PostingList, error) {
-	params.Q = smartrecruiters.NewOptString(query)
-	params.Offset = smartrecruiters.NewOptInt(offset)
-	params.Limit = smartrecruiters.NewOptInt(limit)
+	params := page.Base
+	params.Q = smartrecruiters.NewOptString(page.Query)
+	params.Offset = smartrecruiters.NewOptInt(page.Offset)
+	params.Limit = smartrecruiters.NewOptInt(page.Limit)
 	rsp, err := a.client.ListPostings(ctx, params)
 	if err != nil {
-		return nil, fmt.Errorf("smartrecruiters: search %q candidates for %q: %w", slug, query, err)
+		return nil, fmt.Errorf("smartrecruiters: search %q candidates for %q: %w", page.Slug, page.Query, err)
 	}
 	return rsp, nil
 }
 
 func (a *SmartRecruitersAdapter) collectSmartRecruitersCandidates(
 	ctx context.Context,
-	slug, query string,
-	base smartrecruiters.ListPostingsParams,
+	page smartRecruitersCandidatePage,
 	first *smartrecruiters.PostingList,
 ) ([]smartrecruiters.PostingItem, error) {
 	items := slices.Clone(first.Content)
 	for len(items) < first.TotalFound {
 		if err := ctx.Err(); err != nil {
-			return nil, fmt.Errorf("smartrecruiters: collect candidates for %q: %w", slug, err)
+			return nil, fmt.Errorf("smartrecruiters: collect candidates for %q: %w", page.Slug, err)
 		}
 		offset := len(items)
 		limit := min(smartRecruitersCandidatePageSize, first.TotalFound-offset)
-		rsp, err := a.listSmartRecruitersCandidates(ctx, slug, query, offset, limit, base)
+		rsp, err := a.listSmartRecruitersCandidates(ctx, smartRecruitersCandidatePage{
+			Slug:   page.Slug,
+			Query:  page.Query,
+			Offset: offset,
+			Limit:  limit,
+			Base:   page.Base,
+		})
 		if err != nil {
 			return nil, err
 		}
 		if len(rsp.Content) == 0 {
-			return nil, fmt.Errorf("smartrecruiters: candidate pagination for %q stopped at %d of %d postings", slug, offset, first.TotalFound)
+			return nil, fmt.Errorf("smartrecruiters: candidate pagination for %q stopped at %d of %d postings", page.Slug, offset, first.TotalFound)
 		}
 		items = append(items, rsp.Content...)
 	}
@@ -230,8 +269,7 @@ func (a *SmartRecruitersAdapter) collectSmartRecruitersCandidates(
 func smartRecruitersSummaries(identifier string, items []smartrecruiters.PostingItem) []JobSummary {
 	jobs := make([]JobSummary, 0, len(items))
 	for _, item := range items {
-		job, ok := smartRecruitersSummary(identifier, item)
-		if ok {
+		if job, ok := smartRecruitersSummary(identifier, item); ok {
 			jobs = append(jobs, job)
 		}
 	}

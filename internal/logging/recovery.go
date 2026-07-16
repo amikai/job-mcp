@@ -26,7 +26,12 @@ func RecoveryMiddleware(logger *slog.Logger) mcp.Middleware {
 				}
 
 				stack := debug.Stack()
-				logger.Error("panic recovered", "method", method, "panic", rec, "stack", string(stack))
+				logger.Error(
+					"panic recovered",
+					"method", method,
+					"panic", rec,
+					"stack", string(stack),
+				)
 
 				if p, ok := toolCallParams(req); ok {
 					result = &mcp.CallToolResult{

@@ -96,7 +96,7 @@ func main() {
 		}
 		detail, err := client.GetJobDetail(ctx, job104.GetJobDetailParams{JobCode: code})
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "job detail %s: %v\n", code, err)
+			fmt.Fprintf(os.Stderr, "job detail %q: %v\n", code, err)
 			fmt.Println()
 			continue
 		}

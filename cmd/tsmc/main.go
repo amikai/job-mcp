@@ -84,7 +84,7 @@ func main() {
 
 		detail, err := client.JobDetail(ctx, job.ID)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "job detail %s: %v\n", job.ID, err)
+			fmt.Fprintf(os.Stderr, "job detail %q: %v\n", job.ID, err)
 			fmt.Println()
 			continue
 		}

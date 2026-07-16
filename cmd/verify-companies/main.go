@@ -110,7 +110,13 @@ func main() {
 	}
 }
 
-func run(ctx context.Context, providerList string, timeout time.Duration, concurrency int, format string) (errs int, err error) {
+func run(
+	ctx context.Context,
+	providerList string,
+	timeout time.Duration,
+	concurrency int,
+	format string,
+) (errs int, err error) {
 	names, err := parseProviders(providerList)
 	if err != nil {
 		return 0, err
@@ -191,7 +197,7 @@ func buildAdapters(names []string) ([]ats.Adapter, error) {
 			a = ats.NewWorkdayAdapter(hc)
 		}
 		if err != nil {
-			return nil, fmt.Errorf("build %s adapter: %w", name, err)
+			return nil, fmt.Errorf("build %q adapter: %w", name, err)
 		}
 		adapters = append(adapters, a)
 	}

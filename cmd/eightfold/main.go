@@ -40,7 +40,7 @@ func main() {
 		Flags:     companiesFlags,
 		Exec: func(ctx context.Context, args []string) error {
 			if len(args) > 0 {
-				return fmt.Errorf("companies takes no positional arguments, got %v", args)
+				return fmt.Errorf("companies takes no positional arguments, got %q", args)
 			}
 			return runCompanies(*format)
 		},
@@ -61,7 +61,7 @@ func main() {
 		Flags:     searchFS,
 		Exec: func(ctx context.Context, args []string) error {
 			if len(args) > 0 {
-				return fmt.Errorf("search takes no positional arguments, got %v (did you forget a flag name?)", args)
+				return fmt.Errorf("search takes no positional arguments, got %q (did you forget a flag name?)", args)
 			}
 			return runSearch(ctx, searchFlags{
 				company:  *company,
@@ -84,7 +84,7 @@ func main() {
 		Flags:     filtersFS,
 		Exec: func(ctx context.Context, args []string) error {
 			if len(args) > 0 {
-				return fmt.Errorf("filters takes no positional arguments, got %v", args)
+				return fmt.Errorf("filters takes no positional arguments, got %q", args)
 			}
 			return runFilters(ctx, *company, *timeout, *format)
 		},
@@ -100,7 +100,7 @@ func main() {
 		Flags:     detailFS,
 		Exec: func(ctx context.Context, args []string) error {
 			if len(args) > 0 {
-				return fmt.Errorf("detail takes no positional arguments, got %v (did you mean --id %q?)", args, args[0])
+				return fmt.Errorf("detail takes no positional arguments, got %q (did you mean --id %q?)", args, args[0])
 			}
 			return runDetail(ctx, detailFlags{company: *company, timeout: *timeout, positionID: *positionID, format: *format})
 		},
@@ -345,7 +345,12 @@ func runFilters(ctx context.Context, company string, timeout time.Duration, form
 // option's label isn't a pickable value) are skipped — same merge and
 // normalization the unified adapter (internal/ats) uses, so this CLI always
 // discovers the same facets 'search --filter' will accept.
-func printFilters(ctx context.Context, client *eightfold.Client, domain, format string, w io.Writer) error {
+func printFilters(
+	ctx context.Context,
+	client *eightfold.Client,
+	domain, format string,
+	w io.Writer,
+) error {
 	res, err := client.Search(ctx, eightfold.SearchParams{Domain: domain})
 	if err != nil {
 		return err

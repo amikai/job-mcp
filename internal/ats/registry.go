@@ -63,13 +63,13 @@ func NewRegistry(adapters ...Adapter) (*Registry, error) {
 			e := registryEntry{adapter: a, slug: c.Slug, name: c.Name}
 			slugKey := normalize(c.Slug)
 			if prev, ok := r.bySlug[slugKey]; ok {
-				return nil, fmt.Errorf("ats: company slug %q from %s collides with %q from %s",
+				return nil, fmt.Errorf("ats: company slug %q from %q collides with %q from %q",
 					c.Slug, a.Name(), prev.slug, prev.adapter.Name())
 			}
 			r.bySlug[slugKey] = e
 			nameKey := normalize(c.Name)
 			if prev, ok := r.byName[nameKey]; ok {
-				return nil, fmt.Errorf("ats: company name %q from %s collides with %q from %s",
+				return nil, fmt.Errorf("ats: company name %q from %q collides with %q from %q",
 					c.Name, a.Name(), prev.name, prev.adapter.Name())
 			}
 			r.byName[nameKey] = e

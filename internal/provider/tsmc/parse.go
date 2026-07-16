@@ -26,7 +26,7 @@ func parseSearchHTML(doc *goquery.Document) ([]Job, int, error) {
 		total, _ = strconv.Atoi(m[1])
 	}
 
-	var jobs []Job
+	jobs := []Job{}
 	for _, article := range doc.Find("article.article--result").EachIter() {
 		if job, ok := parseJobCard(article); ok {
 			jobs = append(jobs, job)

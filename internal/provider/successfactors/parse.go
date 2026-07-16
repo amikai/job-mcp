@@ -20,7 +20,7 @@ import (
 // Borealis and E.ON have no department dropdown at all), but every tenant's
 // search form keeps the keyword box.
 func parseSearchHTML(doc *goquery.Document) ([]Job, int, error) {
-	var jobs []Job
+	jobs := []Job{}
 	for _, row := range doc.Find("tr.data-row").EachIter() {
 		job, ok := parseJobRow(row)
 		if !ok {

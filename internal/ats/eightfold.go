@@ -131,10 +131,16 @@ func (a *EightfoldAdapter) Search(ctx context.Context, slug string, p SearchPara
 // searchPage runs one upstream page through pcsx, falling back to the v2
 // API on pcsx's "not enabled for this user" 403 — but only for unfiltered
 // requests, since v2 has no facet-filter equivalent here.
-func (a *EightfoldAdapter) searchPage(ctx context.Context, c eightfold.RosterCompany, params eightfold.SearchParams, filterValues map[string][]string) ([]JobSummary, int, error) {
+func (a *EightfoldAdapter) searchPage(
+	ctx context.Context,
+	c eightfold.RosterCompany,
+	params eightfold.SearchParams,
+	filterValues map[string][]string,
+) ([]JobSummary, int, error) {
 	res, err := a.fetchSearch(ctx, c, params, filterValues)
 	if err != nil {
-		if len(filterValues) > 0 || !isPCSXDisabled(err) {
+		canFallback := len(filterValues) == 0 && isPCSXDisabled(err)
+		if !canFallback {
 			return nil, 0, err
 		}
 		v2, err := a.fetchSearchV2(ctx, c, params)
@@ -284,7 +290,12 @@ func (a *EightfoldAdapter) resolveSlug(slug string) (eightfold.RosterCompany, er
 // facet filters are resolved, eightfold.SearchFiltered (hand-built
 // filter_<name> query params) otherwise — see SearchFiltered's doc for why
 // facet filters can't go through the generated client.
-func (a *EightfoldAdapter) fetchSearch(ctx context.Context, c eightfold.RosterCompany, params eightfold.SearchParams, filterValues map[string][]string) (*eightfold.SearchResponse, error) {
+func (a *EightfoldAdapter) fetchSearch(
+	ctx context.Context,
+	c eightfold.RosterCompany,
+	params eightfold.SearchParams,
+	filterValues map[string][]string,
+) (*eightfold.SearchResponse, error) {
 	base := a.baseURL(c.Tenant)
 	if len(filterValues) > 0 {
 		res, err := eightfold.SearchFiltered(ctx, eightfold.FilteredSearch{
