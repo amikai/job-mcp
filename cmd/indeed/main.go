@@ -130,14 +130,33 @@ func writeReport(w io.Writer, d reportData) {
 			fmt.Fprintf(w, "Job types: %v\n", job.JobTypes)
 		}
 		if job.Compensation != nil {
-			c := job.Compensation
-			fmt.Fprintf(w, "Compensation: %g-%g %s (%s)\n", c.MinAmount, c.MaxAmount, c.Currency, c.Interval)
+			fmt.Fprintf(w, "Compensation: %s\n", formatCompensation(job.Compensation))
 		}
 		if detail := d.details[job.Key]; detail != nil {
 			writeDetail(w, detail)
 		}
 		fmt.Fprintln(w)
 	}
+}
+
+// formatCompensation renders one-sided and exact salaries without a
+// spurious zero bound (e.g. AtLeast → ">= 20", AtMost → "<= 30", Exactly
+// a single number, Range as "min-max").
+func formatCompensation(c *indeed.Compensation) string {
+	var amount string
+	switch {
+	case c.MinAmount != 0 && c.MaxAmount != 0 && c.MinAmount == c.MaxAmount:
+		amount = fmt.Sprintf("%g", c.MinAmount)
+	case c.MinAmount != 0 && c.MaxAmount != 0:
+		amount = fmt.Sprintf("%g-%g", c.MinAmount, c.MaxAmount)
+	case c.MinAmount != 0:
+		amount = fmt.Sprintf(">= %g", c.MinAmount)
+	case c.MaxAmount != 0:
+		amount = fmt.Sprintf("<= %g", c.MaxAmount)
+	default:
+		amount = "undisclosed"
+	}
+	return fmt.Sprintf("%s %s (%s)", amount, c.Currency, c.Interval)
 }
 
 func writeDetail(w io.Writer, detail *indeed.JobDetail) {

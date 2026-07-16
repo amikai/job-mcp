@@ -12,15 +12,15 @@
                             "html": "<div>Develop Dock reference designs and SDK (Software Development Kit)<br>\n<br>\n<b>Your Role</b><br>\n<br>\nKey responsibilities in your new role<br>\n<br>\n1.Develop Dock reference designs and SDK (Software Development Kit)<br>\n2.Support global commercial/consumer Dock business<br>\n3.Technical documentations and training programs<br>\n<br>\n<b>Your Profile</b><br>\n<br>\nQualifications and skills to help you succeed<br>\n<br>\n1.Working on a Bachelor&rsquo;s Degree(or above) in Electrical Engineering or related field<br>\n2.Experience with bench test equipment like: Oscilloscopes, Digital analyzer, etc.<br>\n3.Good communication skills in both verbal and written English<br>\n4.Strong technical skills:<br>\n<ul><li>\nGood in programming languages, such as C/C#, LabVIEW.</li><li>\nGood in communication protocol, such as I2C, UART, SPI. (USB &amp; PD willbe plus)</li><li>\nGood in operation equipment, such as Oscilloscopes, Electronic Load testers, and Power Supplies.</li><li>\nGood in experiences with Arm-based MCU development (ex: Cortex-M0).</li></ul>\n5.Collaboration and teamwork:<br>\nAbility to work effectively in a team environment and collaborate Ability to adapt to changing priorities and requirements<p><b><br>\n#WeAreIn for driving decarbonization and digitalization.</b><br>\nAs a global leader in semiconductor solutions in power systems and IoT, Infineon enables game-changing solutions for green and efficient energy, clean and safe mobility, as well as smart and secure IoT. Together, we drive innovation and customer success, while caring for our people and empowering them to reach ambitious goals. Be a part of making life easier, safer and greener.<br>\n<b>Are you in?</b><br>\n<br>\n<b>We are on a journey to create the best Infineon for everyone.</b><br>\nThis means we embrace diversity and inclusion and welcome everyone for who they are. At Infineon, we offer a working environment characterized by trust, openness, respect and tolerance and are committed to give all applicants and employees equal opportunities. We base our recruiting decisions on the applicant&acute;s experience and skills. Learn more about our various contact channels.<br>\nWe look forward to receiving your resume, even if you do not entirely meet all the requirements of the job posting.<br>\nPlease let your recruiter know if they need to pay special attention to something in order to enable your participation in the interview process.<br>\nClick here for more information about Diversity &amp; Inclusion at Infineon.</p></div>"
                         },
                         "location": {
-                            "countryName": "\u53f0\u7063",
+                            "countryName": "台灣",
                             "countryCode": "TW",
                             "admin1Code": "TPE",
-                            "city": "\u53f0\u5317\u5e02",
+                            "city": "台北市",
                             "postalCode": null,
                             "streetAddress": null,
                             "formatted": {
-                                "short": "\u53f0\u5317\u5e02",
-                                "long": "\u53f0\u5317\u5e02"
+                                "short": "台北市",
+                                "long": "台北市"
                             }
                         },
                         "compensation": {
@@ -29,6 +29,10 @@
                             "currencyCode": null
                         },
                         "attributes": [
+                            {
+                                "key": "EY33Q",
+                                "label": "Health insurance"
+                            },
                             {
                                 "key": "5QWDV",
                                 "label": "Permanent"

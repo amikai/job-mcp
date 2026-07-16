@@ -30,7 +30,9 @@ func TestJobs(t *testing.T) {
 	assert.Equal(t, "https://tw.indeed.com/viewjob?jk=9d503ca7fe211430", first.JobURL)
 	assert.Equal(t, "2026-06-04", first.PostedDate)
 	assert.Equal(t, "Taiwan", first.Country)
-	assert.Contains(t, first.JobTypes, "Full-time")
+	// Fixture mixes employment types with skill/benefit attributes; only
+	// employment types must land in JobTypes.
+	assert.Equal(t, []string{"Permanent", "Full-time"}, first.JobTypes)
 	assert.Nil(t, first.Compensation)
 
 	// RangeType variants in jobs_rsp.json: unmarshaling any of these used
@@ -140,6 +142,7 @@ func TestJobDetail(t *testing.T) {
 	assert.Contains(t, got.Description, "Your Role")
 
 	assert.Equal(t, Location{Country: "台灣", CountryCode: "TW", State: "TPE", City: "台北市", Formatted: "台北市"}, got.Location)
+	assert.Equal(t, []string{"Permanent", "Full-time"}, got.JobTypes)
 	assert.Equal(t, "Infineon Technologies", got.Source)
 	assert.Equal(t, "2026-07-14", got.DateIndexed)
 	assert.Equal(t, []string{"Neubiberg"}, got.CompanyAddresses)

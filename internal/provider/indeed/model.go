@@ -9,9 +9,36 @@ const (
 	JobTypeInternship = "VDTG7"
 )
 
+// Additional employment-type attribute keys observed live on Indeed's
+// attributes array (not used as search filters, only for result parsing).
+const (
+	attrPermanent      = "5QWDV"
+	attrTemporary      = "4HKF7"
+	attrSeasonal       = "9SYVT"
+	attrFreelance      = "ZG59D"
+	attrApprenticeship = "CPAHG"
+	attrVolunteer      = "UXQZ8"
+)
+
 // remoteAttributeKey is the composite filter's keyword key for "Remote"
 // (jobspy's is_remote branch), applied alongside JobType* when Remote is set.
 const remoteAttributeKey = "DSQF7"
+
+// employmentTypeAttrKeys is the subset of Indeed attribute keys that mean
+// employment type. The attributes array also carries skills, benefits,
+// credentials, and other metadata; those must not land in JobTypes.
+var employmentTypeAttrKeys = map[string]struct{}{
+	JobTypeFullTime:    {},
+	JobTypePartTime:    {},
+	JobTypeContract:    {},
+	JobTypeInternship:  {},
+	attrPermanent:      {},
+	attrTemporary:      {},
+	attrSeasonal:       {},
+	attrFreelance:      {},
+	attrApprenticeship: {},
+	attrVolunteer:      {},
+}
 
 // JobTypeIDs maps a human label to its JobsRequest.JobType value.
 var JobTypeIDs = map[string]string{
@@ -82,9 +109,9 @@ type Job struct {
 	JobURL string
 	// PostedDate is YYYY-MM-DD, derived from datePublished (epoch millis).
 	PostedDate string
-	// JobTypes are Indeed's own attribute labels (e.g. "Full-time",
-	// "Permanent"), passed through as-is rather than filtered to a fixed
-	// enum.
+	// JobTypes are employment-type labels only (e.g. "Full-time",
+	// "Permanent"), filtered from Indeed's broader attributes array which
+	// also carries skills, benefits, and other metadata.
 	JobTypes     []string
 	Compensation *Compensation
 }

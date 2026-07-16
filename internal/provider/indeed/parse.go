@@ -65,6 +65,25 @@ func jobURL(siteBase, key string) string {
 	return siteBase + "/viewjob?jk=" + key
 }
 
+// jobTypesFromAttributes keeps only employment-type attribute labels.
+// Indeed's attributes array mixes employment types with skills, benefits,
+// credentials, etc.; dumping every label into JobTypes mislabels the posting.
+func jobTypesFromAttributes(attrs []struct{ Key, Label string }) []string {
+	if len(attrs) == 0 {
+		return nil
+	}
+	out := make([]string, 0, len(attrs))
+	for _, a := range attrs {
+		if _, ok := employmentTypeAttrKeys[a.Key]; ok {
+			out = append(out, a.Label)
+		}
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
+}
+
 // rangeMinMax reads min/max from a genqlient RangeType interface value.
 // Concrete types: Range (min+max), AtLeast (min), AtMost (max), Exactly (value→both).
 func rangeMinMax(r any) salaryRange {
@@ -107,12 +126,9 @@ func jobFromSearch(j GetJobSearchJobSearchJobSearchConnectionResultsJobSearchRes
 		company = j.Employer.Name
 		companyURL = companyURLFromRelative(j.Employer.RelativeCompanyPageUrl, siteBase)
 	}
-	var types []string
-	if len(j.Attributes) > 0 {
-		types = make([]string, 0, len(j.Attributes))
-		for _, a := range j.Attributes {
-			types = append(types, a.Label)
-		}
+	attrs := make([]struct{ Key, Label string }, len(j.Attributes))
+	for i, a := range j.Attributes {
+		attrs[i] = struct{ Key, Label string }{a.Key, a.Label}
 	}
 	var base, estimated *baseSalary
 	if j.Compensation.BaseSalary != nil {
@@ -140,7 +156,7 @@ func jobFromSearch(j GetJobSearchJobSearchJobSearchConnectionResultsJobSearchRes
 		Country:      country,
 		JobURL:       jobURL(siteBase, j.Key),
 		PostedDate:   dateFromEpochMillis(j.DatePublished),
-		JobTypes:     types,
+		JobTypes:     jobTypesFromAttributes(attrs),
 		Compensation: compensationFromParts(base, estimated, j.Compensation.CurrencyCode, estCurrency),
 	}
 }
@@ -169,10 +185,11 @@ func jobDetailFromDetail(j GetJobDetailJobDataJobDataConnectionResultsJobDataRes
 		detail.Source = j.Source.Name
 	}
 	if len(j.Attributes) > 0 {
-		detail.JobTypes = make([]string, 0, len(j.Attributes))
-		for _, a := range j.Attributes {
-			detail.JobTypes = append(detail.JobTypes, a.Label)
+		attrs := make([]struct{ Key, Label string }, len(j.Attributes))
+		for i, a := range j.Attributes {
+			attrs[i] = struct{ Key, Label string }{a.Key, a.Label}
 		}
+		detail.JobTypes = jobTypesFromAttributes(attrs)
 	}
 	var base, estimated *baseSalary
 	if j.Compensation.BaseSalary != nil {

@@ -26,12 +26,20 @@
                         },
                         "attributes": [
                             {
+                                "key": "EY33Q",
+                                "label": "Health insurance"
+                            },
+                            {
                                 "key": "5QWDV",
                                 "label": "Permanent"
                             },
                             {
                                 "key": "CF3CP",
                                 "label": "Full-time"
+                            },
+                            {
+                                "key": "GX2AS",
+                                "label": "Cash register operations"
                             }
                         ],
                         "employer": {

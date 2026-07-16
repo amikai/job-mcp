@@ -115,7 +115,7 @@ type indeedJobSummary struct {
 	Country    string   `json:"country,omitempty" jsonschema:"Country name used for this search; pass to indeed_get_job_detail's country param (required there)."`
 	URL        string   `json:"url,omitempty" jsonschema:"Public job posting URL."`
 	PostedDate string   `json:"posted_date,omitempty"`
-	JobTypes   []string `json:"job_types,omitempty" jsonschema:"Indeed's own labels, e.g. 'Full-time', 'Permanent'; not filtered to a fixed enum."`
+	JobTypes   []string `json:"job_types,omitempty" jsonschema:"Employment-type labels only (e.g. Full-time, Permanent); skills/benefits from Indeed's attributes array are excluded."`
 
 	Compensation *indeedCompensation `json:"compensation,omitempty"`
 }
