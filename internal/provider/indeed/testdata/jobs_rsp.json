@@ -1,0 +1,188 @@
+{
+    "data": {
+        "jobSearch": {
+            "pageInfo": {
+                "nextCursor": "AAUAAQAFAAAAAAAAAAAAAAACX/F3JAEAAJ90DoBX9Qt7RnRA0Hq92KmM"
+            },
+            "results": [
+                {
+                    "trackingKey": "5-nrt1-0-1jtgr4ag1ht6f800-9d503ca7fe211430",
+                    "job": {
+                        "key": "9d503ca7fe211430",
+                        "title": "Senior Staff Engineer System Application Engineering",
+                        "datePublished": 1780549200000,
+                        "location": {
+                            "countryCode": "TW",
+                            "admin1Code": "TPE",
+                            "city": "台北市",
+                            "formatted": {
+                                "long": "台北市"
+                            }
+                        },
+                        "compensation": {
+                            "estimated": null,
+                            "baseSalary": null,
+                            "currencyCode": null
+                        },
+                        "attributes": [
+                            {
+                                "key": "EY33Q",
+                                "label": "Health insurance"
+                            },
+                            {
+                                "key": "5QWDV",
+                                "label": "Permanent"
+                            },
+                            {
+                                "key": "CF3CP",
+                                "label": "Full-time"
+                            },
+                            {
+                                "key": "GX2AS",
+                                "label": "Cash register operations"
+                            }
+                        ],
+                        "employer": {
+                            "relativeCompanyPageUrl": "/cmp/Infineon-Technologies",
+                            "name": "Infineon Technologies"
+                        }
+                    }
+                },
+                {
+                    "trackingKey": "5-nrt1-0-1jtgr4ag1ht6f800-90305de7fb63b97b",
+                    "job": {
+                        "key": "90305de7fb63b97b",
+                        "title": "R&D Engineering, Sr Engineer",
+                        "datePublished": 1766556000000,
+                        "location": {
+                            "countryCode": "TW",
+                            "admin1Code": "TPE",
+                            "city": "信義區",
+                            "formatted": {
+                                "long": "110 信義區"
+                            }
+                        },
+                        "compensation": {
+                            "estimated": null,
+                            "baseSalary": {
+                                "unitOfWork": "HOUR",
+                                "range": {
+                                    "__typename": "Range",
+                                    "min": 22.5,
+                                    "max": 27.5
+                                }
+                            },
+                            "currencyCode": "USD"
+                        },
+                        "attributes": [],
+                        "employer": {
+                            "relativeCompanyPageUrl": "/cmp/Synopsys",
+                            "name": "Synopsys"
+                        }
+                    }
+                },
+                {
+                    "trackingKey": "5-nrt1-0-1jtgr4ag1ht6f800-5aec093a991f69f0",
+                    "job": {
+                        "key": "5aec093a991f69f0",
+                        "title": "全端工程師 Full-Stack Engineer",
+                        "datePublished": 1784005200000,
+                        "location": {
+                            "countryCode": "TW",
+                            "admin1Code": "TPE",
+                            "city": "台北市",
+                            "formatted": {
+                                "long": "台北市"
+                            }
+                        },
+                        "compensation": {
+                            "estimated": null,
+                            "baseSalary": {
+                                "unitOfWork": "HOUR",
+                                "range": {
+                                    "__typename": "AtLeast",
+                                    "min": 15.0
+                                }
+                            },
+                            "currencyCode": "USD"
+                        },
+                        "attributes": [
+                            {
+                                "key": "CF3CP",
+                                "label": "Full-time"
+                            }
+                        ],
+                        "employer": {
+                            "relativeCompanyPageUrl": "/cmp/Webcomm-%E5%81%89%E5%BA%B7%E7%A7%91%E6%8A%80",
+                            "name": "WebComm 偉康科技"
+                        }
+                    }
+                },
+                {
+                    "trackingKey": "5-nrt1-0-1jtgr4ag1ht6f800-d6fd09be592e93cb",
+                    "job": {
+                        "key": "d6fd09be592e93cb",
+                        "title": "Binance Accelerator Program - AI Agent Engineer",
+                        "datePublished": 1784005200000,
+                        "location": {
+                            "countryCode": "TW",
+                            "admin1Code": "TPE",
+                            "city": "台北市",
+                            "formatted": {
+                                "long": "台北市"
+                            }
+                        },
+                        "compensation": {
+                            "estimated": null,
+                            "baseSalary": {
+                                "unitOfWork": "HOUR",
+                                "range": {
+                                    "__typename": "Exactly",
+                                    "value": 17.5
+                                }
+                            },
+                            "currencyCode": "USD"
+                        },
+                        "attributes": [],
+                        "employer": {
+                            "relativeCompanyPageUrl": "/cmp/Binance",
+                            "name": "Binance"
+                        }
+                    }
+                },
+                {
+                    "trackingKey": "5-nrt1-0-1jtgr4ag1ht6f800-dfff0dee8808e370",
+                    "job": {
+                        "key": "dfff0dee8808e370",
+                        "title": "Senior Software Engineering Manager, Platforms Storage, Google Cloud",
+                        "datePublished": 1783918800000,
+                        "location": {
+                            "countryCode": "TW",
+                            "admin1Code": "TPE",
+                            "city": "台北市",
+                            "formatted": {
+                                "long": "台北市"
+                            }
+                        },
+                        "compensation": {
+                            "estimated": null,
+                            "baseSalary": {
+                                "unitOfWork": "HOUR",
+                                "range": {
+                                    "__typename": "AtMost",
+                                    "max": 30.0
+                                }
+                            },
+                            "currencyCode": "USD"
+                        },
+                        "attributes": [],
+                        "employer": {
+                            "relativeCompanyPageUrl": "/cmp/Google",
+                            "name": "Google"
+                        }
+                    }
+                }
+            ]
+        }
+    }
+}
