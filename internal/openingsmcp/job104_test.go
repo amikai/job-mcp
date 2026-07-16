@@ -74,10 +74,12 @@ func TestJob104SearchJobE2E(t *testing.T) {
 			"keyword": map[string]any{
 				"type":        "string",
 				"description": "Free-text keyword search.",
+				"minLength":   float64(1),
 			},
 			"area": map[string]any{
 				"type":        "string",
 				"description": "City/region filter.",
+				"minLength":   float64(1),
 				"enum": []any{
 					"Taipei", "NewTaipei", "Yilan", "Keelung", "Taoyuan",
 					"Hsinchu", "Miaoli", "Taichung", "Changhua", "Nantou",
@@ -112,12 +114,13 @@ func TestJob104SearchJobE2E(t *testing.T) {
 			},
 			"remote": map[string]any{
 				"type":        "string",
-				"description": "Remote work. Soft filter — verify each result's remote. Omit for on-site.",
+				"description": "Remote-work preference. Full and Partial are soft filters — verify each result's remote. Omit to include all workplace arrangements; no on-site-only filter is available.",
 				"enum":        []any{"Full", "Partial"},
 			},
 			"edu": map[string]any{
 				"type":        "array",
 				"description": "Education levels, OR'd together.",
+				"minItems":    float64(1),
 				"uniqueItems": true,
 				"items": map[string]any{
 					"type": "string",
@@ -127,6 +130,7 @@ func TestJob104SearchJobE2E(t *testing.T) {
 			"experience": map[string]any{
 				"type":        "array",
 				"description": "Minimum-experience brackets, OR'd together. Soft filter — verify each result's experience.",
+				"minItems":    float64(1),
 				"uniqueItems": true,
 				"items": map[string]any{
 					"type": "string",
@@ -137,6 +141,7 @@ func TestJob104SearchJobE2E(t *testing.T) {
 				"type":        "integer",
 				"description": "1-based page number.",
 				"minimum":     float64(1),
+				"default":     float64(1),
 			},
 		},
 		"required":             []any{"keyword", "area"},

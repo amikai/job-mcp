@@ -21,12 +21,14 @@ var indeedSearchInputRawSchema = []byte(`{
 		},
 		"country": {
 			"type": "string",
-			"description": "Country name selecting Indeed's country catalogue and site domain, e.g. 'Taiwan', 'United States', 'Japan'. Defaults to Taiwan when omitted. Echoed on each result for indeed_get_job_detail."
+			"description": "Country name selecting Indeed's country catalogue and site domain, e.g. 'Taiwan', 'United States', 'Japan'. Defaults to Taiwan when omitted. Echoed on each result for indeed_get_job_detail.",
+			"default": "Taiwan"
 		},
 		"radius_miles": {
 			"type": "integer",
 			"description": "Search radius in miles around location. Omit to default to 25; set to 0 for exact-location search.",
-			"minimum": 0
+			"minimum": 0,
+			"default": 25
 		},
 		"cursor": {
 			"type": "string",
@@ -149,11 +151,13 @@ var indeedDetailInputRawSchema = []byte(`{
 	"properties": {
 		"job_key": {
 			"type": "string",
-			"description": "Opaque Indeed job key (key from indeed_search_jobs results)."
+			"description": "Opaque Indeed job key (key from indeed_search_jobs results).",
+			"minLength": 1
 		},
 		"country": {
 			"type": "string",
-			"description": "Country used for the original search (country field on each search result). Required: jobData is country-scoped; omitting it or using the wrong country returns a false not-found."
+			"description": "Country used for the original search (country field on each search result). Required: jobData is country-scoped; omitting it or using the wrong country returns a false not-found.",
+			"minLength": 1
 		}
 	},
 	"required": ["job_key", "country"],

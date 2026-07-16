@@ -17,11 +17,13 @@ var googleSearchInputRawSchema = []byte(`{
 	"properties": {
 		"keyword": {
 			"type": "string",
-			"description": "Free-text search query matched against job title and description."
+			"description": "Free-text search query matched against job title and description.",
+			"minLength": 1
 		},
 		"location": {
 			"type": "string",
-			"description": "Location filter; a city, region, or country name (e.g. \"Taiwan\", \"New York, NY, USA\")."
+			"description": "Location filter; a city, region, or country name (e.g. \"Taiwan\", \"New York, NY, USA\").",
+			"minLength": 1
 		},
 		"has_remote": {
 			"type": "boolean",
@@ -54,12 +56,14 @@ var googleSearchInputRawSchema = []byte(`{
 		"sort_by": {
 			"type": "string",
 			"description": "Sort order. Defaults to relevance; date sorts newest first.",
-			"enum": ["relevance", "date"]
+			"enum": ["relevance", "date"],
+			"default": "relevance"
 		},
 		"page": {
 			"type": "integer",
 			"description": "1-based page number; 20 results per page.",
-			"minimum": 1
+			"minimum": 1,
+			"default": 1
 		}
 	},
 	"required": ["keyword", "location"],

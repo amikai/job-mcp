@@ -16,7 +16,8 @@ var nvidiaSearchInputRawSchema = []byte(`{
 	"properties": {
 		"keyword": {
 			"type": "string",
-			"description": "Free-text keyword search across job title and description."
+			"description": "Free-text keyword search across job title and description.",
+			"minLength": 1
 		},
 		"job_category": {
 			"type": "string",
@@ -48,6 +49,7 @@ var nvidiaSearchInputRawSchema = []byte(`{
 		"country": {
 			"type": "string",
 			"description": "Country filter.",
+			"minLength": 1,
 			"enum": [
 				"Armenia", "Australia", "Brazil", "Canada", "China", "Czechia", "Denmark",
 				"Finland", "France", "Germany", "Greece", "Hong Kong", "Hungary", "India",
@@ -98,7 +100,8 @@ var nvidiaSearchInputRawSchema = []byte(`{
 			"type": "integer",
 			"description": "Page size. Server caps this at 20.",
 			"minimum": 1,
-			"maximum": 20
+			"maximum": 20,
+			"default": 20
 		},
 		"offset": {
 			"type": "integer",
@@ -131,7 +134,7 @@ type nvidiaSearchOutput struct {
 
 type nvidiaJobSummary struct {
 	Title         string `json:"title"`
-	ExternalPath  string `json:"external_path"`
+	ExternalPath  string `json:"external_path" jsonschema:"NVIDIA job external path; pass to nvidia_get_job_detail's external_path param."`
 	LocationsText string `json:"locations_text,omitempty" jsonschema:"Human-readable location(s); may be an aggregate count like '3 Locations' instead of a specific site when the job posts to multiple locations."`
 	PostedOn      string `json:"posted_on,omitempty"`
 }
