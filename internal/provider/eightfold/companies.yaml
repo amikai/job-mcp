@@ -124,9 +124,6 @@
 - company: New York Life
   tenant: newyorklife
   domain: newyorklife.com
-- company: NVIDIA Corporation
-  tenant: nvidia
-  domain: nvidia.com
 - company: Qualcomm
   tenant: qualcomm
   domain: qualcomm.com
