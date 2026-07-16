@@ -36,7 +36,7 @@ type Adapter interface {
 	// [SearchParams.Filters] on a later call to [Adapter.Search].
 	Filters(ctx context.Context, slug string) (FilterSet, error)
 	// Detail returns the full posting identified by [JobSummary.JobID].
-	// jobID and slug must come from the same [Adapter.Search] call.
+	// jobID must come from an [Adapter.Search] performed with the same slug.
 	Detail(ctx context.Context, slug, jobID string) (*JobDetail, error)
 }
 

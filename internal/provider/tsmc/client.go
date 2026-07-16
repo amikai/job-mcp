@@ -96,7 +96,8 @@ type Client struct {
 	baseURL    string
 }
 
-// JobsRequest treats Page as one-based and PerPage as the requested page size.
+// JobsRequest treats Page as one-based. PerPage values below 1 use the
+// default page size of 10.
 type JobsRequest struct {
 	Keyword         string
 	Locations       []string
