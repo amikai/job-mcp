@@ -20,16 +20,14 @@ var _ Adapter = (*RecruiteeAdapter)(nil)
 
 // recruiteeCareersHostRE matches Recruitee career-site hosts and captures
 // the company slug (subdomain). Reserved product hosts are rejected after
-// the match — Go's RE2 has no negative lookahead.
+// the match.
 //
 // Examples (hostname):
 //   - bunq.recruitee.com
 //   - acme.recruitee.com
-//
-// Rejected:
-//   - www.recruitee.com
-//   - api.recruitee.com
-var recruiteeCareersHostRE = regexp.MustCompile(`(?i)^(?P<slug>.+)\.recruitee\.com$`)
+var recruiteeCareersHostRE = regexp.MustCompile(
+	`(?i)^(?P<slug>.+)\.recruitee\.com$`,
+)
 
 // RecruiteeAdapter serves Recruitee career sites. The public /api/offers
 // endpoint returns the complete board with full descriptions, so all search,
@@ -73,7 +71,11 @@ var recruiteeReservedHosts = map[string]bool{
 
 // ParseCareersURL recognizes Recruitee subdomain career pages.
 func (a *RecruiteeAdapter) ParseCareersURL(u *url.URL) (string, bool) {
-	slug := namedGroup(recruiteeCareersHostRE, recruiteeCareersHostRE.FindStringSubmatch(strings.ToLower(u.Hostname())), "slug")
+	m := recruiteeCareersHostRE.FindStringSubmatch(strings.ToLower(u.Hostname()))
+	if m == nil {
+		return "", false
+	}
+	slug := namedGroup(recruiteeCareersHostRE, m, "slug")
 	if slug == "" || recruiteeReservedHosts[slug] {
 		return "", false
 	}
