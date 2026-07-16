@@ -8,3 +8,9 @@
   host: "fa-enmi-saasfaprod1.fa.ocs.oraclecloud.com"
   site: "CX_3001"
   site_number: "CX_3001"
+
+# Weak page title; company identity unconfirmed.
+- company: "edyo CX"
+  host: "edyo.fa.us2.oraclecloud.com"
+  site: "CX"
+  site_number: "CX"
