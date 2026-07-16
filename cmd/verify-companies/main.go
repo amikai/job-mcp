@@ -1,7 +1,9 @@
 // Command verify-companies verifies every curated companies.yaml entry by
 // running a real search through the unified internal/ats adapters — the
 // same code path the MCP server serves — and reports each entry's total
-// job count. See
+// job count. Each successful search is followed by one Detail probe on a
+// sampled job, so detail-template divergence surfaces here rather than at
+// release smoke testing. See
 // docs/superpowers/specs/2026-07-12-verify-companies-cmd-design.md.
 package main
 
@@ -41,12 +43,15 @@ var providerOrder = []string{
 	"workday",
 }
 
-// Result statuses. ERROR covers every failed check — a stale identifier
-// (upstream 404) and a transient failure (timeout, 5xx) alike; Detail
-// carries the error message for telling them apart.
+// Result statuses. ERROR covers every failed search — a stale identifier
+// (upstream 404) and a transient failure (timeout, 5xx) alike.
+// DETAIL_ERROR means the search succeeded but the follow-up Detail probe
+// on a sampled job failed — usually a detail-template divergence the
+// search path never exercises. Detail carries the error message either way.
 const (
-	statusOK    = "OK"
-	statusError = "ERROR"
+	statusOK          = "OK"
+	statusError       = "ERROR"
+	statusDetailError = "DETAIL_ERROR"
 )
 
 // check is one roster entry to verify against its adapter.
@@ -56,8 +61,9 @@ type check struct {
 	slug    string
 }
 
-// result is one classified check: OK carries the company's total job
-// count; ERROR carries the error message in Detail.
+// result is one classified check: OK and DETAIL_ERROR carry the company's
+// total job count; ERROR and DETAIL_ERROR carry the error message in
+// Detail.
 type result struct {
 	Provider string `json:"provider"`
 	Company  string `json:"company"`
@@ -226,32 +232,58 @@ func runChecks(ctx context.Context, checks []check, timeout time.Duration, concu
 	return results
 }
 
-// do searches page 1 for the entry and classifies the outcome.
+// do searches page 1 for the entry, follows up with one Detail probe on
+// the first job, and classifies the outcome. The probe catches
+// detail-template divergence (e.g. issue #196) that the search path never
+// exercises; zero-job boards have nothing to probe and stay OK. Each of
+// the two requests gets its own timeout.
 func (c check) do(ctx context.Context, timeout time.Duration) result {
 	r := result{Provider: c.adapter.Name(), Company: c.company, Slug: c.slug}
 
-	ctx, cancel := context.WithTimeout(ctx, timeout)
-	defer cancel()
-
-	res, err := c.adapter.Search(ctx, c.slug, ats.SearchParams{Page: 1})
+	res, err := c.search(ctx, timeout)
 	if err != nil {
 		r.Status, r.Detail = statusError, err.Error()
 		return r
 	}
 	r.Status = statusOK
 	r.Jobs = res.TotalCount
+
+	if len(res.Jobs) == 0 {
+		return r
+	}
+	jobID := res.Jobs[0].JobID
+	if err := c.probeDetail(ctx, timeout, jobID); err != nil {
+		r.Status = statusDetailError
+		r.Detail = fmt.Sprintf("detail %s: %s", jobID, err)
+	}
 	return r
 }
 
-// printText writes one line per entry plus a summary. Jobs is shown only
-// for OK entries; Detail only for ERROR entries, where it explains the
-// failure.
+func (c check) search(ctx context.Context, timeout time.Duration) (*ats.SearchResult, error) {
+	ctx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+	return c.adapter.Search(ctx, c.slug, ats.SearchParams{Page: 1})
+}
+
+func (c check) probeDetail(ctx context.Context, timeout time.Duration, jobID string) error {
+	ctx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+	_, err := c.adapter.Detail(ctx, c.slug, jobID)
+	return err
+}
+
+// printText writes one line per entry plus a summary. Jobs is shown
+// whenever the search succeeded (OK and DETAIL_ERROR); Detail only for
+// failures, where it explains which request failed and why.
 func printText(results []result) {
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 	for _, r := range results {
 		jobs, detail := "", r.Detail
+		if r.Status != statusError {
+			jobs = strconv.Itoa(r.Jobs)
+		}
 		if r.Status == statusOK {
-			jobs, detail = strconv.Itoa(r.Jobs), ""
+			detail = ""
 		}
 		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n", r.Status, r.Provider, r.Company, r.Slug, jobs, detail)
 	}

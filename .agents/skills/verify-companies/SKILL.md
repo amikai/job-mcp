@@ -10,7 +10,8 @@ description: Use when auditing the curated ATS rosters for stale entries, prunin
 `cmd/verify-companies` sweeps every curated `companies.yaml` entry
 through the real `internal/ats` adapter path — the same code the MCP server serves —
 and reports each entry as OK with its total job count, or ERROR with the
-error message. Two workflows build on it: **audit** (find and prune
+error message. Each successful search is followed by one Detail probe on
+a sampled job. Two workflows build on it: **audit** (find and prune
 stale roster entries) and **promotion** (move `unverified/<provider>.yaml`
 candidates into the curated roster).
 
@@ -21,15 +22,20 @@ go run ./cmd/verify-companies [--provider ashby,greenhouse,lever,workday] \
     [--format text|json] [--concurrency N] [--timeout D]
 ```
 
-- Classification is binary: any Search failure is ERROR — a stale
-  identifier's 404 and a transient timeout or 5xx look the same at the
-  status level; the detail column tells them apart.
+- Any Search failure is ERROR — a stale identifier's 404 and a transient
+  timeout or 5xx look the same at the status level; the detail column
+  tells them apart.
+- DETAIL_ERROR means the search succeeded but the Detail probe on a
+  sampled job failed — usually a detail-template divergence in the
+  adapter (issue #196's shape), not a stale roster entry. The fix is
+  adapter code, not the roster.
 - `zero-job` in the summary is informational: board live, no current
-  openings. Not a failure.
+  openings. Not a failure. Zero-job boards get no Detail probe.
 - Keep the default 300s `--timeout`: the largest full-dump boards
   (e.g. Palantir, Veeva on lever) take minutes to download, and 60s
   produced false ERRORs.
-- Exits non-zero when any entry ERRORs, so it doubles as a CI check.
+- Exits non-zero on any ERROR or DETAIL_ERROR, so it doubles as a CI
+  check.
 
 ## Audit workflow
 
