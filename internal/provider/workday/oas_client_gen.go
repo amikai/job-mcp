@@ -30,12 +30,14 @@ func trimTrailingSlashes(u *url.URL) {
 type Invoker interface {
 	// GetJobDetail invokes getJobDetail operation.
 	//
-	// Fetches a single job posting. `externalPath` from the search response has the form
-	// `/job/{location}/{titleSlug}`, with exactly two segments after `/job/`. Split it on the first `/`
-	// and pass the parts as separate path parameters: a single combined parameter fails because standard
-	// URI encoders percent-encode its embedded `/`, producing a URL the server rejects. This routing
-	// detail holds across tenants, including `XMLNAME-` titleSlugs, Workday's naming for titles that start
-	// with a non-letter.
+	// Fetches a single job posting. `externalPath` from the search response is usually
+	// `/job/{location}/{titleSlug}` (two segments after `/job/`). Some tenants omit the location segment
+	// and emit `/job/{titleSlug}` only — pass an empty `location` in that case (the client encodes it as
+	// `/job//{titleSlug}`, which the CXS API accepts). Split multi-segment paths on the first `/` and pass
+	// the parts as separate path parameters: a single combined parameter fails because standard URI
+	// encoders percent-encode its embedded `/`, producing a URL the server rejects. This routing detail
+	// holds across tenants, including `XMLNAME-` titleSlugs, Workday's naming for titles that start with a
+	// non-letter.
 	//
 	// GET /job/{location}/{titleSlug}
 	GetJobDetail(ctx context.Context, params GetJobDetailParams) (*JobDetailResponse, error)
@@ -91,12 +93,14 @@ func (c *Client) requestURL(ctx context.Context) *url.URL {
 
 // GetJobDetail invokes getJobDetail operation.
 //
-// Fetches a single job posting. `externalPath` from the search response has the form
-// `/job/{location}/{titleSlug}`, with exactly two segments after `/job/`. Split it on the first `/`
-// and pass the parts as separate path parameters: a single combined parameter fails because standard
-// URI encoders percent-encode its embedded `/`, producing a URL the server rejects. This routing
-// detail holds across tenants, including `XMLNAME-` titleSlugs, Workday's naming for titles that start
-// with a non-letter.
+// Fetches a single job posting. `externalPath` from the search response is usually
+// `/job/{location}/{titleSlug}` (two segments after `/job/`). Some tenants omit the location segment
+// and emit `/job/{titleSlug}` only — pass an empty `location` in that case (the client encodes it as
+// `/job//{titleSlug}`, which the CXS API accepts). Split multi-segment paths on the first `/` and pass
+// the parts as separate path parameters: a single combined parameter fails because standard URI
+// encoders percent-encode its embedded `/`, producing a URL the server rejects. This routing detail
+// holds across tenants, including `XMLNAME-` titleSlugs, Workday's naming for titles that start with a
+// non-letter.
 //
 // GET /job/{location}/{titleSlug}
 func (c *Client) GetJobDetail(ctx context.Context, params GetJobDetailParams) (*JobDetailResponse, error) {

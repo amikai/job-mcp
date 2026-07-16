@@ -16,7 +16,7 @@ import (
 
 // GetJobDetailParams is parameters of getJobDetail operation.
 type GetJobDetailParams struct {
-	// Location slug segment.
+	// Location slug segment. Empty string for location-less externalPaths (`/job/{titleSlug}` only).
 	Location string
 	// Title-and-requisition-id segment.
 	TitleSlug string

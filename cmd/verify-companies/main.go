@@ -228,12 +228,15 @@ func runChecks(ctx context.Context, checks []check, timeout time.Duration, concu
 	var wg sync.WaitGroup
 	for i, c := range checks {
 		wg.Go(func() {
-			sem <- struct{}{}
-			defer func() { <-sem }()
+			// Provider-specific caps first so waiters on a tight sub-cap
+			// (Recruitee) do not occupy global slots and starve other
+			// providers while queued on the Recruitee semaphore.
 			if c.adapter.Name() == "recruitee" {
 				recruiteeSem <- struct{}{}
 				defer func() { <-recruiteeSem }()
 			}
+			sem <- struct{}{}
+			defer func() { <-sem }()
 			results[i] = c.do(ctx, timeout)
 		})
 	}
