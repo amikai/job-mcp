@@ -1,11 +1,15 @@
 package oracle
 
 import (
+	"bytes"
 	_ "embed"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 )
+
+//go:embed testdata/careers_page_rsp.html
+var mockCareersPageResponse []byte
 
 //go:embed testdata/search_rsp.json
 var mockSearchResponse []byte
@@ -27,6 +31,16 @@ var mockJobDetailNotFoundResponse []byte
 // caller owns the server and must close it.
 func NewMockServer() *httptest.Server {
 	mux := http.NewServeMux()
+	var server *httptest.Server
+	mux.HandleFunc("/hcmUI/CandidateExperience/en/sites/Mayo-US/jobs", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		page := bytes.ReplaceAll(
+			mockCareersPageResponse,
+			[]byte("https://fa-euwp-saasfaprod1.fa.ocs.oraclecloud.com:443"),
+			[]byte(server.URL),
+		)
+		_, _ = w.Write(page)
+	})
 	mux.HandleFunc("/hcmRestApi/resources/latest/recruitingCEJobRequisitions", func(w http.ResponseWriter, r *http.Request) {
 		finder := r.URL.Query().Get("finder")
 		switch {
@@ -45,7 +59,8 @@ func NewMockServer() *httptest.Server {
 		}
 		serveMockJSON(mockJobDetailResponse)(w, r)
 	})
-	return httptest.NewServer(mux)
+	server = httptest.NewServer(mux)
+	return server
 }
 
 func serveMockJSON(data []byte) http.HandlerFunc {
