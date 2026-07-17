@@ -127,8 +127,9 @@ Company roster data cross-referenced from:
 
 - [OpenPostings](https://github.com/Masterjx9/OpenPostings) — company/ATS discovery data used to expand the curated roster
 
-Jobindex integration referenced the public search surface documented in
-[ai-job-search](https://github.com/MadsLorentzen/ai-job-search) (`jobindex-search` skill).
+Jobindex search reference:
+
+- [ai-job-search](https://github.com/MadsLorentzen/ai-job-search)
 
 ## License
 

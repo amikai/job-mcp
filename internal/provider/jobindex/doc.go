@@ -13,4 +13,6 @@
 // scraped HTML with the same key names as search where concepts match — no
 // invented merged deadline fields. Detail is a typed struct because we own
 // that scrape surface; search is a map because we do not own Stash's shape.
+//
+// See also: https://github.com/MadsLorentzen/ai-job-search
 package jobindex
