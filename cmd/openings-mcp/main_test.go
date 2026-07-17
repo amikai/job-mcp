@@ -83,6 +83,8 @@ func TestServerListsJobTools(t *testing.T) {
 		"indeed_get_job_detail",
 		"jobindex_search_jobs",
 		"jobindex_get_job_detail",
+		"mynavi_search_jobs",
+		"mynavi_get_job_detail",
 		"search_jobs_by_company",
 		"get_filters_by_company",
 		"get_job_detail_by_company",
