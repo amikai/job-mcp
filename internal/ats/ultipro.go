@@ -2,10 +2,13 @@ package ats
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"maps"
 	"math"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 
 	"github.com/jaytaylor/html2text"
@@ -54,17 +57,19 @@ func (a *UltiProAdapter) Roster() []CompanyInfo {
 	return infos
 }
 
-// ParseCareersURL recognizes UltiPro career-board URLs. Roster companies
-// fold back to their roster slug (company code) so display names stay
-// identical to name-based resolution; unknown boards get the canonical URL
-// as a self-describing slug (host, company code, and board id all matter,
-// which a bare code can't carry).
+// ParseCareersURL recognizes UltiPro career-board URLs. A roster company
+// folds back to its roster slug only when host, company code, AND board id
+// all match the curated entry — UltiPro addresses a board with all three,
+// so a same-coded tenant's *other* board must not collapse onto the
+// curated one. Anything else (including a same-code URL with a different
+// host or board id) gets the canonical URL as a self-describing slug.
 func (a *UltiProAdapter) ParseCareersURL(u *url.URL) (string, bool) {
 	site, ok := ultipro.ParseCareersURL(u)
 	if !ok {
 		return "", false
 	}
-	if _, ok := ultipro.CompaniesByCode[strings.ToLower(site.CompanyCode)]; ok {
+	if c, ok := ultipro.CompaniesByCode[strings.ToLower(site.CompanyCode)]; ok &&
+		c.Host == site.Host && c.BoardID == site.BoardID {
 		return strings.ToLower(site.CompanyCode), true
 	}
 	return site.CanonicalURL(), true
@@ -98,16 +103,38 @@ func (a *UltiProAdapter) Search(ctx context.Context, slug string, p SearchParams
 		return nil, fmt.Errorf("ultipro: page %d is too large; retry with a smaller page", page)
 	}
 
-	filters, err := a.buildFilters(ctx, client, p.Filters)
+	// "remote" is handled entirely through the location_type filter (field
+	// 37), not the physical location catalog (field 4) — verified live, the
+	// two return different job sets (a literal "Remote" physical location
+	// vs. the JobLocationType=Remote flag). A location_type filter that
+	// already excludes remote makes the combination impossible, so
+	// short-circuit rather than round-trip a query guaranteed to be empty.
+	location := strings.TrimSpace(p.Location)
+	filterInput := p.Filters
+	if strings.EqualFold(location, "remote") {
+		lt := filterInput["location_type"]
+		switch {
+		case len(lt) > 0 && !ultiproContainsFold(lt, "remote"):
+			return &SearchResult{Page: page}, nil
+		case !ultiproContainsFold(lt, "remote"):
+			merged := make(FilterSet, len(filterInput)+1)
+			maps.Copy(merged, filterInput)
+			merged["location_type"] = append(slices.Clone(lt), "remote")
+			filterInput = merged
+		}
+		location = ""
+	}
+
+	filters, err := a.buildFilters(ctx, client, filterInput)
 	if err != nil {
 		return nil, err
 	}
-	if loc := strings.TrimSpace(p.Location); loc != "" {
-		id, err := resolveUltiProCatalogValue(ctx, client.Locations, loc, "location")
+	if location != "" {
+		ids, err := resolveUltiProLocationValues(ctx, client, location)
 		if err != nil {
 			return nil, err
 		}
-		filters = append(filters, ultipro.SearchFilter{FieldName: 4, Values: []string{id}})
+		filters = append(filters, ultipro.SearchFilter{FieldName: 4, Values: ids})
 	}
 
 	res, err := client.Search(ctx, ultipro.SearchRequest{
@@ -121,36 +148,57 @@ func (a *UltiProAdapter) Search(ctx context.Context, slug string, p SearchParams
 	}
 
 	return &SearchResult{
-		Jobs:       ultiproSummaries(res.Opportunities),
+		Jobs:       ultiproSummaries(res.Opportunities, site),
 		TotalCount: res.TotalCount,
 		Page:       page,
 		TotalPages: totalPages(res.TotalCount),
 	}, nil
 }
 
+// ultiproContainsFold reports whether values contains target, compared
+// case-insensitively after trimming.
+func ultiproContainsFold(values []string, target string) bool {
+	for _, v := range values {
+		if strings.EqualFold(strings.TrimSpace(v), target) {
+			return true
+		}
+	}
+	return false
+}
+
 // buildFilters maps the unified department/location_type filter keys onto
-// LoadSearchResults' fieldName codes. FieldName 6 (schedule) is
-// deliberately unsupported — see internal/provider/ultipro/openapi.yaml.
+// LoadSearchResults' fieldName codes. Every value for one key resolves into
+// a single SearchFilter's Values slice — UltiPro ANDs separate filter
+// objects for the same fieldName (verified live: two field-5 objects for
+// Finance and IT independently returned 0 results; both ids in one Values
+// array returned the union, 4), so splitting per value would silently turn
+// the unified "OR within a key" contract into an impossible AND. FieldName
+// 6 (schedule) is deliberately unsupported — see
+// internal/provider/ultipro/openapi.yaml.
 func (a *UltiProAdapter) buildFilters(ctx context.Context, client *ultipro.Client, filters FilterSet) ([]ultipro.SearchFilter, error) {
 	var out []ultipro.SearchFilter
 	for key, values := range filters {
 		switch key {
 		case "department":
+			ids := make([]string, 0, len(values))
 			for _, v := range values {
 				id, err := resolveUltiProCatalogValue(ctx, client.Categories, v, "department")
 				if err != nil {
 					return nil, err
 				}
-				out = append(out, ultipro.SearchFilter{FieldName: 5, Values: []string{id}})
+				ids = append(ids, id)
 			}
+			out = append(out, ultipro.SearchFilter{FieldName: 5, Values: ids})
 		case "location_type":
+			codes := make([]string, 0, len(values))
 			for _, v := range values {
 				code, ok := ultiproLocationTypeCodes[strings.ToLower(strings.TrimSpace(v))]
 				if !ok {
 					return nil, fmt.Errorf("filter value %q not found for %q; available: %s", v, key, strings.Join(ultiproLocationTypeLabels, ", "))
 				}
-				out = append(out, ultipro.SearchFilter{FieldName: 37, Values: []string{code}})
+				codes = append(codes, code)
 			}
+			out = append(out, ultipro.SearchFilter{FieldName: 37, Values: codes})
 		default:
 			return nil, errUnknownFilterKey(key, map[string]bool{"department": true, "location_type": true})
 		}
@@ -179,17 +227,54 @@ func resolveUltiProCatalogValue(ctx context.Context, fetch func(context.Context)
 		}
 		labels = append(labels, c.Label)
 	}
+	return "", fmt.Errorf("filter value %q not found for %q; available: %s", input, key, joinTruncated(labels))
+}
+
+// resolveUltiProLocationValues fuzzy-matches free text against every
+// catalog location's display label (substring, case-insensitive) and
+// returns every match as one OR'd id set, mirroring how the Workday and
+// iCIMS adapters resolve free-text location input against a tenant's
+// option catalog. A raw catalog id is also accepted and passed through
+// unchanged.
+func resolveUltiProLocationValues(ctx context.Context, client *ultipro.Client, input string) ([]string, error) {
+	catalog, err := client.Locations(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("ultipro: fetch location catalog: %w", err)
+	}
+	for _, c := range catalog {
+		if c.ID == input {
+			return []string{c.ID}, nil
+		}
+	}
+	lower := strings.ToLower(input)
+	var ids []string
+	labels := make([]string, 0, len(catalog))
+	for _, c := range catalog {
+		if strings.Contains(strings.ToLower(c.Label), lower) {
+			ids = append(ids, c.ID)
+		}
+		labels = append(labels, c.Label)
+	}
+	if len(ids) == 0 {
+		return nil, fmt.Errorf("no location matching %q; available: %s", input, joinTruncated(labels))
+	}
+	return ids, nil
+}
+
+// joinTruncated renders a filter's available values for a teaching error,
+// capped so a large catalog doesn't flood the message.
+func joinTruncated(values []string) string {
 	const maxListed = 20
-	listed := labels
+	listed := values
 	suffix := ""
 	if len(listed) > maxListed {
 		listed = listed[:maxListed]
 		suffix = ", …"
 	}
-	return "", fmt.Errorf("filter value %q not found for %q; available: %s%s", input, key, strings.Join(listed, ", "), suffix)
+	return strings.Join(listed, ", ") + suffix
 }
 
-func ultiproSummaries(items []ultipro.Opportunity) []JobSummary {
+func ultiproSummaries(items []ultipro.Opportunity, site ultipro.CareersSite) []JobSummary {
 	jobs := make([]JobSummary, 0, len(items))
 	for _, o := range items {
 		if o.ID == "" {
@@ -204,10 +289,16 @@ func ultiproSummaries(items []ultipro.Opportunity) []JobSummary {
 			Title:    o.Title,
 			Location: loc,
 			PostedAt: ultiproPostedAt(o.PostedDate),
-			URL:      "", // the search response carries no per-posting URL; Detail's URL is authoritative.
+			URL:      ultiproDetailURL(site, o.ID),
 		})
 	}
 	return jobs
+}
+
+// ultiproDetailURL builds the public posting page for opportunityID on
+// site, the same URL [UltiProAdapter.Detail] reports.
+func ultiproDetailURL(site ultipro.CareersSite, opportunityID string) string {
+	return site.CanonicalURL() + "OpportunityDetail?opportunityId=" + url.QueryEscape(opportunityID)
 }
 
 // ultiproPostedAt trims LoadSearchResults' RFC3339 timestamp to a plain
@@ -251,7 +342,10 @@ func (a *UltiProAdapter) Detail(ctx context.Context, slug, jobID string) (*JobDe
 
 	d, err := client.Detail(ctx, jobID)
 	if err != nil {
-		return nil, fmt.Errorf("ultipro: job %q not found for company %q; pass a job_id exactly as returned by the job search: %w", jobID, slug, err)
+		if errors.Is(err, ultipro.ErrJobNotFound) {
+			return nil, fmt.Errorf("ultipro: job %q not found for company %q; pass a job_id exactly as returned by the job search", jobID, slug)
+		}
+		return nil, fmt.Errorf("ultipro: fetch job %q for %q: %w", jobID, slug, err)
 	}
 
 	desc := d.Description
@@ -271,7 +365,7 @@ func (a *UltiProAdapter) Detail(ctx context.Context, slug, jobID string) (*JobDe
 		Company:     name,
 		Location:    loc,
 		PostedAt:    ultiproPostedAt(d.PostedDate),
-		URL:         site.CanonicalURL() + "OpportunityDetail?opportunityId=" + url.QueryEscape(d.ID),
+		URL:         ultiproDetailURL(site, d.ID),
 		Description: desc,
 	}, nil
 }
