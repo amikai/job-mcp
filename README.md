@@ -127,8 +127,14 @@ Company roster data cross-referenced from:
 
 - [OpenPostings](https://github.com/Masterjx9/OpenPostings) — company/ATS discovery data used to expand the curated roster
 
-Jobindex integration referenced the public search surface documented in
-[ai-job-search](https://github.com/MadsLorentzen/ai-job-search) (`jobindex-search` skill).
+Jobindex (Denmark) search integration:
+
+- [ai-job-search](https://github.com/MadsLorentzen/ai-job-search) by
+  [MadsLorentzen](https://github.com/MadsLorentzen) — the
+  [`jobindex-search`](https://github.com/MadsLorentzen/ai-job-search/tree/main/.agents/skills/jobindex-search)
+  skill documented Jobindex's public HTML search surface (including the
+  `var Stash` result payload). Our Go client was built with that work as a
+  reference; openings-mcp is not affiliated with the ai-job-search project.
 
 ## License
 
