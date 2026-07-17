@@ -59,7 +59,7 @@ type jobindexSearchOutput struct {
 	Hitcount   int              `json:"hitcount"`
 	TotalPages int              `json:"total_pages,omitempty"`
 	Page       int              `json:"page"`
-	Results    []map[string]any `json:"results" jsonschema:"Jobindex result objects (tid, headline, company{name}, area, posted_at, expired_at, …). posted_at=when listed; expired_at=listing end (not always apply deadline). url is the only link: open/apply. Tracking and company profile URLs omitted."`
+	Results    []map[string]any `json:"results" jsonschema:"Jobindex result objects (tid, headline, company{name}, area, posted_at, expired_at, …). posted_at and expired_at are ISO 8601 dates (YYYY-MM-DD): published and listing end (not always apply deadline). url is the only link: open/apply. Tracking and company profile URLs omitted."`
 }
 
 func jobindexMCPToHTTPRequest(in *jobindexSearchInput) (*jobindex.JobsRequest, error) {
@@ -95,12 +95,12 @@ type jobindexDetailOutput struct {
 	Headline       string         `json:"headline"`
 	Company        map[string]any `json:"company,omitempty"`
 	Area           string         `json:"area,omitempty"`
-	PostedAt       string         `json:"posted_at,omitempty" jsonschema:"When the ad was published on Jobindex (upstream firstdate)."`
+	PostedAt       string         `json:"posted_at,omitempty" jsonschema:"When the ad was published on Jobindex; ISO 8601 date (YYYY-MM-DD)."`
 	URL            string         `json:"url,omitempty" jsonschema:"Open/apply URL for this job (employer apply link when present, else Jobindex page)."`
 	Description    string         `json:"description,omitempty" jsonschema:"Appetizer text from the vis-job page (og:description / body). Full JD may be on the employer site."`
 	EmploymentType string         `json:"employment_type,omitempty"`
 	Hours          string         `json:"hours,omitempty"`
-	ApplyDeadline  string         `json:"apply_deadline,omitempty" jsonschema:"Only when the page labels a deadline; never synthesized."`
+	ApplyDeadline  string         `json:"apply_deadline,omitempty" jsonschema:"Only when the page labels a deadline; never synthesized. May be an ISO 8601 datetime when present."`
 }
 
 func jobindexHTTPToMCPDetail(d *jobindex.JobDetail) *jobindexDetailOutput {

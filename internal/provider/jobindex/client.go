@@ -48,7 +48,7 @@ type JobsRequest struct {
 // total_pages, results).
 //
 // Each Results element is an upstream result object with light renames:
-//   - firstdate → posted_at, lastdate → expired_at
+//   - firstdate → posted_at, lastdate → expired_at (ISO 8601 dates YYYY-MM-DD)
 //   - single "url" for open/apply (prefer direct apply, else Jobindex page)
 //   - company name-only; html and tracking URLs dropped
 type SearchResponse struct {
@@ -68,7 +68,8 @@ type JobDetail struct {
 	Headline string         `json:"headline"`
 	Company  map[string]any `json:"company,omitempty"` // name only
 	Area     string         `json:"area,omitempty"`
-	// PostedAt is when the ad was published (Jobindex firstdate).
+	// PostedAt is when the ad was published (Jobindex firstdate), ISO 8601 date
+	// (YYYY-MM-DD), same convention as ats.JobSummary.PostedAt.
 	PostedAt string `json:"posted_at,omitempty"`
 	// URL is where to open/apply for this job.
 	URL string `json:"url,omitempty"`

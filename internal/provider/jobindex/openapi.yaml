@@ -22,9 +22,10 @@ info:
     and result object keys as Jobindex embeds them (`tid`, `headline`,
     `company`, `area`, `firstdate`, `lastdate`, `apply_deadline_asap`, …).
     Intentional shaping: drop each result's `html` card markup; rename
-    `firstdate`→`posted_at` and `lastdate`→`expired_at`; expose a single
-    `url` for open/apply (prefer `apply_url` / `app_apply_url`, else
-    `share_url`); drop tracking `/c?t=…` links and company profile URLs.
+    `firstdate`→`posted_at` and `lastdate`→`expired_at` as ISO 8601 dates
+    (`YYYY-MM-DD`, same as ats.JobSummary.PostedAt); expose a single `url`
+    for open/apply (prefer `apply_url` / `app_apply_url`, else `share_url`);
+    drop tracking `/c?t=…` links and company profile URLs.
 
     Two independent endpoints, both **server-side rendered HTML**:
 
