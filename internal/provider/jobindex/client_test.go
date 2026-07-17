@@ -117,6 +117,19 @@ func TestJobDetailRobot(t *testing.T) {
 	assert.NotEmpty(t, got.ApplyURL)
 }
 
+func TestJobDetailRobotNoCompanyLink(t *testing.T) {
+	srv := NewMockServer()
+	t.Cleanup(srv.Close)
+	c := NewClient(srv.URL, srv.Client())
+
+	got, err := c.JobDetail(t.Context(), "r13913566")
+	require.NoError(t, err)
+	require.NotNil(t, got.Company)
+	// Plain-text company (employer has no Jobindex profile): name only, no homeurl.
+	assert.Equal(t, "ClinicDrive ApS", got.Company["name"])
+	assert.NotContains(t, got.Company, "homeurl")
+}
+
 func TestJobDetailEmptyID(t *testing.T) {
 	c := NewClient("https://example.invalid", http.DefaultClient)
 	_, err := c.JobDetail(t.Context(), "")

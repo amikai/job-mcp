@@ -161,12 +161,17 @@ func parseDetailHTML(r io.Reader, tid string) (*JobDetail, error) {
 	}
 
 	company := map[string]any{}
-	if a := doc.Find(".jix-toolbar-top__company a").First(); a.Length() > 0 {
-		if name := strings.TrimSpace(a.Text()); name != "" {
+	if el := doc.Find(".jix-toolbar-top__company").First(); el.Length() > 0 {
+		if a := el.Find("a").First(); a.Length() > 0 {
+			if name := strings.TrimSpace(a.Text()); name != "" {
+				company["name"] = name
+			}
+			if href, ok := a.Attr("href"); ok && href != "" {
+				company["homeurl"] = href
+			}
+		} else if name := strings.TrimSpace(el.Text()); name != "" {
+			// Employers without a Jobindex profile render as plain text, no link.
 			company["name"] = name
-		}
-		if href, ok := a.Attr("href"); ok && href != "" {
-			company["homeurl"] = href
 		}
 	}
 	if len(company) > 0 {

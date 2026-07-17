@@ -19,6 +19,9 @@ var mockJobDetailRsp []byte
 //go:embed testdata/job_detail_robot_rsp.html
 var mockJobDetailRobotRsp []byte
 
+//go:embed testdata/job_detail_robot_nolink_rsp.html
+var mockJobDetailRobotNolinkRsp []byte
+
 // NewMockServer returns an httptest.Server that serves Jobindex-shaped HTML
 // fixtures so tests never hit the live site. The caller must Close it.
 func NewMockServer() *httptest.Server {
@@ -45,6 +48,11 @@ func NewMockServer() *httptest.Server {
 		}
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		// Aggregated (r*) postings use jix_robotjob-inner; hosted (h*) use PaidJob.
+		// r13913566's employer has no Jobindex profile: plain-text company, no link.
+		if id == "r13913566" {
+			w.Write(mockJobDetailRobotNolinkRsp)
+			return
+		}
 		if strings.HasPrefix(id, "r") {
 			w.Write(mockJobDetailRobotRsp)
 			return
