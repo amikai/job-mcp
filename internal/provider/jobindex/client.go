@@ -17,7 +17,7 @@ const (
 	DefaultPageSize = 20
 )
 
-// Sort order for search results.
+// Sort order for search results (query param sort=).
 const (
 	SortScore = "score"
 	SortDate  = "date"
@@ -44,40 +44,45 @@ type JobsRequest struct {
 	Sort string
 }
 
-// Job is a search-result summary.
-type Job struct {
-	ID         string
-	Title      string
-	Company    string
-	CompanyURL string
-	Location   string
-	PostedDate string // YYYY-MM-DD when present
-	Deadline   string // YYYY-MM-DD, "ASAP", or free text
-	URL        string // canonical Jobindex URL (vis-job)
+// SearchResponse is the Stash searchResponse object from /jobsoegning, plus the
+// request page. Field names match Jobindex's embedded JSON (hitcount,
+// total_pages, results), not an ai-job-search style card schema.
+//
+// Each element of Results is one upstream result object. The only deliberate
+// drop is the per-result "html" field (full card markup); every other key is
+// preserved as returned by Jobindex.
+type SearchResponse struct {
+	Hitcount   int              `json:"hitcount"`
+	TotalPages int              `json:"total_pages,omitempty"`
+	Results    []map[string]any `json:"results"`
+	// Page is the 1-based page that was requested. It is not a Stash field.
+	Page int `json:"page"`
 }
 
-// JobsResponse is one page of search results.
-type JobsResponse struct {
-	Jobs       []Job
-	TotalCount int
-	Page       int
-	TotalPages int
-}
-
-// JobDetail is a single posting from /vis-job/{id}.
+// JobDetail is scraped from the /vis-job/{tid} HTML page. Jobindex does not
+// expose a JSON detail API for that view; field names mirror the Stash search
+// result keys where the same concept exists (tid, headline, area, firstdate,
+// share_url, apply_url, company). No fields are synthesized by merging
+// deadlines (e.g. we never invent "ASAP").
 type JobDetail struct {
-	ID             string
-	Title          string
-	Company        string
-	CompanyURL     string
-	Location       string
-	PostedDate     string
-	Deadline       string
-	EmploymentType string
-	Hours          string
-	Description    string
-	ApplyURL       string
-	URL            string
+	Tid        string         `json:"tid"`
+	Headline   string         `json:"headline"`
+	Company    map[string]any `json:"company,omitempty"`
+	Area       string         `json:"area,omitempty"`
+	Firstdate  string         `json:"firstdate,omitempty"`
+	// ShareURL is og:url / canonical on the vis-job page (same role as
+	// search's share_url).
+	ShareURL string `json:"share_url,omitempty"`
+	// ApplyURL is the "Se jobbet" deep link when present (search's apply_url).
+	ApplyURL string `json:"apply_url,omitempty"`
+	// Description is plain text from og:description and/or the PaidJob body
+	// appetizer — not a Stash search field name, but the page's description.
+	Description string `json:"description,omitempty"`
+	// EmploymentType / Hours / ApplyDeadline are only set when the page's
+	// jix-info labels expose them; values are the page text, unnormalized.
+	EmploymentType string `json:"employment_type,omitempty"`
+	Hours          string `json:"hours,omitempty"`
+	ApplyDeadline  string `json:"apply_deadline,omitempty"`
 }
 
 // NewClient builds a Client. When httpClient is nil, http.DefaultClient is used.
@@ -88,8 +93,8 @@ func NewClient(baseURL string, httpClient *http.Client) *Client {
 	return &Client{httpClient: httpClient, baseURL: strings.TrimRight(baseURL, "/")}
 }
 
-// Jobs searches Jobindex and parses the Stash-embedded result list.
-func (c *Client) Jobs(ctx context.Context, req *JobsRequest) (*JobsResponse, error) {
+// Jobs searches Jobindex and returns the Stash searchResponse payload.
+func (c *Client) Jobs(ctx context.Context, req *JobsRequest) (*SearchResponse, error) {
 	if req == nil {
 		req = &JobsRequest{}
 	}
@@ -108,24 +113,23 @@ func (c *Client) Jobs(ctx context.Context, req *JobsRequest) (*JobsResponse, err
 	return parseSearchHTML(html, page)
 }
 
-// JobDetail fetches /vis-job/{id}.
-func (c *Client) JobDetail(ctx context.Context, id string) (*JobDetail, error) {
-	id = strings.TrimSpace(id)
-	if id == "" {
-		return nil, fmt.Errorf("job id is required")
+// JobDetail fetches /vis-job/{tid} and scrapes the HTML page.
+func (c *Client) JobDetail(ctx context.Context, tid string) (*JobDetail, error) {
+	tid = strings.TrimSpace(tid)
+	if tid == "" {
+		return nil, fmt.Errorf("job tid is required")
 	}
-	if strings.Contains(id, "/") {
-		// Allow full URLs: extract trailing tid.
-		if tid := tidFromURL(id); tid != "" {
-			id = tid
+	if strings.Contains(tid, "/") {
+		if extracted := tidFromURL(tid); extracted != "" {
+			tid = extracted
 		}
 	}
-	u := c.baseURL + detailPath + "/" + url.PathEscape(id)
+	u := c.baseURL + detailPath + "/" + url.PathEscape(tid)
 	html, err := c.getHTML(ctx, u)
 	if err != nil {
 		return nil, err
 	}
-	return parseDetailHTML(html, id, c.baseURL+detailPath+"/"+id)
+	return parseDetailHTML(html, tid)
 }
 
 func (c *Client) searchURL(req *JobsRequest) (string, error) {
@@ -194,7 +198,6 @@ func (c *Client) getHTML(ctx context.Context, rawURL string) (string, error) {
 }
 
 func tidFromURL(raw string) string {
-	// .../jobannonce/h1683131 or .../vis-job/h1683131
 	for _, seg := range []string{"/jobannonce/", "/vis-job/"} {
 		if i := strings.LastIndex(raw, seg); i >= 0 {
 			rest := raw[i+len(seg):]

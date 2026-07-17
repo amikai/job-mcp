@@ -13,28 +13,28 @@ var jobindexSearchInputRawSchema = []byte(`{
 	"properties": {
 		"keyword": {
 			"type": "string",
-			"description": "Free-text search: role titles, skills, technologies, or a city name (e.g. 'backend engineer', 'python aarhus').",
+			"description": "Jobindex q= free-text search (role, skill, company, city).",
 			"minLength": 1
 		},
 		"area": {
 			"type": "string",
-			"description": "Optional Jobindex area path slug, e.g. 'storkoebenhavn', 'midtjylland', 'fyn'. Free-text cities can go in keyword instead.",
+			"description": "Optional Jobindex area path slug (e.g. storkoebenhavn, midtjylland, fyn).",
 			"minLength": 1
 		},
 		"job_age_days": {
 			"type": "integer",
-			"description": "Only jobs posted within this many days. Common values: 1, 7, 14, 30. Omit for all ages.",
+			"description": "Jobindex jobage= max posting age in days (1, 7, 14, 30). Omit for all ages.",
 			"minimum": 1
 		},
 		"sort": {
 			"type": "string",
-			"description": "Result order. Defaults to relevance (score).",
+			"description": "Jobindex sort= parameter. Defaults to score.",
 			"enum": ["score", "date"],
 			"default": "score"
 		},
 		"page": {
 			"type": "integer",
-			"description": "1-based page number; each page returns about 20 jobs.",
+			"description": "Jobindex page= (1-based). About 20 results per page.",
 			"minimum": 1,
 			"default": 1
 		}
@@ -53,22 +53,14 @@ type jobindexSearchInput struct {
 	Page       int    `json:"page,omitempty"`
 }
 
-type jobindexJobSummary struct {
-	ID         string `json:"id" jsonschema:"Jobindex job id (tid), e.g. h1683131; pass to jobindex_get_job_detail's job_id."`
-	Title      string `json:"title"`
-	Company    string `json:"company,omitempty"`
-	CompanyURL string `json:"company_url,omitempty"`
-	Location   string `json:"location,omitempty"`
-	PostedDate string `json:"posted_date,omitempty"`
-	Deadline   string `json:"deadline,omitempty"`
-	URL        string `json:"url,omitempty" jsonschema:"Public Jobindex posting URL (/vis-job/{id})."`
-}
-
+// jobindexSearchOutput mirrors Jobindex Stash searchResponse field names
+// (hitcount, total_pages, results). page is the requested page (not a Stash
+// field). results are upstream result objects with only card "html" stripped.
 type jobindexSearchOutput struct {
-	Data       []jobindexJobSummary `json:"data"`
-	TotalCount int                  `json:"total_count"`
-	Page       int                  `json:"page"`
-	TotalPages int                  `json:"total_pages"`
+	Hitcount   int              `json:"hitcount"`
+	TotalPages int              `json:"total_pages,omitempty"`
+	Page       int              `json:"page"`
+	Results    []map[string]any `json:"results" jsonschema:"Upstream search result objects (tid, headline, company, area, firstdate, lastdate, apply_deadline_asap, share_url, url, …). Per-result html card markup is omitted."`
 }
 
 func jobindexMCPToHTTPRequest(in *jobindexSearchInput) (*jobindex.JobsRequest, error) {
@@ -88,61 +80,50 @@ func jobindexMCPToHTTPRequest(in *jobindexSearchInput) (*jobindex.JobsRequest, e
 	return req, nil
 }
 
-func jobindexHTTPToMCPResponse(resp *jobindex.JobsResponse) *jobindexSearchOutput {
-	out := &jobindexSearchOutput{
-		Data:       make([]jobindexJobSummary, 0, len(resp.Jobs)),
-		TotalCount: resp.TotalCount,
-		Page:       resp.Page,
+func jobindexHTTPToMCPResponse(resp *jobindex.SearchResponse) *jobindexSearchOutput {
+	return &jobindexSearchOutput{
+		Hitcount:   resp.Hitcount,
 		TotalPages: resp.TotalPages,
+		Page:       resp.Page,
+		Results:    resp.Results,
 	}
-	for _, j := range resp.Jobs {
-		out.Data = append(out.Data, jobindexJobSummary{
-			ID:         j.ID,
-			Title:      j.Title,
-			Company:    j.Company,
-			CompanyURL: j.CompanyURL,
-			Location:   j.Location,
-			PostedDate: j.PostedDate,
-			Deadline:   j.Deadline,
-			URL:        j.URL,
-		})
-	}
-	return out
 }
 
 type jobindexDetailInput struct {
-	JobID string `json:"job_id" jsonschema:"Jobindex job id from search (tid), e.g. h1683131, or a /vis-job/ or /jobannonce/ URL."`
+	// Tid is the Jobindex tid from search results (e.g. h1683131), or a
+	// /vis-job/ or /jobannonce/ URL.
+	Tid string `json:"tid" jsonschema:"Jobindex tid from search results (e.g. h1683131), or a /vis-job/ or /jobannonce/ URL."`
 }
 
+// jobindexDetailOutput uses the same key names as search Stash where concepts
+// match. Values are scraped from /vis-job HTML (no JSON detail API).
 type jobindexDetailOutput struct {
-	ID             string `json:"id"`
-	URL            string `json:"url,omitempty" jsonschema:"Public Jobindex posting URL."`
-	Title          string `json:"title"`
-	Company        string `json:"company,omitempty"`
-	CompanyURL     string `json:"company_url,omitempty"`
-	Location       string `json:"location,omitempty"`
-	PostedDate     string `json:"posted_date,omitempty"`
-	Deadline       string `json:"deadline,omitempty"`
-	EmploymentType string `json:"employment_type,omitempty"`
-	Hours          string `json:"hours,omitempty"`
-	Description    string `json:"description,omitempty" jsonschema:"Job appetizer text on Jobindex; full JD may live on the employer site."`
-	ApplyURL       string `json:"apply_url,omitempty" jsonschema:"Employer / ATS apply URL when Jobindex deep-links off-site."`
+	Tid            string         `json:"tid"`
+	Headline       string         `json:"headline"`
+	Company        map[string]any `json:"company,omitempty"`
+	Area           string         `json:"area,omitempty"`
+	Firstdate      string         `json:"firstdate,omitempty"`
+	ShareURL       string         `json:"share_url,omitempty"`
+	ApplyURL       string         `json:"apply_url,omitempty"`
+	Description    string         `json:"description,omitempty" jsonschema:"Appetizer text from the vis-job page (og:description / body). Full JD may be on the employer site."`
+	EmploymentType string         `json:"employment_type,omitempty"`
+	Hours          string         `json:"hours,omitempty"`
+	ApplyDeadline  string         `json:"apply_deadline,omitempty" jsonschema:"Only when the page labels a deadline; never synthesized."`
 }
 
 func jobindexHTTPToMCPDetail(d *jobindex.JobDetail) *jobindexDetailOutput {
 	return &jobindexDetailOutput{
-		ID:             d.ID,
-		URL:            d.URL,
-		Title:          d.Title,
+		Tid:            d.Tid,
+		Headline:       d.Headline,
 		Company:        d.Company,
-		CompanyURL:     d.CompanyURL,
-		Location:       d.Location,
-		PostedDate:     d.PostedDate,
-		Deadline:       d.Deadline,
+		Area:           d.Area,
+		Firstdate:      d.Firstdate,
+		ShareURL:       d.ShareURL,
+		ApplyURL:       d.ApplyURL,
+		Description:    d.Description,
 		EmploymentType: d.EmploymentType,
 		Hours:          d.Hours,
-		Description:    d.Description,
-		ApplyURL:       d.ApplyURL,
+		ApplyDeadline:  d.ApplyDeadline,
 	}
 }
 
@@ -150,8 +131,9 @@ func jobindexHTTPToMCPDetail(d *jobindex.JobDetail) *jobindexDetailOutput {
 func RegisterJobindex(s *mcp.Server, c *jobindex.Client) {
 	mcp.AddTool(s, &mcp.Tool{
 		Name: "jobindex_search_jobs",
-		Description: "Search jobs on Jobindex.dk (Denmark's largest commercial job board). " +
-			"Public HTML search; ~20 results per page. Prefer keyword with role and optional city.",
+		Description: "Search Jobindex.dk. Returns the upstream Stash searchResponse shape " +
+			"(hitcount, total_pages, results with tid/headline/company/…). " +
+			"Only per-result card html markup is stripped. ~20 results per page.",
 		Annotations: &mcp.ToolAnnotations{Title: "Search Jobindex jobs", ReadOnlyHint: true},
 		InputSchema: jobindexSearchInputSchema,
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, in *jobindexSearchInput) (*mcp.CallToolResult, *jobindexSearchOutput, error) {
@@ -168,11 +150,12 @@ func RegisterJobindex(s *mcp.Server, c *jobindex.Client) {
 
 	mcp.AddTool(s, &mcp.Tool{
 		Name: "jobindex_get_job_detail",
-		Description: "Get a Jobindex posting by id (tid from jobindex_search_jobs) or /vis-job/ URL. " +
-			"Returns the Jobindex page text; apply_url may point at the employer's external careers site.",
+		Description: "Fetch a Jobindex /vis-job/{tid} page and return scraped fields using " +
+			"upstream-aligned names (tid, headline, company, area, share_url, apply_url). " +
+			"There is no JSON detail API; apply_deadline is only set when the page labels it.",
 		Annotations: &mcp.ToolAnnotations{Title: "Get Jobindex job details", ReadOnlyHint: true},
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, in *jobindexDetailInput) (*mcp.CallToolResult, *jobindexDetailOutput, error) {
-		res, err := c.JobDetail(ctx, in.JobID)
+		res, err := c.JobDetail(ctx, in.Tid)
 		if err != nil {
 			return errorResult(err), nil, nil
 		}

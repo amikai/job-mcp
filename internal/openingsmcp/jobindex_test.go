@@ -50,17 +50,19 @@ func TestJobindexSearchTool(t *testing.T) {
 	require.NoError(t, err)
 	var out jobindexSearchOutput
 	require.NoError(t, json.Unmarshal(data, &out))
-	require.NotEmpty(t, out.Data)
-	assert.Equal(t, "h1683131", out.Data[0].ID)
-	assert.Equal(t, "Senior Backend Engineer", out.Data[0].Title)
-	assert.Greater(t, out.TotalCount, 0)
+	require.NotEmpty(t, out.Results)
+	assert.Greater(t, out.Hitcount, 0)
+	assert.Equal(t, "h1683131", out.Results[0]["tid"])
+	assert.Equal(t, "Senior Backend Engineer", out.Results[0]["headline"])
+	_, hasHTML := out.Results[0]["html"]
+	assert.False(t, hasHTML)
 }
 
 func TestJobindexDetailTool(t *testing.T) {
 	cs := testJobindexMCPClientServer(t)
 	res, err := cs.CallTool(t.Context(), &mcp.CallToolParams{
 		Name:      "jobindex_get_job_detail",
-		Arguments: map[string]any{"job_id": "h1683131"},
+		Arguments: map[string]any{"tid": "h1683131"},
 	})
 	require.NoError(t, err)
 	require.False(t, res.IsError)
@@ -69,8 +71,8 @@ func TestJobindexDetailTool(t *testing.T) {
 	require.NoError(t, err)
 	var out jobindexDetailOutput
 	require.NoError(t, json.Unmarshal(data, &out))
-	assert.Equal(t, "h1683131", out.ID)
-	assert.Equal(t, "Senior Backend Engineer", out.Title)
+	assert.Equal(t, "h1683131", out.Tid)
+	assert.Equal(t, "Senior Backend Engineer", out.Headline)
 	assert.Contains(t, out.Description, "Whiteaway")
 }
 

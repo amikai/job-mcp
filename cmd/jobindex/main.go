@@ -31,16 +31,16 @@ func main() {
 
 	searchFS := ff.NewFlagSet("search").SetParent(rootFlags)
 	var (
-		keyword = searchFS.StringLong("keyword", "", "free-text keyword (required for useful results)")
+		keyword = searchFS.StringLong("keyword", "", "Jobindex q= free-text (required for useful results)")
 		area    = searchFS.StringLong("area", "", "area path slug, e.g. storkoebenhavn")
-		jobage  = searchFS.IntLong("jobage", 0, "max posting age in days (1, 7, 14, 30); 0 = all")
-		sort    = searchFS.StringEnumLong("sort", "sort order", "score", "date")
-		page    = searchFS.IntLong("page", 1, "1-based page number")
+		jobage  = searchFS.IntLong("jobage", 0, "Jobindex jobage= days (1, 7, 14, 30); 0 = all")
+		sort    = searchFS.StringEnumLong("sort", "Jobindex sort=", "score", "date")
+		page    = searchFS.IntLong("page", 1, "Jobindex page= (1-based)")
 	)
 	searchCmd := &ff.Command{
 		Name:      "search",
 		Usage:     "jobindex search --keyword TEXT [--area SLUG] [--jobage N] [--sort score|date] [--page N] [--format text|json]",
-		ShortHelp: "search Jobindex.dk listings",
+		ShortHelp: "search Jobindex.dk; JSON mirrors upstream Stash searchResponse",
 		Flags:     searchFS,
 		Exec: func(ctx context.Context, args []string) error {
 			if len(args) > 0 {
@@ -67,24 +67,24 @@ func main() {
 	rootCmd.Subcommands = append(rootCmd.Subcommands, searchCmd)
 
 	detailFS := ff.NewFlagSet("detail").SetParent(rootFlags)
-	id := detailFS.StringLong("id", "", "job tid from search, e.g. h1683131")
+	tid := detailFS.StringLong("tid", "", "Jobindex tid from search, e.g. h1683131")
 	detailCmd := &ff.Command{
 		Name:      "detail",
-		Usage:     "jobindex detail --id TID [--format text|json]",
-		ShortHelp: "fetch one Jobindex posting via /vis-job/{id}",
+		Usage:     "jobindex detail --tid TID [--format text|json]",
+		ShortHelp: "scrape /vis-job/{tid}; JSON uses upstream-aligned field names",
 		Flags:     detailFS,
 		Exec: func(ctx context.Context, args []string) error {
 			if len(args) > 0 {
-				return fmt.Errorf("detail takes no positional arguments, got %v (did you mean --id %q?)", args, args[0])
+				return fmt.Errorf("detail takes no positional arguments, got %v (did you mean --tid %q?)", args, args[0])
 			}
-			if *id == "" {
-				return errors.New("--id is required")
+			if *tid == "" {
+				return errors.New("--tid is required")
 			}
 			return runDetail(ctx, detailFlags{
 				baseURL: *baseURL,
 				timeout: *timeout,
 				format:  *format,
-				id:      *id,
+				tid:     *tid,
 			})
 		},
 	}
@@ -142,22 +142,34 @@ func runSearch(ctx context.Context, f searchFlags) error {
 		return enc.Encode(resp)
 	}
 
-	fmt.Printf("Jobindex search: %q — %d total, page %d/%d\n\n", f.keyword, resp.TotalCount, resp.Page, resp.TotalPages)
-	for i, j := range resp.Jobs {
-		fmt.Printf("%d. [%s] %s\n", i+1, j.ID, j.Title)
-		if j.Company != "" {
-			fmt.Printf("   Company: %s\n", j.Company)
+	fmt.Printf("hitcount=%d page=%d total_pages=%d\n\n", resp.Hitcount, resp.Page, resp.TotalPages)
+	for i, r := range resp.Results {
+		tid, _ := r["tid"].(string)
+		headline, _ := r["headline"].(string)
+		area, _ := r["area"].(string)
+		firstdate, _ := r["firstdate"].(string)
+		share, _ := r["share_url"].(string)
+		companyName := ""
+		if c, ok := r["company"].(map[string]any); ok {
+			companyName, _ = c["name"].(string)
 		}
-		if j.Location != "" {
-			fmt.Printf("   Location: %s\n", j.Location)
+		if companyName == "" {
+			companyName, _ = r["companytext"].(string)
 		}
-		if j.PostedDate != "" {
-			fmt.Printf("   Posted: %s\n", j.PostedDate)
+		fmt.Printf("%d. [%s] %s\n", i+1, tid, headline)
+		if companyName != "" {
+			fmt.Printf("   company: %s\n", companyName)
 		}
-		if j.Deadline != "" {
-			fmt.Printf("   Deadline: %s\n", j.Deadline)
+		if area != "" {
+			fmt.Printf("   area: %s\n", area)
 		}
-		fmt.Printf("   URL: %s\n\n", j.URL)
+		if firstdate != "" {
+			fmt.Printf("   firstdate: %s\n", firstdate)
+		}
+		if share != "" {
+			fmt.Printf("   share_url: %s\n", share)
+		}
+		fmt.Println()
 	}
 	return nil
 }
@@ -166,7 +178,7 @@ type detailFlags struct {
 	baseURL string
 	timeout time.Duration
 	format  string
-	id      string
+	tid     string
 }
 
 func runDetail(ctx context.Context, f detailFlags) error {
@@ -174,7 +186,7 @@ func runDetail(ctx context.Context, f detailFlags) error {
 	defer cancel()
 
 	client := jobindex.NewClient(f.baseURL, nil)
-	d, err := client.JobDetail(ctx, f.id)
+	d, err := client.JobDetail(ctx, f.tid)
 	if err != nil {
 		return err
 	}
@@ -185,28 +197,29 @@ func runDetail(ctx context.Context, f detailFlags) error {
 		return enc.Encode(d)
 	}
 
-	fmt.Printf("[%s] %s\n", d.ID, d.Title)
-	if d.Company != "" {
-		fmt.Printf("Company: %s\n", d.Company)
+	fmt.Printf("[%s] %s\n", d.Tid, d.Headline)
+	if d.Company != nil {
+		if name, _ := d.Company["name"].(string); name != "" {
+			fmt.Printf("company.name: %s\n", name)
+		}
+		if home, _ := d.Company["homeurl"].(string); home != "" {
+			fmt.Printf("company.homeurl: %s\n", home)
+		}
 	}
-	if d.Location != "" {
-		fmt.Printf("Location: %s\n", d.Location)
+	if d.Area != "" {
+		fmt.Printf("area: %s\n", d.Area)
 	}
-	if d.PostedDate != "" {
-		fmt.Printf("Posted: %s\n", d.PostedDate)
+	if d.Firstdate != "" {
+		fmt.Printf("firstdate: %s\n", d.Firstdate)
 	}
-	if d.Deadline != "" {
-		fmt.Printf("Deadline: %s\n", d.Deadline)
+	if d.ApplyDeadline != "" {
+		fmt.Printf("apply_deadline: %s\n", d.ApplyDeadline)
 	}
-	if d.EmploymentType != "" {
-		fmt.Printf("Employment: %s\n", d.EmploymentType)
+	if d.ShareURL != "" {
+		fmt.Printf("share_url: %s\n", d.ShareURL)
 	}
-	if d.Hours != "" {
-		fmt.Printf("Hours: %s\n", d.Hours)
-	}
-	fmt.Printf("URL: %s\n", d.URL)
 	if d.ApplyURL != "" {
-		fmt.Printf("Apply: %s\n", d.ApplyURL)
+		fmt.Printf("apply_url: %s\n", d.ApplyURL)
 	}
 	if d.Description != "" {
 		fmt.Printf("\n%s\n", d.Description)

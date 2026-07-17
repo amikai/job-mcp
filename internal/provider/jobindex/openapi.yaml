@@ -16,12 +16,19 @@ info:
     page embeds the full payload in a `var Stash = {...}` script blob under
     `jobsearch/result_app → storeData → searchResponse → { hitcount, results[] }`.
 
+    **Output fidelity:** the client returns Stash `searchResponse` field names
+    and result object keys as Jobindex embeds them (`tid`, `headline`,
+    `company`, `area`, `firstdate`, `lastdate`, `apply_deadline_asap`,
+    `share_url`, `url`, …). It does **not** rename into a thin card schema.
+    The only intentional drop is each result's `html` field (full card markup).
+
     Two independent endpoints, both **server-side rendered HTML**:
 
     - `GET /jobsoegning` — search page with Stash-embedded results (~20 per page)
     - `GET /vis-job/{tid}` — Jobindex-hosted posting page (always 200 on-site).
       Note: `GET /jobannonce/{tid}` often **302-redirects off-site** to the
-      employer's ATS; prefer `/vis-job/` for detail parsing.
+      employer's ATS; prefer `/vis-job/` for detail scraping. Detail has no
+      JSON API; scraped fields use the same names as search where concepts match.
 
     Neither endpoint requires authentication.
 
