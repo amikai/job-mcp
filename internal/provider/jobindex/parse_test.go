@@ -1,6 +1,8 @@
 package jobindex
 
 import (
+	"bytes"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -8,8 +10,7 @@ import (
 )
 
 func TestExtractStashAndSearch(t *testing.T) {
-	html := string(mockJobsRsp)
-	resp, err := parseSearchHTML(html, 1)
+	resp, err := parseSearchHTML(bytes.NewReader(mockJobsRsp), 1)
 	require.NoError(t, err)
 	require.Len(t, resp.Results, 5)
 	assert.Equal(t, 70, resp.Hitcount)
@@ -20,7 +21,7 @@ func TestExtractStashAndSearch(t *testing.T) {
 }
 
 func TestExtractStashMissing(t *testing.T) {
-	_, err := parseSearchHTML("<html><body>no stash</body></html>", 1)
+	_, err := parseSearchHTML(strings.NewReader("<html><body>no stash</body></html>"), 1)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "Stash")
 }

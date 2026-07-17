@@ -3,7 +3,6 @@ package jobindex
 import (
 	"context"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -102,15 +101,16 @@ func (c *Client) Jobs(ctx context.Context, req *JobsRequest) (*SearchResponse, e
 	if err != nil {
 		return nil, err
 	}
-	html, err := c.getHTML(ctx, u)
+	res, err := c.get(ctx, u)
 	if err != nil {
 		return nil, err
 	}
+	defer res.Body.Close()
 	page := req.Page
 	if page < 1 {
 		page = 1
 	}
-	return parseSearchHTML(html, page)
+	return parseSearchHTML(res.Body, page)
 }
 
 // JobDetail fetches /vis-job/{tid} and scrapes the HTML page.
@@ -125,11 +125,12 @@ func (c *Client) JobDetail(ctx context.Context, tid string) (*JobDetail, error) 
 		}
 	}
 	u := c.baseURL + detailPath + "/" + url.PathEscape(tid)
-	html, err := c.getHTML(ctx, u)
+	res, err := c.get(ctx, u)
 	if err != nil {
 		return nil, err
 	}
-	return parseDetailHTML(html, tid)
+	defer res.Body.Close()
+	return parseDetailHTML(res.Body, tid)
 }
 
 func (c *Client) searchURL(req *JobsRequest) (string, error) {
@@ -170,10 +171,13 @@ func (c *Client) searchURL(req *JobsRequest) (string, error) {
 	return u.String(), nil
 }
 
-func (c *Client) getHTML(ctx context.Context, rawURL string) (string, error) {
+// get issues a browser-shaped GET and returns the response for the caller to
+// stream from; the caller owns res.Body. Parsers read the body incrementally,
+// so search stops downloading once the Stash object ends.
+func (c *Client) get(ctx context.Context, rawURL string) (*http.Response, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, rawURL, nil)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	req.Header.Set("User-Agent", "Mozilla/5.0 (compatible; openings-mcp/jobindex)")
 	req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
@@ -181,20 +185,17 @@ func (c *Client) getHTML(ctx context.Context, rawURL string) (string, error) {
 
 	res, err := c.httpClient.Do(req)
 	if err != nil {
-		return "", err
-	}
-	defer res.Body.Close()
-	body, err := io.ReadAll(res.Body)
-	if err != nil {
-		return "", err
+		return nil, err
 	}
 	if res.StatusCode == http.StatusNotFound {
-		return "", fmt.Errorf("jobindex: not found")
+		res.Body.Close()
+		return nil, fmt.Errorf("jobindex: not found")
 	}
 	if res.StatusCode < 200 || res.StatusCode >= 300 {
-		return "", fmt.Errorf("jobindex: unexpected status %d for %s", res.StatusCode, rawURL)
+		res.Body.Close()
+		return nil, fmt.Errorf("jobindex: unexpected status %d for %s", res.StatusCode, rawURL)
 	}
-	return string(body), nil
+	return res, nil
 }
 
 func tidFromURL(raw string) string {

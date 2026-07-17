@@ -1,8 +1,10 @@
 package jobindex
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
+	"io"
 	"regexp"
 	"strings"
 
@@ -16,15 +18,15 @@ var reJobID = regexp.MustCompile(`(?i)^[a-z]\d+$`)
 // parseSearchHTML extracts Stash searchResponse and returns it with upstream
 // field names. Only the per-result "html" card markup is removed.
 //
-// Stash extraction (marker + brace-balanced JSON + nested searchResponse walk)
+// Stash extraction (marker scan + JSON decode + nested searchResponse walk)
 // follows the Jobindex skill helpers in:
 //
 //	https://github.com/MadsLorentzen/ai-job-search/blob/dd6d7efea6c9d0c0d439871c5fc323e57b6a1f58/.agents/skills/jobindex-search/cli/src/helpers.ts
 //
 // (extractStash / parseSearchPage / findSearchResponse; see comments there on
 // /jobsoegning.json returning 204 and results living in var Stash.)
-func parseSearchHTML(page string, pageNum int) (*SearchResponse, error) {
-	stash, err := extractStash(page)
+func parseSearchHTML(r io.Reader, pageNum int) (*SearchResponse, error) {
+	stash, err := extractStash(r)
 	if err != nil {
 		return nil, err
 	}
@@ -65,62 +67,48 @@ func parseSearchHTML(page string, pageNum int) (*SearchResponse, error) {
 	}, nil
 }
 
-// extractStash pulls the `var Stash = {...}` blob out of the search HTML.
-// Port of extractStash in:
+// extractStash scans the search HTML stream for the `var Stash = ` marker and
+// decodes the JSON object that follows. Port of extractStash in:
 //
 //	https://github.com/MadsLorentzen/ai-job-search/blob/dd6d7efea6c9d0c0d439871c5fc323e57b6a1f58/.agents/skills/jobindex-search/cli/src/helpers.ts#L86-L115
-func extractStash(page string) (map[string]any, error) {
-	idx := strings.Index(page, stashMarker)
-	if idx < 0 {
-		return nil, fmt.Errorf("jobindex: Stash blob not found")
-	}
-	open := idx + len(stashMarker)
-	end, err := endOfJSONObject(page, open)
-	if err != nil {
+//
+// json.Decoder stops at the closing brace (its own string/brace handling
+// replaces the helpers' manual walk), so the trailing `;</script>` and the
+// rendered page tail are never read.
+func extractStash(r io.Reader) (map[string]any, error) {
+	br := bufio.NewReader(r)
+	if err := skipToMarker(br, stashMarker); err != nil {
 		return nil, err
 	}
 	var stash map[string]any
-	if err := json.Unmarshal([]byte(page[open:end]), &stash); err != nil {
+	if err := json.NewDecoder(br).Decode(&stash); err != nil {
 		return nil, fmt.Errorf("jobindex: parse Stash JSON: %w", err)
 	}
 	return stash, nil
 }
 
-// endOfJSONObject returns the index just past a balanced {...} starting at open,
-// respecting JSON string escapes. Same brace/string walk as extractStash in
-// the ai-job-search helpers.ts linked above.
-func endOfJSONObject(s string, open int) (int, error) {
-	if open >= len(s) || s[open] != '{' {
-		return 0, fmt.Errorf("jobindex: Stash does not start with '{'")
-	}
-	depth := 0
-	inStr := false
-	esc := false
-	for i := open; i < len(s); i++ {
-		c := s[i]
-		if inStr {
-			if esc {
-				esc = false
-			} else if c == '\\' {
-				esc = true
-			} else if c == '"' {
-				inStr = false
-			}
-			continue
+// skipToMarker consumes br until marker has been read, leaving br positioned
+// just past it. The single-byte fallback on mismatch is exact only because
+// marker's first byte never recurs later in it.
+func skipToMarker(br *bufio.Reader, marker string) error {
+	matched := 0
+	for {
+		b, err := br.ReadByte()
+		if err != nil {
+			return fmt.Errorf("jobindex: Stash blob not found")
 		}
-		switch c {
-		case '"':
-			inStr = true
-		case '{':
-			depth++
-		case '}':
-			depth--
-			if depth == 0 {
-				return i + 1, nil
+		switch b {
+		case marker[matched]:
+			matched++
+			if matched == len(marker) {
+				return nil
 			}
+		case marker[0]:
+			matched = 1
+		default:
+			matched = 0
 		}
 	}
-	return 0, fmt.Errorf("jobindex: unterminated Stash blob")
 }
 
 // findSearchResponse walks the Stash tree for searchResponse.results, matching
@@ -148,8 +136,8 @@ func findSearchResponse(node any) map[string]any {
 	return nil
 }
 
-func parseDetailHTML(page, tid string) (*JobDetail, error) {
-	doc, err := goquery.NewDocumentFromReader(strings.NewReader(page))
+func parseDetailHTML(r io.Reader, tid string) (*JobDetail, error) {
+	doc, err := goquery.NewDocumentFromReader(r)
 	if err != nil {
 		return nil, fmt.Errorf("jobindex: parse detail HTML: %w", err)
 	}
