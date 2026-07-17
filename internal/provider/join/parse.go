@@ -37,6 +37,7 @@ type nextDataJob struct {
 	Description        string `json:"description"`
 	UnifiedDescription bool   `json:"unifiedDescription"`
 	WorkplaceType      string `json:"workplaceType"`
+	RemoteType         string `json:"remoteType"`
 	Status             string `json:"status"`
 	CreatedAt          string `json:"createdAt"`
 	UpdatedAt          string `json:"updatedAt"`
@@ -96,6 +97,7 @@ func parseJobDetailHTML(doc *goquery.Document) (*JobDetail, error) {
 		Title:         j.Title,
 		CompanyID:     j.CompanyID,
 		WorkplaceType: j.WorkplaceType,
+		RemoteType:    j.RemoteType,
 		Status:        j.Status,
 		CreatedAt:     parseJoinTime(j.CreatedAt),
 		UpdatedAt:     parseJoinTime(j.UpdatedAt),

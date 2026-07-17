@@ -106,6 +106,18 @@ func TestJoinDetail(t *testing.T) {
 	assert.Equal(t, join.MockJobIdParam, d.JobID)
 }
 
+// A REMOTE/ANYWHERE job's city/country still carry the employer's base
+// location, but Location must say something other than the bare city — a
+// bare "Berlin" would misrepresent an anywhere-remote role as on-site
+// there. See joinLocation and API.md's remoteType note.
+func TestJoinDetailRemoteAnywhere(t *testing.T) {
+	a := testJoinAdapter(t)
+	d, err := a.Detail(t.Context(), join.MockRemoteJobSlug, join.MockRemoteJobIdParam)
+	require.NoError(t, err)
+	assert.Contains(t, d.Location, "Remote")
+	assert.NotEqual(t, "Berlin", d.Location)
+}
+
 func TestJoinDetailNotFound(t *testing.T) {
 	a := testJoinAdapter(t)
 	_, err := a.Detail(t.Context(), join.MockJobSlug, "00000000-nonexistent-job")
@@ -141,4 +153,28 @@ func TestJoinParseCareersURLUnrelatedHost(t *testing.T) {
 	require.NoError(t, err)
 	_, ok := a.ParseCareersURL(u)
 	assert.False(t, ok)
+}
+
+func TestJoinLocation(t *testing.T) {
+	tests := []struct {
+		name                             string
+		city, country, workplace, remote string
+		want                             string
+	}{
+		{"onsite", "Berlin", "Germany", "ONSITE", "", "Berlin, Germany"},
+		{"hybrid", "Berlin", "Germany", "HYBRID", "", "Berlin, Germany"},
+		{"onsite no country", "Berlin", "", "ONSITE", "", "Berlin"},
+		{"onsite no city", "", "Germany", "ONSITE", "", "Germany"},
+		{"remote anywhere", "Berlin", "Germany", "REMOTE", "ANYWHERE", "Remote (Anywhere) · Berlin, Germany"},
+		{"remote anywhere no base", "", "", "REMOTE", "ANYWHERE", "Remote (Anywhere)"},
+		{"remote country", "Hamburg", "Germany", "REMOTE", "COUNTRY", "Remote (Germany)"},
+		{"remote country no country", "Hamburg", "", "REMOTE", "COUNTRY", "Remote"},
+		{"remote unspecified scope", "Berlin", "Germany", "REMOTE", "", "Remote · Berlin, Germany"},
+		{"remote unspecified scope no base", "", "", "REMOTE", "", "Remote"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, joinLocation(tt.city, tt.country, tt.workplace, tt.remote))
+		})
+	}
 }

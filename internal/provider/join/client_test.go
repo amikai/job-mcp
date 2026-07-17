@@ -53,6 +53,22 @@ func TestJobDetail(t *testing.T) {
 	assert.Contains(t, got.Description, "## Skills")
 }
 
+func TestJobDetailRemoteAnywhere(t *testing.T) {
+	srv := NewMockServer()
+	defer srv.Close()
+	c := NewClient(srv.URL, srv.Client())
+
+	got, err := c.JobDetail(t.Context(), MockRemoteJobSlug, MockRemoteJobIdParam)
+	require.NoError(t, err)
+	assert.Equal(t, "REMOTE", got.WorkplaceType)
+	assert.Equal(t, "ANYWHERE", got.RemoteType)
+	// city/country still carry the employer's base location even though
+	// the role has no location restriction — a caller must not treat
+	// City alone as "this job is on-site there" (see API.md).
+	assert.Equal(t, "Berlin", got.City)
+	assert.NotEmpty(t, got.Country)
+}
+
 func TestJobDetailNotFound(t *testing.T) {
 	srv := NewMockServer()
 	defer srv.Close()

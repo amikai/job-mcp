@@ -75,16 +75,19 @@ resolves directly without a redirect hop.
   `unifiedDescription` flag) isn't exposed over the public API.
 - **Job detail has two description shapes**, both scraped off the SSR
   page (`initialState.job` in `__NEXT_DATA__`), gated by the job's own
-  `unifiedDescription` boolean (confirmed by reading the frontend's
-  render logic, not independently observed for the `true` branch — every
-  live job sampled while building this client had `unifiedDescription:
-  false`):
-  - `false` (legacy, observed on every sampled job): the body is split
-    across `intro`, `tasks`, `requirements`, `benefits` (rendered only if
-    non-empty), and `outro` (rendered only if non-empty) — each a
-    Markdown string, not HTML.
-  - `true` (unexercised live): the whole body is one Markdown string in
-    `description`.
+  `unifiedDescription` boolean — both branches confirmed live:
+  - `false` (legacy): the body is split across `intro`, `tasks`,
+    `requirements`, `benefits` (rendered only if non-empty), and `outro`
+    (rendered only if non-empty) — each a Markdown string, not HTML.
+  - `true`: the whole body is one Markdown string in `description`.
+- **`remoteType` is also present on the job detail page**, not just the
+  search list — confirmed live on a `workplaceType: REMOTE` job
+  (`remoteType: "ANYWHERE"`). Values observed across the roster:
+  `ANYWHERE` (no location restriction) and `COUNTRY` (remote within the
+  job's `country` only); `null` for non-remote jobs. A `REMOTE` job's
+  `city`/`country` still carry the employer's base location even when
+  `remoteType` is `ANYWHERE` — a caller that displays only `city` for
+  such a job would misrepresent it as on-site there.
 - **Job detail 404s cleanly** (`HTTP 404`) for a nonexistent `idParam` or
   a nonexistent company slug — unlike search's no-not-found behavior.
 - **Pagination** is page-based (`page`, `pageSize`), 1-indexed;

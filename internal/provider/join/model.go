@@ -41,6 +41,7 @@ type JobDetail struct {
 	Title          string
 	CompanyID      int
 	WorkplaceType  string
+	RemoteType     string
 	Status         string
 	CreatedAt      time.Time
 	UpdatedAt      time.Time

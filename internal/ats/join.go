@@ -92,7 +92,7 @@ func (a *JoinAdapter) Detail(ctx context.Context, slug, jobID string) (*JobDetai
 		JobID:       d.IdParam,
 		Title:       d.Title,
 		Company:     c.Name,
-		Location:    d.City,
+		Location:    joinLocation(d.City, d.Country, d.WorkplaceType, d.RemoteType),
 		PostedAt:    joinPostedAt(d),
 		URL:         c.CareersURL() + "/" + d.IdParam,
 		Description: d.Description,
@@ -130,11 +130,12 @@ func (a *JoinAdapter) dump(ctx context.Context, slug string) ([]dumpJob, join.Ro
 		if j.EmploymentType != "" {
 			fields["employment_type"] = []string{j.EmploymentType}
 		}
+		loc := joinLocation(j.City, j.Country, j.WorkplaceType, j.RemoteType)
 		out = append(out, dumpJob{
 			summary: JobSummary{
 				JobID:    j.IdParam,
 				Title:    j.Title,
-				Location: j.City,
+				Location: loc,
 				PostedAt: joinJobPostedAt(j),
 				URL:      c.CareersURL() + "/" + j.IdParam,
 			},
@@ -143,12 +144,54 @@ func (a *JoinAdapter) dump(ctx context.Context, slug string) ([]dumpJob, join.Ro
 			// description stays empty: join.com's search endpoint never
 			// populates one (see the provider's API.md), so the
 			// full-text search tier only ever matches title/orgUnit.
-			locations: j.City,
+			locations: loc,
 			fields:    fields,
 			isRemote:  j.WorkplaceType == "REMOTE",
 		})
 	}
 	return out, c, nil
+}
+
+// joinLocation renders a job's location for display and fuzzy search.
+// Collapsing to a bare city would mislead for a REMOTE job — city/country
+// still carry the employer's base location even when remoteType is
+// ANYWHERE (no location restriction at all), and a country-scoped remote
+// role (remoteType COUNTRY) would otherwise be invisible to a country-name
+// search since its city alone doesn't mention the country restriction (see
+// API.md's remoteType note). Non-REMOTE jobs get a plain "City, Country".
+func joinLocation(city, country, workplaceType, remoteType string) string {
+	base := cityCountry(city, country)
+	if workplaceType != "REMOTE" {
+		return base
+	}
+	switch remoteType {
+	case "ANYWHERE":
+		if base != "" {
+			return "Remote (Anywhere) · " + base
+		}
+		return "Remote (Anywhere)"
+	case "COUNTRY":
+		if country != "" {
+			return "Remote (" + country + ")"
+		}
+		return "Remote"
+	default:
+		if base != "" {
+			return "Remote · " + base
+		}
+		return "Remote"
+	}
+}
+
+func cityCountry(city, country string) string {
+	switch {
+	case city != "" && country != "":
+		return city + ", " + country
+	case city != "":
+		return city
+	default:
+		return country
+	}
 }
 
 func joinJobPostedAt(j join.Job) string {

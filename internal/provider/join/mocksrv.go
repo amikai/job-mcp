@@ -22,6 +22,9 @@ var mockJobDetailRsp []byte
 //go:embed testdata/job_detail_notfound_rsp.html
 var mockJobDetailNotFoundRsp []byte
 
+//go:embed testdata/job_detail_remote_rsp.html
+var mockJobDetailRemoteRsp []byte
+
 //go:embed testdata/company_rsp.html
 var mockCompanyRsp []byte
 
@@ -39,6 +42,15 @@ const MockEmptyCompanyID = 154838
 const (
 	MockJobIdParam = "16397229-senior-software-engineer-backend-llm-infrastructure"
 	MockJobSlug    = "routinelabs"
+)
+
+// MockRemoteJobIdParam / MockRemoteJobSlug identify a REMOTE/ANYWHERE job
+// (mockJobDetailRemoteRsp): workplaceType REMOTE, remoteType ANYWHERE, but
+// city/country still carry the employer's base location — see API.md's
+// note on remoteType and internal/ats/join.go's joinLocation.
+const (
+	MockRemoteJobIdParam = "16433808-freelancer-m-w-d-gesucht-inbound-home-office-in-der-eu"
+	MockRemoteJobSlug    = "hey-contact-heroes"
 )
 
 type mockGraphQLBody struct {
@@ -72,6 +84,7 @@ func NewMockServer() *httptest.Server {
 		}
 	})
 	mux.HandleFunc("/companies/"+MockJobSlug+"/"+MockJobIdParam, serveMockHTML(mockJobDetailRsp))
+	mux.HandleFunc("/companies/"+MockRemoteJobSlug+"/"+MockRemoteJobIdParam, serveMockHTML(mockJobDetailRemoteRsp))
 	mux.HandleFunc("/companies/"+MockJobSlug, serveMockHTML(mockCompanyRsp))
 	mux.HandleFunc("/companies/", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
