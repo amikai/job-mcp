@@ -459,6 +459,7 @@ func (c *SiteClient) searchFinder(request SearchRequest) (string, error) {
 		"facetsList=" + strings.Join(facetTokens, ";"),
 		"limit=" + strconv.Itoa(request.Limit),
 		"offset=" + strconv.Itoa(request.Offset),
+		"sortBy=POSTING_DATES_DESC",
 	}
 	if request.Keyword != "" {
 		parts = append(parts, `keyword="`+escapeFinderString(request.Keyword)+`"`)

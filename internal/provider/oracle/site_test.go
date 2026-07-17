@@ -81,7 +81,7 @@ func TestSearchFinder(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(
 		t,
-		`findReqs;siteNumber=CX_1,facetsList=TITLES;LOCATIONS,limit=25,offset=50,keyword="analyst \"data\"",selectedLocationsFacet=300000006426003,selectedWorkplaceTypesFacet=ORA_ON_SITE;ORA_REMOTE`,
+		`findReqs;siteNumber=CX_1,facetsList=TITLES;LOCATIONS,limit=25,offset=50,sortBy=POSTING_DATES_DESC,keyword="analyst \"data\"",selectedLocationsFacet=300000006426003,selectedWorkplaceTypesFacet=ORA_ON_SITE;ORA_REMOTE`,
 		got,
 	)
 }
