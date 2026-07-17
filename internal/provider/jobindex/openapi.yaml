@@ -6,8 +6,10 @@ info:
   description: |
     Client-side API specification for Jobindex.dk's unauthenticated job search
     surface. Reverse-engineered from the public search UI at
-    https://www.jobindex.dk/jobsoegning and from the ai-job-search
-    jobindex-search skill (case-study/ai-job-search).
+    https://www.jobindex.dk/jobsoegning and from the jobindex-search skill in
+    https://github.com/MadsLorentzen/ai-job-search
+    (helpers:
+    https://github.com/MadsLorentzen/ai-job-search/blob/dd6d7efea6c9d0c0d439871c5fc323e57b6a1f58/.agents/skills/jobindex-search/cli/src/helpers.ts).
 
     ## Architecture
 

@@ -17,9 +17,8 @@ var reJobID = regexp.MustCompile(`(?i)^[a-z]\d+$`)
 // field names. Only the per-result "html" card markup is removed.
 //
 // Stash extraction (marker + brace-balanced JSON + nested searchResponse walk)
-// follows the Jobindex skill in ai-job-search:
+// follows the Jobindex skill helpers in:
 //
-//	case-study/ai-job-search/.agents/skills/jobindex-search/cli/src/helpers.ts
 //	https://github.com/MadsLorentzen/ai-job-search/blob/dd6d7efea6c9d0c0d439871c5fc323e57b6a1f58/.agents/skills/jobindex-search/cli/src/helpers.ts
 //
 // (extractStash / parseSearchPage / findSearchResponse; see comments there on
@@ -69,7 +68,6 @@ func parseSearchHTML(page string, pageNum int) (*SearchResponse, error) {
 // extractStash pulls the `var Stash = {...}` blob out of the search HTML.
 // Port of extractStash in:
 //
-//	case-study/ai-job-search/.agents/skills/jobindex-search/cli/src/helpers.ts
 //	https://github.com/MadsLorentzen/ai-job-search/blob/dd6d7efea6c9d0c0d439871c5fc323e57b6a1f58/.agents/skills/jobindex-search/cli/src/helpers.ts#L86-L115
 func extractStash(page string) (map[string]any, error) {
 	idx := strings.Index(page, stashMarker)
