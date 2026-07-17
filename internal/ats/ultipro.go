@@ -4,10 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"maps"
 	"math"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 
 	"github.com/jaytaylor/html2text"
@@ -102,33 +102,35 @@ func (a *UltiProAdapter) Search(ctx context.Context, slug string, p SearchParams
 		return nil, fmt.Errorf("ultipro: page %d is too large; retry with a smaller page", page)
 	}
 
-	// "remote" is handled entirely through the location_type filter (field
-	// 37), not the physical location catalog (field 4) — verified live, the
-	// two return different job sets (a literal "Remote" physical location
-	// vs. the JobLocationType=Remote flag). An explicit location_type filter
-	// is a separate, ANDed criterion, not something "remote" ORs into: a
-	// location_type filter that excludes remote makes the combination
-	// impossible (short-circuit rather than round-trip a query guaranteed to
-	// be empty), and one that includes remote alongside other values (e.g.
-	// ["Remote", "Hybrid"]) must narrow to remote only — verified live,
-	// leaving Hybrid in place turned 2 Remote jobs into 10 Remote-or-Hybrid
-	// jobs.
-	location := strings.TrimSpace(p.Location)
-	filterInput := p.Filters
-	if strings.EqualFold(location, "remote") {
-		if lt := filterInput["location_type"]; len(lt) > 0 && !ultiproContainsFold(lt, "remote") {
-			return &SearchResult{Page: page}, nil
-		}
-		merged := make(FilterSet, len(filterInput)+1)
-		maps.Copy(merged, filterInput)
-		merged["location_type"] = []string{"remote"}
-		filterInput = merged
-		location = ""
-	}
-
-	filters, err := a.buildFilters(ctx, client, filterInput)
+	// Validate and resolve the caller's filters before applying any
+	// location=remote special-casing below, so an invalid location_type
+	// value or an unknown filter key always surfaces its teaching error —
+	// short-circuiting on raw, unvalidated location_type strings let bad
+	// input silently fall through as "excludes remote" instead.
+	filters, err := a.buildFilters(ctx, client, p.Filters)
 	if err != nil {
 		return nil, err
+	}
+
+	// "remote" is handled entirely through the (now-validated) location_type
+	// filter (field 37), not the physical location catalog (field 4) —
+	// verified live, the two return different job sets (a literal "Remote"
+	// physical location vs. the JobLocationType=Remote flag). An explicit
+	// location_type filter is a separate, ANDed criterion, not something
+	// "remote" ORs into: a resolved location_type filter that excludes
+	// remote makes the combination impossible (short-circuit rather than
+	// round-trip a query guaranteed to be empty), and one that includes
+	// remote alongside other values (e.g. Remote+Hybrid) must narrow to
+	// remote only — verified live, leaving Hybrid in place turned 2 Remote
+	// jobs into 10 Remote-or-Hybrid jobs.
+	location := strings.TrimSpace(p.Location)
+	if strings.EqualFold(location, "remote") {
+		var possible bool
+		filters, possible = ultiproIntersectRemote(filters)
+		if !possible {
+			return &SearchResult{Page: page}, nil
+		}
+		location = ""
 	}
 	if location != "" {
 		ids, err := resolveUltiProLocationValues(ctx, client, location)
@@ -156,15 +158,31 @@ func (a *UltiProAdapter) Search(ctx context.Context, slug string, p SearchParams
 	}, nil
 }
 
-// ultiproContainsFold reports whether values contains target, compared
-// case-insensitively after trimming.
-func ultiproContainsFold(values []string, target string) bool {
-	for _, v := range values {
-		if strings.EqualFold(strings.TrimSpace(v), target) {
-			return true
+// ultiproIntersectRemote narrows an already-validated filter list to
+// location_type=Remote only, operating on resolved fieldName-37 codes
+// (not raw display labels — callers must validate via [UltiProAdapter.buildFilters]
+// first). possible is false when a resolved location_type filter excludes
+// remote entirely (a remote-location search combined with it can only ever
+// be empty); otherwise out replaces any existing fieldName-37 filter with
+// exactly {Values: ["2"]}, or appends one if none was present.
+func ultiproIntersectRemote(filters []ultipro.SearchFilter) (out []ultipro.SearchFilter, possible bool) {
+	out = make([]ultipro.SearchFilter, 0, len(filters)+1)
+	found := false
+	for _, f := range filters {
+		if f.FieldName != 37 {
+			out = append(out, f)
+			continue
 		}
+		found = true
+		if !slices.Contains(f.Values, "2") {
+			return nil, false
+		}
+		out = append(out, ultipro.SearchFilter{FieldName: 37, Values: []string{"2"}})
 	}
-	return false
+	if !found {
+		out = append(out, ultipro.SearchFilter{FieldName: 37, Values: []string{"2"}})
+	}
+	return out, true
 }
 
 // buildFilters maps the unified department/location_type filter keys onto

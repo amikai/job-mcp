@@ -299,6 +299,29 @@ func TestUltiProSearchRemoteLocationConflictShortCircuits(t *testing.T) {
 	assert.Equal(t, 0, *calls, "a location_type filter excluding remote makes remote+location contradictory; must not round-trip to the API")
 }
 
+// TestUltiProSearchRemoteLocationValidatesFiltersFirst covers the bug
+// where the remote/location_type conflict check ran on raw, unvalidated
+// filter input: an invalid location_type value or an unknown filter key
+// combined with location="remote" must still produce buildFilters' normal
+// teaching error, not silently fall through as "excludes remote" -> empty.
+func TestUltiProSearchRemoteLocationValidatesFiltersFirst(t *testing.T) {
+	a, calls, _ := newUltiProRecordingAdapter(t)
+
+	_, err := a.Search(t.Context(), mockUltiProSlug, SearchParams{
+		Location: "remote",
+		Filters:  FilterSet{"location_type": {"nowhere"}},
+	})
+	require.ErrorContains(t, err, `filter value "nowhere" not found`)
+	assert.Equal(t, 0, *calls)
+
+	_, err = a.Search(t.Context(), mockUltiProSlug, SearchParams{
+		Location: "remote",
+		Filters:  FilterSet{"schedule": {"FullTime"}},
+	})
+	require.ErrorContains(t, err, "unknown filter key")
+	assert.Equal(t, 0, *calls)
+}
+
 func TestUltiProSearchLocationFuzzyMatchesAllHits(t *testing.T) {
 	a, _, lastFilters := newUltiProRecordingAdapter(t)
 
