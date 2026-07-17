@@ -65,11 +65,11 @@ type SearchResponse struct {
 // share_url, apply_url, company). No fields are synthesized by merging
 // deadlines (e.g. we never invent "ASAP").
 type JobDetail struct {
-	Tid        string         `json:"tid"`
-	Headline   string         `json:"headline"`
-	Company    map[string]any `json:"company,omitempty"`
-	Area       string         `json:"area,omitempty"`
-	Firstdate  string         `json:"firstdate,omitempty"`
+	Tid       string         `json:"tid"`
+	Headline  string         `json:"headline"`
+	Company   map[string]any `json:"company,omitempty"`
+	Area      string         `json:"area,omitempty"`
+	Firstdate string         `json:"firstdate,omitempty"`
 	// ShareURL is og:url / canonical on the vis-job page (same role as
 	// search's share_url).
 	ShareURL string `json:"share_url,omitempty"`
@@ -137,11 +137,11 @@ func (c *Client) searchURL(req *JobsRequest) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("parse base URL: %w", err)
 	}
-	path := searchPath
 	if area := strings.Trim(req.Area, "/"); area != "" {
-		path = searchPath + "/" + area
+		u = u.JoinPath(searchPath, area)
+	} else {
+		u = u.JoinPath(searchPath)
 	}
-	u.Path = path
 	q := u.Query()
 	if req.Keyword != "" {
 		q.Set("q", req.Keyword)

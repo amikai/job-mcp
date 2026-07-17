@@ -18,6 +18,8 @@ func TestJobsPreservesUpstreamKeys(t *testing.T) {
 	require.NotEmpty(t, got.Results)
 	assert.Greater(t, got.Hitcount, 0)
 	assert.Equal(t, 1, got.Page)
+	// total_pages comes from Stash, not a local fallback.
+	assert.Greater(t, got.TotalPages, 0)
 
 	first := got.Results[0]
 	// Upstream names, not renamed card schema.
@@ -97,6 +99,22 @@ func TestJobDetailFromURL(t *testing.T) {
 	got, err := c.JobDetail(t.Context(), "https://www.jobindex.dk/vis-job/h1683131")
 	require.NoError(t, err)
 	assert.Equal(t, "h1683131", got.Tid)
+}
+
+func TestJobDetailRobot(t *testing.T) {
+	srv := NewMockServer()
+	t.Cleanup(srv.Close)
+	c := NewClient(srv.URL, srv.Client())
+
+	got, err := c.JobDetail(t.Context(), "r13911770")
+	require.NoError(t, err)
+	assert.Equal(t, "r13911770", got.Tid)
+	assert.Equal(t, "Senior Software Developer", got.Headline)
+	require.NotNil(t, got.Company)
+	assert.NotEmpty(t, got.Company["name"])
+	assert.Equal(t, "København", got.Area)
+	assert.NotEmpty(t, got.Description)
+	assert.NotEmpty(t, got.ApplyURL)
 }
 
 func TestJobDetailEmptyID(t *testing.T) {

@@ -16,6 +16,9 @@ var mockJobsFilteredRsp []byte
 //go:embed testdata/job_detail_rsp.html
 var mockJobDetailRsp []byte
 
+//go:embed testdata/job_detail_robot_rsp.html
+var mockJobDetailRobotRsp []byte
+
 // NewMockServer returns an httptest.Server that serves Jobindex-shaped HTML
 // fixtures so tests never hit the live site. The caller must Close it.
 func NewMockServer() *httptest.Server {
@@ -41,6 +44,11 @@ func NewMockServer() *httptest.Server {
 			return
 		}
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		// Aggregated (r*) postings use jix_robotjob-inner; hosted (h*) use PaidJob.
+		if strings.HasPrefix(id, "r") {
+			w.Write(mockJobDetailRobotRsp)
+			return
+		}
 		w.Write(mockJobDetailRsp)
 	})
 	return httptest.NewServer(mux)

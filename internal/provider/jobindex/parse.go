@@ -7,14 +7,11 @@ import (
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
-	"golang.org/x/net/html"
 )
 
-var (
-	reStashMarker = []byte("var Stash = ")
-	reMetaContent = regexp.MustCompile(`(?i)<meta[^>]+content="([^"]*)"[^>]+property="([^"]+)"|<meta[^>]+property="([^"]+)"[^>]+content="([^"]*)"`)
-	reJobID       = regexp.MustCompile(`(?i)^[a-z]\d+$`)
-)
+const stashMarker = "var Stash = "
+
+var reJobID = regexp.MustCompile(`(?i)^[a-z]\d+$`)
 
 // parseSearchHTML extracts Stash searchResponse and returns it with upstream
 // field names. Only the per-result "html" card markup is removed.
@@ -38,6 +35,8 @@ func parseSearchHTML(page string, pageNum int) (*SearchResponse, error) {
 	}
 
 	hitcount, _ := asInt(sr["hitcount"])
+	// total_pages is only set when present upstream; do not synthesize it under
+	// the same field name (callers must not confuse derived values with Stash).
 	totalPages, _ := asInt(sr["total_pages"])
 	rawResults, _ := sr["results"].([]any)
 	results := make([]map[string]any, 0, len(rawResults))
@@ -59,9 +58,6 @@ func parseSearchHTML(page string, pageNum int) (*SearchResponse, error) {
 	if pageNum < 1 {
 		pageNum = 1
 	}
-	if totalPages == 0 && hitcount > 0 {
-		totalPages = (hitcount + DefaultPageSize - 1) / DefaultPageSize
-	}
 	return &SearchResponse{
 		Hitcount:   hitcount,
 		TotalPages: totalPages,
@@ -76,11 +72,11 @@ func parseSearchHTML(page string, pageNum int) (*SearchResponse, error) {
 //	case-study/ai-job-search/.agents/skills/jobindex-search/cli/src/helpers.ts
 //	https://github.com/MadsLorentzen/ai-job-search/blob/dd6d7efea6c9d0c0d439871c5fc323e57b6a1f58/.agents/skills/jobindex-search/cli/src/helpers.ts#L86-L115
 func extractStash(page string) (map[string]any, error) {
-	idx := strings.Index(page, string(reStashMarker))
+	idx := strings.Index(page, stashMarker)
 	if idx < 0 {
 		return nil, fmt.Errorf("jobindex: Stash blob not found")
 	}
-	open := idx + len(reStashMarker)
+	open := idx + len(stashMarker)
 	end, err := endOfJSONObject(page, open)
 	if err != nil {
 		return nil, err
@@ -161,7 +157,7 @@ func parseDetailHTML(page, tid string) (*JobDetail, error) {
 	}
 
 	d := &JobDetail{Tid: tid}
-	og := metaProperties(page)
+	og := metaProperties(doc)
 
 	if t := og["og:title"]; t != "" {
 		d.Headline = t
@@ -215,6 +211,7 @@ func parseDetailHTML(page, tid string) (*JobDetail, error) {
 	}
 
 	var paras []string
+	// PaidJob (hosted ads) and jix_robotjob-inner (aggregated r* ads).
 	doc.Find("div.PaidJob p, div.jix_robotjob-inner p").Each(func(_ int, s *goquery.Selection) {
 		t := strings.TrimSpace(s.Text())
 		if t != "" {
@@ -251,19 +248,16 @@ func parseDetailHTML(page, tid string) (*JobDetail, error) {
 	return d, nil
 }
 
-func metaProperties(page string) map[string]string {
+// metaProperties reads Open Graph (and other) meta tags via goquery.
+func metaProperties(doc *goquery.Document) map[string]string {
 	out := make(map[string]string)
-	for _, m := range reMetaContent.FindAllStringSubmatch(page, -1) {
-		var prop, content string
-		if m[2] != "" {
-			content, prop = html.UnescapeString(m[1]), m[2]
-		} else {
-			prop, content = m[3], html.UnescapeString(m[4])
-		}
+	doc.Find("meta[property]").Each(func(_ int, s *goquery.Selection) {
+		prop, _ := s.Attr("property")
+		content, _ := s.Attr("content")
 		if prop != "" && content != "" {
 			out[prop] = content
 		}
-	}
+	})
 	return out
 }
 

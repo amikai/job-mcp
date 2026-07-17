@@ -13,6 +13,7 @@ func TestExtractStashAndSearch(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, resp.Results, 5)
 	assert.Equal(t, 70, resp.Hitcount)
+	assert.Greater(t, resp.TotalPages, 0) // pass-through from Stash, not synthesized
 	assert.Equal(t, "h1683131", resp.Results[0]["tid"])
 	_, hasHTML := resp.Results[0]["html"]
 	assert.False(t, hasHTML)

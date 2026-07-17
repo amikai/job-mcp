@@ -38,7 +38,8 @@ info:
       matching a browser Accept/Accept-Language reduces edge friction.
     - **Pagination:** `page` is 1-indexed; page size is fixed at ~20 results.
       `searchResponse.hitcount` is the total matching postings;
-      `total_pages` is also present in Stash.
+      `total_pages` is passed through when present in Stash and omitted when
+      absent (the client does not synthesize it).
     - **Job ID (`tid`):** string with a letter prefix, e.g. `h1683131` (hosted)
       or `r13911770` (robot/aggregated). Pass it as-is to `/vis-job/{tid}`.
     - **Recency:** `jobage` is max age in days (`1`, `7`, `14`, `30`, or omit /

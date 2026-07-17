@@ -2,7 +2,6 @@ package openingsmcp
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/amikai/openings-mcp/internal/provider/jobindex"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -64,20 +63,14 @@ type jobindexSearchOutput struct {
 }
 
 func jobindexMCPToHTTPRequest(in *jobindexSearchInput) (*jobindex.JobsRequest, error) {
-	req := &jobindex.JobsRequest{
+	// Sort is schema-enum'd; the provider client validates again in searchURL.
+	return &jobindex.JobsRequest{
 		Keyword:    in.Keyword,
 		Area:       in.Area,
 		Page:       in.Page,
 		JobAgeDays: in.JobAgeDays,
 		Sort:       in.Sort,
-	}
-	if req.Sort == "" {
-		req.Sort = jobindex.SortScore
-	}
-	if req.Sort != jobindex.SortScore && req.Sort != jobindex.SortDate {
-		return nil, fmt.Errorf("invalid sort %q", in.Sort)
-	}
-	return req, nil
+	}, nil
 }
 
 func jobindexHTTPToMCPResponse(resp *jobindex.SearchResponse) *jobindexSearchOutput {
