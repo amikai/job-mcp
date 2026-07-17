@@ -1,6 +1,8 @@
 package ultipro
 
 import (
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -82,4 +84,23 @@ func TestDetailNotFound(t *testing.T) {
 	c := mockClient(t)
 	_, err := c.Detail(t.Context(), MockNotFoundOpportunityID)
 	require.ErrorIs(t, err, ErrJobNotFound)
+}
+
+// TestDetailMalformedIsNotErrJobNotFound covers a response where the
+// marker is present but the embedded object is broken (e.g. an upstream
+// template regression) — this must not be reported as ErrJobNotFound, or
+// callers can't tell "bad job id" apart from "upstream/parser broke".
+func TestDetailMalformedIsNotErrJobNotFound(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/OpportunityDetail", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.Write([]byte(`new US.Opportunity.CandidateOpportunityDetail({"Id":"x","Title":`))
+	})
+	srv := httptest.NewServer(mux)
+	t.Cleanup(srv.Close)
+	c := NewClient(srv.URL, srv.Client())
+
+	_, err := c.Detail(t.Context(), "x")
+	require.Error(t, err)
+	assert.NotErrorIs(t, err, ErrJobNotFound)
 }

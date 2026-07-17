@@ -270,9 +270,13 @@ func TestUltiProSearchRemoteLocationUsesLocationType(t *testing.T) {
 	assert.Equal(t, []string{"2"}, (*lastFilters)[0].Values)
 }
 
-func TestUltiProSearchRemoteLocationMergesWithExplicitLocationType(t *testing.T) {
+func TestUltiProSearchRemoteLocationIntersectsExplicitLocationType(t *testing.T) {
 	a, _, lastFilters := newUltiProRecordingAdapter(t)
 
+	// location="remote" and location_type=["Remote","Hybrid"] are separate,
+	// ANDed criteria (a Remote location intersected with a Remote-or-Hybrid
+	// type), not something that ORs Hybrid into the result — narrow to
+	// Remote only rather than sending both codes.
 	_, err := a.Search(t.Context(), mockUltiProSlug, SearchParams{
 		Location: "remote",
 		Filters:  FilterSet{"location_type": {"Remote", "Hybrid"}},
@@ -280,7 +284,7 @@ func TestUltiProSearchRemoteLocationMergesWithExplicitLocationType(t *testing.T)
 	require.NoError(t, err)
 	require.Len(t, *lastFilters, 1)
 	assert.Equal(t, 37, (*lastFilters)[0].FieldName)
-	assert.ElementsMatch(t, []string{"2", "0"}, (*lastFilters)[0].Values)
+	assert.Equal(t, []string{"2"}, (*lastFilters)[0].Values)
 }
 
 func TestUltiProSearchRemoteLocationConflictShortCircuits(t *testing.T) {

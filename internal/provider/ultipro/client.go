@@ -249,9 +249,9 @@ func (c *Client) Detail(ctx context.Context, opportunityID string) (*Opportunity
 		return nil, fmt.Errorf("detail: HTTP %d", resp.StatusCode)
 	}
 
-	detail, ok := extractOpportunityDetail(body)
-	if !ok {
-		return nil, fmt.Errorf("detail: %w", ErrJobNotFound)
+	detail, err := extractOpportunityDetail(body)
+	if err != nil {
+		return nil, fmt.Errorf("detail: %w", err)
 	}
 	return detail, nil
 }

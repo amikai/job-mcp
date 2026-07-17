@@ -8,7 +8,6 @@ import (
 	"math"
 	"net/http"
 	"net/url"
-	"slices"
 	"strings"
 
 	"github.com/jaytaylor/html2text"
@@ -106,22 +105,24 @@ func (a *UltiProAdapter) Search(ctx context.Context, slug string, p SearchParams
 	// "remote" is handled entirely through the location_type filter (field
 	// 37), not the physical location catalog (field 4) — verified live, the
 	// two return different job sets (a literal "Remote" physical location
-	// vs. the JobLocationType=Remote flag). A location_type filter that
-	// already excludes remote makes the combination impossible, so
-	// short-circuit rather than round-trip a query guaranteed to be empty.
+	// vs. the JobLocationType=Remote flag). An explicit location_type filter
+	// is a separate, ANDed criterion, not something "remote" ORs into: a
+	// location_type filter that excludes remote makes the combination
+	// impossible (short-circuit rather than round-trip a query guaranteed to
+	// be empty), and one that includes remote alongside other values (e.g.
+	// ["Remote", "Hybrid"]) must narrow to remote only — verified live,
+	// leaving Hybrid in place turned 2 Remote jobs into 10 Remote-or-Hybrid
+	// jobs.
 	location := strings.TrimSpace(p.Location)
 	filterInput := p.Filters
 	if strings.EqualFold(location, "remote") {
-		lt := filterInput["location_type"]
-		switch {
-		case len(lt) > 0 && !ultiproContainsFold(lt, "remote"):
+		if lt := filterInput["location_type"]; len(lt) > 0 && !ultiproContainsFold(lt, "remote") {
 			return &SearchResult{Page: page}, nil
-		case !ultiproContainsFold(lt, "remote"):
-			merged := make(FilterSet, len(filterInput)+1)
-			maps.Copy(merged, filterInput)
-			merged["location_type"] = append(slices.Clone(lt), "remote")
-			filterInput = merged
 		}
+		merged := make(FilterSet, len(filterInput)+1)
+		maps.Copy(merged, filterInput)
+		merged["location_type"] = []string{"remote"}
+		filterInput = merged
 		location = ""
 	}
 

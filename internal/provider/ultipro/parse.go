@@ -1,32 +1,39 @@
 package ultipro
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"fmt"
+)
 
 // candidateOpportunityDetailMarker precedes the embedded posting object on
 // OpportunityDetail's HTML page: `new US.Opportunity.CandidateOpportunityDetail({...})`.
 const candidateOpportunityDetailMarker = "CandidateOpportunityDetail("
 
 // extractOpportunityDetail finds and decodes the JSON object literal
-// embedded after candidateOpportunityDetailMarker. ok is false when the
-// marker is absent (the not-found app-shell response — see
-// ErrJobNotFound) or the extracted text fails to parse as JSON.
-func extractOpportunityDetail(html []byte) (*OpportunityDetail, bool) {
+// embedded after candidateOpportunityDetailMarker. It returns
+// ErrJobNotFound only when the marker itself is absent — the genuine
+// not-found app-shell response (see openapi.yaml). Any other failure
+// (unbalanced braces, invalid JSON, missing required fields) means the
+// marker WAS present but the payload is malformed, so it's reported as a
+// distinct error: an upstream template change or a parser bug should
+// surface as a fetch failure, not get mistaken for a bad job id.
+func extractOpportunityDetail(html []byte) (*OpportunityDetail, error) {
 	start := indexAfter(html, candidateOpportunityDetailMarker)
 	if start < 0 {
-		return nil, false
+		return nil, ErrJobNotFound
 	}
 	end := balancedObjectEnd(html, start)
 	if end < 0 {
-		return nil, false
+		return nil, fmt.Errorf("unbalanced %s object", candidateOpportunityDetailMarker)
 	}
 	var detail OpportunityDetail
 	if err := json.Unmarshal(html[start:end], &detail); err != nil {
-		return nil, false
+		return nil, fmt.Errorf("decode %s object: %w", candidateOpportunityDetailMarker, err)
 	}
 	if detail.ID == "" || detail.Title == "" {
-		return nil, false
+		return nil, fmt.Errorf("%s object missing required id/title", candidateOpportunityDetailMarker)
 	}
-	return &detail, true
+	return &detail, nil
 }
 
 func indexAfter(html []byte, marker string) int {
