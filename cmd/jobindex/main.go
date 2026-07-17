@@ -147,7 +147,8 @@ func runSearch(ctx context.Context, f searchFlags) error {
 		tid, _ := r["tid"].(string)
 		headline, _ := r["headline"].(string)
 		area, _ := r["area"].(string)
-		firstdate, _ := r["firstdate"].(string)
+		postedAt, _ := r["posted_at"].(string)
+		expiredAt, _ := r["expired_at"].(string)
 		jobURL, _ := r["url"].(string)
 		companyName := ""
 		if c, ok := r["company"].(map[string]any); ok {
@@ -163,8 +164,11 @@ func runSearch(ctx context.Context, f searchFlags) error {
 		if area != "" {
 			fmt.Printf("   area: %s\n", area)
 		}
-		if firstdate != "" {
-			fmt.Printf("   firstdate: %s\n", firstdate)
+		if postedAt != "" {
+			fmt.Printf("   posted_at: %s\n", postedAt)
+		}
+		if expiredAt != "" {
+			fmt.Printf("   expired_at: %s\n", expiredAt)
 		}
 		if jobURL != "" {
 			fmt.Printf("   url: %s\n", jobURL)
@@ -206,8 +210,8 @@ func runDetail(ctx context.Context, f detailFlags) error {
 	if d.Area != "" {
 		fmt.Printf("area: %s\n", d.Area)
 	}
-	if d.Firstdate != "" {
-		fmt.Printf("firstdate: %s\n", d.Firstdate)
+	if d.PostedAt != "" {
+		fmt.Printf("posted_at: %s\n", d.PostedAt)
 	}
 	if d.ApplyDeadline != "" {
 		fmt.Printf("apply_deadline: %s\n", d.ApplyDeadline)

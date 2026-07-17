@@ -47,11 +47,10 @@ type JobsRequest struct {
 // request page. Field names mostly match Jobindex's embedded JSON (hitcount,
 // total_pages, results).
 //
-// Each Results element is an upstream result object with:
-//   - "html" card markup dropped
-//   - a single "url": where to open/apply for the job (prefer direct apply
-//     link, else Jobindex vis-job page); tracking /c?t=… and other URLs removed
-//   - company kept as name-only (no homeurl / profile links)
+// Each Results element is an upstream result object with light renames:
+//   - firstdate → posted_at, lastdate → expired_at
+//   - single "url" for open/apply (prefer direct apply, else Jobindex page)
+//   - company name-only; html and tracking URLs dropped
 type SearchResponse struct {
 	Hitcount   int              `json:"hitcount"`
 	TotalPages int              `json:"total_pages,omitempty"`
@@ -61,15 +60,16 @@ type SearchResponse struct {
 }
 
 // JobDetail is scraped from the /vis-job/{tid} HTML page. Field names mirror
-// Stash search keys where concepts match. No deadline synthesis (e.g. ASAP).
+// search output where concepts match. No deadline synthesis (e.g. ASAP).
 // URL is the single link for applying/opening the job (prefer "Se jobbet"
 // deep link, else the Jobindex vis-job page).
 type JobDetail struct {
-	Tid       string         `json:"tid"`
-	Headline  string         `json:"headline"`
-	Company   map[string]any `json:"company,omitempty"` // name only
-	Area      string         `json:"area,omitempty"`
-	Firstdate string         `json:"firstdate,omitempty"`
+	Tid      string         `json:"tid"`
+	Headline string         `json:"headline"`
+	Company  map[string]any `json:"company,omitempty"` // name only
+	Area     string         `json:"area,omitempty"`
+	// PostedAt is when the ad was published (Jobindex firstdate).
+	PostedAt string `json:"posted_at,omitempty"`
 	// URL is where to open/apply for this job.
 	URL string `json:"url,omitempty"`
 	// Description is plain text from og:description and/or the body appetizer.

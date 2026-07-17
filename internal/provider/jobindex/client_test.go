@@ -26,9 +26,13 @@ func TestJobsPreservesUpstreamKeys(t *testing.T) {
 	assert.Equal(t, "h1683131", first["tid"])
 	assert.Equal(t, "Senior Backend Engineer", first["headline"])
 	assert.Equal(t, "Aarhus N", first["area"])
-	assert.Equal(t, "2026-07-15", first["firstdate"])
+	assert.Equal(t, "2026-07-15", first["posted_at"])
 	assert.Equal(t, true, first["apply_deadline_asap"])
-	assert.Equal(t, "2026-08-12", first["lastdate"])
+	assert.Equal(t, "2026-08-12", first["expired_at"])
+	_, hasFirst := first["firstdate"]
+	_, hasLast := first["lastdate"]
+	assert.False(t, hasFirst)
+	assert.False(t, hasLast)
 	// Single apply/open URL only (no tracking /c?t=, no share_url twin).
 	assert.Equal(t, "https://www.jobindex.dk/vis-job/h1683131", first["url"])
 	_, hasShare := first["share_url"]
@@ -84,7 +88,7 @@ func TestJobDetail(t *testing.T) {
 	require.NotNil(t, got.Company)
 	assert.Equal(t, "Whiteaway Group", got.Company["name"])
 	assert.Equal(t, "Aarhus N", got.Area)
-	assert.Equal(t, "2026-07-15", got.Firstdate)
+	assert.Equal(t, "2026-07-15", got.PostedAt)
 	assert.Contains(t, got.Description, "Whiteaway Group")
 	// Prefer "Se jobbet" deep link as the single apply/open URL.
 	assert.Equal(t, "https://career.whiteawaygroup.com/ad/senior-backend-engineer/t0ta4w/en", got.URL)

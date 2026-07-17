@@ -60,14 +60,16 @@ func parseSearchHTML(r io.Reader, pageNum int) (*SearchResponse, error) {
 	}, nil
 }
 
-// slimJobResult keeps upstream keys but exposes only one job URL for applying
-// or opening the posting. Preference: apply_url, app_apply_url, share_url.
-// Tracking redirects (url=/c?t=…), logo links, and company profile URLs are dropped.
+// slimJobResult keeps upstream keys with light renames for LLM clarity:
+//   - firstdate → posted_at, lastdate → expired_at
+//   - single url for open/apply (prefer apply_url, app_apply_url, share_url)
+//
+// Drops: html, tracking url, share_url/apply_url twins, company profile links.
 func slimJobResult(m map[string]any) map[string]any {
 	out := make(map[string]any, len(m))
 	for k, v := range m {
 		switch k {
-		case "html", "url", "share_url", "apply_url", "app_apply_url":
+		case "html", "url", "share_url", "apply_url", "app_apply_url", "firstdate", "lastdate":
 			continue
 		case "company", "workplace_company":
 			if cm, ok := v.(map[string]any); ok {
@@ -78,6 +80,12 @@ func slimJobResult(m map[string]any) map[string]any {
 		default:
 			out[k] = v
 		}
+	}
+	if s, _ := m["firstdate"].(string); strings.TrimSpace(s) != "" {
+		out["posted_at"] = strings.TrimSpace(s)
+	}
+	if s, _ := m["lastdate"].(string); strings.TrimSpace(s) != "" {
+		out["expired_at"] = strings.TrimSpace(s)
 	}
 	if u := jobApplyURL(m); u != "" {
 		out["url"] = u
@@ -205,9 +213,9 @@ func parseDetailHTML(r io.Reader, tid string) (*JobDetail, error) {
 	d.Area = strings.TrimSpace(doc.Find("span.jix_robotjob--area").First().Text())
 	if t := doc.Find("time[datetime]").First(); t.Length() > 0 {
 		if dt, ok := t.Attr("datetime"); ok {
-			d.Firstdate = strings.TrimSpace(dt)
-			if len(d.Firstdate) >= 10 && d.Firstdate[4] == '-' {
-				d.Firstdate = d.Firstdate[:10]
+			d.PostedAt = strings.TrimSpace(dt)
+			if len(d.PostedAt) >= 10 && d.PostedAt[4] == '-' {
+				d.PostedAt = d.PostedAt[:10]
 			}
 		}
 	}
