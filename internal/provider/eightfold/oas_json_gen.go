@@ -757,8 +757,10 @@ func (s *PositionDetail) encodeFields(e *jx.Encoder) {
 		e.Str(s.JobDescription)
 	}
 	{
-		e.FieldStart("publicUrl")
-		e.Str(s.PublicUrl)
+		if s.PublicUrl.Set {
+			e.FieldStart("publicUrl")
+			s.PublicUrl.Encode(e)
+		}
 	}
 }
 
@@ -884,11 +886,9 @@ func (s *PositionDetail) Decode(d *jx.Decoder) error {
 				return errors.Wrap(err, "decode field \"jobDescription\"")
 			}
 		case "publicUrl":
-			requiredBitSet[1] |= 1 << 0
 			if err := func() error {
-				v, err := d.Str()
-				s.PublicUrl = string(v)
-				if err != nil {
+				s.PublicUrl.Reset()
+				if err := s.PublicUrl.Decode(d); err != nil {
 					return err
 				}
 				return nil
@@ -906,7 +906,7 @@ func (s *PositionDetail) Decode(d *jx.Decoder) error {
 	var failures []validate.FieldError
 	for i, mask := range [2]uint8{
 		0b11001111,
-		0b00000001,
+		0b00000000,
 	} {
 		if result := (requiredBitSet[i] & mask) ^ mask; result != 0 {
 			// Mask only required fields and check equality to mask using XOR.

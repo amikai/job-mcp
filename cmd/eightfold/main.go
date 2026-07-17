@@ -420,7 +420,7 @@ func runDetail(ctx context.Context, f detailFlags) error {
 
 	switch d := res.(type) {
 	case *eightfold.PositionDetailsResponse:
-		return printDetail(d.Data, f.format)
+		return printDetail(d.Data, baseURL(c), f.format)
 	case *eightfold.PositionNotFoundResponse:
 		return fmt.Errorf("position %q not found for company %q", f.positionID, c.Name)
 	default:
@@ -430,7 +430,9 @@ func runDetail(ctx context.Context, f detailFlags) error {
 
 // printDetail renders one full posting. JSON mode encodes the generated
 // PositionDetail as-is — detail is for seeing the whole record.
-func printDetail(d eightfold.PositionDetail, format string) error {
+// tenantURL is the tenant origin used to absolute-ize site-relative
+// positionUrl when publicUrl is null (same composition as search output).
+func printDetail(d eightfold.PositionDetail, tenantURL, format string) error {
 	if format == "json" {
 		enc := json.NewEncoder(os.Stdout)
 		enc.SetIndent("", "  ")
@@ -445,8 +447,8 @@ func printDetail(d eightfold.PositionDetail, format string) error {
 		fmt.Printf("Department: %s\n", d.Department.Value)
 	}
 	fmt.Printf("Posted: %s\n", time.Unix(int64(d.PostedTs), 0).UTC().Format("2006-01-02"))
-	if d.PublicUrl != "" {
-		fmt.Printf("URL: %s\n", d.PublicUrl)
+	if u := detailPublicURL(d, tenantURL); u != "" {
+		fmt.Printf("URL: %s\n", u)
 	}
 
 	if d.JobDescription != "" {
@@ -457,4 +459,16 @@ func printDetail(d eightfold.PositionDetail, format string) error {
 		fmt.Printf("\nDescription:\n%s\n", rendered)
 	}
 	return nil
+}
+
+// detailPublicURL prefers absolute publicUrl when present; otherwise
+// composes tenant origin + site-relative positionUrl.
+func detailPublicURL(d eightfold.PositionDetail, tenantURL string) string {
+	if u, ok := d.PublicUrl.Get(); ok && u != "" {
+		return u
+	}
+	if d.PositionUrl == "" {
+		return ""
+	}
+	return strings.TrimRight(tenantURL, "/") + d.PositionUrl
 }

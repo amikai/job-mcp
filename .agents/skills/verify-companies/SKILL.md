@@ -34,6 +34,9 @@ go run ./cmd/verify-companies [--provider ashby,greenhouse,lever,workday] \
 - Keep the default 300s `--timeout`: the largest full-dump boards
   (e.g. Palantir, Veeva on lever) take minutes to download, and 60s
   produced false ERRORs.
+- Recruitee is auto-capped at 2 concurrent workers inside
+  `verify-companies` (even when `--concurrency` is higher): its public
+  API rate-limits hard (HTTP 429) around the default pool size.
 - Exits non-zero on any ERROR or DETAIL_ERROR, so it doubles as a CI
   check.
 

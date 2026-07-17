@@ -303,32 +303,68 @@ func looksLikeSearchPage(doc *goquery.Document) bool {
 	return doc.Find(".iCIMS_JobsTable, .iCIMS_Paging").Length() > 0
 }
 
-// parseJobDetailHTML reads the schema.org JobPosting JSON-LD block.
-// Returns ok=false when no JobPosting is present (expired IDs, listing
-// fallback, or unrecognized template).
+// parseJobDetailHTML reads the schema.org JobPosting JSON-LD block when
+// present, otherwise falls back to the iCIMS portal HTML chrome
+// (h1.iCIMS_Header + .iCIMS_Expandable_Text). Some multi-brand portals
+// (Oak View Group, Delta World Tire) serve live postings without JSON-LD
+// on the iframe detail path; treating those as missing jobs was a false
+// negative. Returns ok=false for expired IDs, listing fallbacks, and
+// unrecognized templates.
 func parseJobDetailHTML(doc *goquery.Document, id string) (*JobDetailResponse, bool) {
-	posting := findJobPosting(doc)
-	if posting == nil {
-		return nil, false
+	if posting := findJobPosting(doc); posting != nil {
+		title := strings.TrimSpace(asString(posting["title"]))
+		if title == "" {
+			return nil, false
+		}
+		return &JobDetailResponse{
+			ID:              id,
+			Title:           title,
+			DescriptionHTML: strings.TrimSpace(asString(posting["description"])),
+			PostedAtRaw:     strings.TrimSpace(asString(posting["datePosted"])),
+			EmploymentType:  strings.TrimSpace(asString(posting["employmentType"])),
+			Employer:        hiringOrgName(posting["hiringOrganization"]),
+			Location:        locationFromJSONLD(posting["jobLocation"]),
+			URL:             strings.TrimSpace(asString(posting["url"])),
+			Category:        strings.TrimSpace(asString(posting["occupationalCategory"])),
+		}, true
 	}
+	return parseJobDetailFromPortalHTML(doc, id)
+}
 
-	title := strings.TrimSpace(asString(posting["title"]))
+// parseJobDetailFromPortalHTML scrapes the iframe detail chrome used when
+// a tenant does not emit JobPosting JSON-LD. Requires a non-empty
+// h1.iCIMS_Header so listing/search shells that also carry iCIMS_JobsTable
+// are not mistaken for postings (see looksLikeSearchPage).
+func parseJobDetailFromPortalHTML(doc *goquery.Document, id string) (*JobDetailResponse, bool) {
+	title := strings.TrimSpace(doc.Find("h1.iCIMS_Header").First().Text())
 	if title == "" {
 		return nil, false
 	}
 
-	detail := &JobDetailResponse{
+	var descParts []string
+	doc.Find(".iCIMS_Expandable_Text").Each(func(_ int, s *goquery.Selection) {
+		html, err := s.Html()
+		if err != nil {
+			return
+		}
+		if t := strings.TrimSpace(html); t != "" {
+			descParts = append(descParts, t)
+		}
+	})
+	if len(descParts) == 0 {
+		return nil, false
+	}
+
+	location := strings.TrimSpace(doc.Find(".header.left span").Last().Text())
+	posted := strings.TrimSpace(doc.Find(".header.right span[title]").First().AttrOr("title", ""))
+
+	return &JobDetailResponse{
 		ID:              id,
 		Title:           title,
-		DescriptionHTML: strings.TrimSpace(asString(posting["description"])),
-		PostedAtRaw:     strings.TrimSpace(asString(posting["datePosted"])),
-		EmploymentType:  strings.TrimSpace(asString(posting["employmentType"])),
-		Employer:        hiringOrgName(posting["hiringOrganization"]),
-		Location:        locationFromJSONLD(posting["jobLocation"]),
-		URL:             strings.TrimSpace(asString(posting["url"])),
-		Category:        strings.TrimSpace(asString(posting["occupationalCategory"])),
-	}
-	return detail, true
+		DescriptionHTML: strings.Join(descParts, "\n"),
+		Location:        location,
+		PostedAtRaw:     posted,
+	}, true
 }
 
 func findJobPosting(doc *goquery.Document) map[string]any {

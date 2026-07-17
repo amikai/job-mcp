@@ -95,12 +95,15 @@ func parseResultsTotal(doc *goquery.Document) int {
 // and posted date are read best-effort and left empty when the tenant's
 // template omits them.
 //
-// Templates vary per tenant: the title element is usually a <span> but some
-// tenants (e.g. jobs.telefonica.com) render an <h1>, and those same tenants
-// put the jobdescription class on the itemprop="description" element itself
-// rather than on a nested span, so both selectors match on itemprop alone.
+// Templates vary per tenant: the title element is usually a <span
+// itemprop="title"> but some tenants (e.g. jobs.telefonica.com) render an
+// <h1 itemprop="title">, and multi-brand tenants (Endress+Hauser,
+// Knorr-Bremse, MediaMarktSaturn) omit itemprop="title" entirely while
+// still setting og:title / <title>. Those same tenants put the
+// jobdescription class on the itemprop="description" element itself rather
+// than on a nested span, so both selectors match on itemprop alone.
 func parseJobDetailHTML(doc *goquery.Document, id string) (*JobDetailResponse, bool) {
-	title := strings.TrimSpace(doc.Find(`[itemprop="title"]`).First().Text())
+	title := detailTitle(doc)
 	if title == "" {
 		return nil, false
 	}
@@ -110,6 +113,9 @@ func parseJobDetailHTML(doc *goquery.Document, id string) (*JobDetailResponse, b
 		description = nested
 	}
 	descriptionHTML, _ := description.Html()
+	if strings.TrimSpace(descriptionHTML) == "" {
+		return nil, false
+	}
 
 	location, _ := doc.Find(`meta[itemprop="streetAddress"]`).First().Attr("content")
 	if strings.TrimSpace(location) == "" {
@@ -126,6 +132,41 @@ func parseJobDetailHTML(doc *goquery.Document, id string) (*JobDetailResponse, b
 		PostedAtRaw:     strings.TrimSpace(postedAt),
 		DescriptionHTML: strings.TrimSpace(descriptionHTML),
 	}, true
+}
+
+// detailTitle picks the best available title. Preference order mirrors how
+// reliably each source is present across the observed tenant templates.
+func detailTitle(doc *goquery.Document) string {
+	if t := strings.TrimSpace(doc.Find(`[itemprop="title"]`).First().Text()); t != "" {
+		return t
+	}
+	if t, ok := doc.Find(`meta[property="og:title"]`).First().Attr("content"); ok {
+		if t = strings.TrimSpace(t); t != "" {
+			return t
+		}
+	}
+	if t, ok := doc.Find(`meta[name="twitter:title"]`).First().Attr("content"); ok {
+		if t = strings.TrimSpace(t); t != "" {
+			return t
+		}
+	}
+	return titleFromDocumentTitle(strings.TrimSpace(doc.Find("title").First().Text()))
+}
+
+// titleFromDocumentTitle strips SuccessFactors' "… Job Details | Company"
+// (and localized "Détails du poste" / "Jobdetails") suffix so the bare
+// posting title remains. Returns "" when the document title is empty or is
+// only a site chrome string (no " | " separator with a job-details marker).
+var jobDetailsTitleSuffix = regexp.MustCompile(`(?i)\s+(?:job\s+details|détails\s+du\s+poste|jobdetails|stellenangebotsdetails)\s*\|.*$`)
+
+func titleFromDocumentTitle(raw string) string {
+	if raw == "" {
+		return ""
+	}
+	if stripped := strings.TrimSpace(jobDetailsTitleSuffix.ReplaceAllString(raw, "")); stripped != "" && stripped != raw {
+		return stripped
+	}
+	return ""
 }
 
 // joinAddressMetas builds a location from the addressLocality/addressRegion/
