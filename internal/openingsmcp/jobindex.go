@@ -123,10 +123,8 @@ func jobindexHTTPToMCPDetail(d *jobindex.JobDetail) *jobindexDetailOutput {
 // RegisterJobindex registers Jobindex search and detail tools.
 func RegisterJobindex(s *mcp.Server, c *jobindex.Client) {
 	mcp.AddTool(s, &mcp.Tool{
-		Name: "jobindex_search_jobs",
-		Description: "Search Jobindex.dk. Returns the upstream Stash searchResponse shape " +
-			"(hitcount, total_pages, results with tid/headline/company/…). " +
-			"Only per-result card html markup is stripped. ~20 results per page.",
+		Name:        "jobindex_search_jobs",
+		Description: "Search jobs on Jobindex.dk (Denmark's largest job board).",
 		Annotations: &mcp.ToolAnnotations{Title: "Search Jobindex jobs", ReadOnlyHint: true},
 		InputSchema: jobindexSearchInputSchema,
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, in *jobindexSearchInput) (*mcp.CallToolResult, *jobindexSearchOutput, error) {
@@ -142,10 +140,8 @@ func RegisterJobindex(s *mcp.Server, c *jobindex.Client) {
 	})
 
 	mcp.AddTool(s, &mcp.Tool{
-		Name: "jobindex_get_job_detail",
-		Description: "Fetch a Jobindex /vis-job/{tid} page and return scraped fields using " +
-			"upstream-aligned names (tid, headline, company, area, share_url, apply_url). " +
-			"There is no JSON detail API; apply_deadline is only set when the page labels it.",
+		Name:        "jobindex_get_job_detail",
+		Description: "Get details for a Jobindex job posting (tid from jobindex_search_jobs results).",
 		Annotations: &mcp.ToolAnnotations{Title: "Get Jobindex job details", ReadOnlyHint: true},
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, in *jobindexDetailInput) (*mcp.CallToolResult, *jobindexDetailOutput, error) {
 		res, err := c.JobDetail(ctx, in.Tid)
