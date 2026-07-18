@@ -58,7 +58,7 @@ type mynaviJobSummary struct {
 	Title            string   `json:"title"`
 	Company          string   `json:"company,omitempty"`
 	CatchCopy        string   `json:"catch_copy,omitempty" jsonschema:"The employer's own tagline shown beside its name."`
-	EmploymentStatus string   `json:"employment_status,omitempty"` // e.g. 正社員 (permanent), 契約社員 (contract)
+	EmploymentStatus string   `json:"employment_status,omitempty" jsonschema:"One of the site's employment types, e.g. 正社員 (permanent), 契約社員 (contract), 業務委託 (freelance contract), 一般派遣 (temp staffing)."`
 	Conditions       []string `json:"conditions,omitempty" jsonschema:"Condition tags, e.g. 転勤なし (no relocation), リモートワーク可 (remote OK), 未経験OK (no experience needed)."`
 	Description      string   `json:"description,omitempty" jsonschema:"Job-description (仕事内容) summary, truncated by the site; fetch the detail for the full text."`
 	Target           string   `json:"target,omitempty" jsonschema:"Target-applicant (対象となる方) summary, truncated by the site."`

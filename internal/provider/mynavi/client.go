@@ -48,11 +48,14 @@ type JobsRequest struct {
 }
 
 type Job struct {
-	ID               string // e.g. "348855-1-29-1"; pass to Client.JobDetail
-	Title            string
-	Company          string
-	CatchCopy        string   // employer's tagline shown next to the company name
-	EmploymentStatus string   // e.g. 正社員
+	ID        string // e.g. "348855-1-29-1"; pass to Client.JobDetail
+	Title     string
+	Company   string
+	CatchCopy string // employer's tagline shown next to the company name
+	// EmploymentStatus is one of the site's employment-type (雇用形態)
+	// labels: 正社員, 契約社員, 業務委託, 人材紹介, パート・アルバイト,
+	// 一般派遣, 紹介予定派遣, or FCオーナー.
+	EmploymentStatus string
 	Conditions       []string // condition tags, e.g. 転勤なし, リモートワーク可
 	Description      string   // job-description (仕事内容) summary, server-truncated
 	Target           string   // target-applicant (対象となる方) summary, server-truncated
