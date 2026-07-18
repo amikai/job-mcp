@@ -1,0 +1,312 @@
+openapi: 3.1.0
+info:
+  title: Apple Jobs API
+  version: 1.0.0
+  description: |
+    Minimal client contract for the undocumented public JSON API used by
+    https://jobs.apple.com. It was derived from production traffic and the
+    public site bundle, then verified against live responses on 2026-07-19.
+
+    Search is session-bound: call `initSession`, retain its `jssid` cookie,
+    and send the returned `x-apple-csrf-token` header to `postSearchJobs`.
+    A token without its matching cookie is rejected. Job detail is a
+    standalone request and needs no search session.
+
+    Search quirks confirmed live:
+
+    - pages are 1-based and contain at most 20 results;
+    - `sort: relevance` is required for `query` to affect ranking; an empty
+      sort can behave like an unfiltered newest search;
+    - country filters are Apple IDs such as `postLocation-TWN`, not the rich
+      location objects embedded in the server-rendered page;
+    - `totalRecords` can describe the broad ranked result set rather than an
+      exact keyword match count, so callers must inspect returned summaries.
+servers:
+  - url: https://jobs.apple.com
+    description: Apple Jobs
+
+paths:
+  /api/v1/CSRFToken:
+    get:
+      operationId: initSession
+      summary: Initialize an anonymous Apple Jobs search session
+      responses:
+        "200":
+          description: Search session initialized; the response body is empty.
+          headers:
+            x-apple-csrf-token:
+              description: Token required by the search POST for this cookie session.
+              schema:
+                type: string
+                pattern: '^[0-9a-f]{64}$'
+
+  /api/v1/search:
+    post:
+      operationId: postSearchJobs
+      summary: Search Apple job postings
+      parameters:
+        - name: x-apple-csrf-token
+          in: header
+          required: true
+          description: Token returned by initSession for the retained cookie session.
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SearchRequest"
+      responses:
+        "200":
+          description: One page of Apple job summaries.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SearchResponse"
+        "436":
+          description: Missing, stale, or session-mismatched CSRF token.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/jobDetails/{jobId}:
+    get:
+      operationId: getJobDetail
+      summary: Get one Apple job posting
+      description: |
+        `jobId` may be the numeric `positionId` returned by search. The public
+        page sometimes appends a location identifier, but the stable numeric
+        position ID resolves the complete multi-location record.
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^[0-9]+$'
+        - name: locale
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [en-us]
+      responses:
+        "200":
+          description: Full Apple job detail.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JobDetailResponse"
+        "404":
+          description: No active job exists for this position ID.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+components:
+  schemas:
+    SearchRequest:
+      type: object
+      additionalProperties: false
+      required: [query, filters, page, locale, sort, format]
+      properties:
+        query:
+          type: string
+        filters:
+          $ref: "#/components/schemas/SearchFilters"
+        page:
+          type: integer
+          minimum: 1
+        locale:
+          type: string
+          enum: [en-us]
+        sort:
+          type: string
+          enum: [relevance, newest]
+        format:
+          $ref: "#/components/schemas/DateFormat"
+
+    SearchFilters:
+      type: object
+      additionalProperties: false
+      required: [locations]
+      properties:
+        locations:
+          type: array
+          minItems: 1
+          maxItems: 1
+          items:
+            type: string
+            pattern: '^postLocation-[A-Z]{3}$'
+
+    DateFormat:
+      type: object
+      additionalProperties: false
+      required: [longDate, mediumDate]
+      properties:
+        longDate:
+          type: string
+          enum: ["MMMM D, YYYY"]
+        mediumDate:
+          type: string
+          enum: ["MMM D, YYYY"]
+
+    SearchResponse:
+      type: object
+      required: [res]
+      properties:
+        res:
+          $ref: "#/components/schemas/SearchResult"
+
+    SearchResult:
+      type: object
+      required: [searchResults, totalRecords]
+      properties:
+        searchResults:
+          type: array
+          items:
+            $ref: "#/components/schemas/JobSummary"
+        totalRecords:
+          type: integer
+          minimum: 0
+
+    JobSummary:
+      type: object
+      required:
+        - id
+        - jobSummary
+        - locations
+        - positionId
+        - postingDate
+        - postingTitle
+        - postDateInGMT
+        - transformedPostingTitle
+        - reqId
+        - standardWeeklyHours
+        - team
+        - homeOffice
+      properties:
+        id:
+          type: string
+        jobSummary:
+          type: string
+        locations:
+          type: array
+          items:
+            $ref: "#/components/schemas/SearchLocation"
+        positionId:
+          type: string
+        postingDate:
+          type: string
+        postingTitle:
+          type: string
+        postDateInGMT:
+          type: string
+          format: date-time
+        transformedPostingTitle:
+          type: string
+        reqId:
+          type: string
+        standardWeeklyHours:
+          type: number
+        team:
+          $ref: "#/components/schemas/Team"
+        homeOffice:
+          type: boolean
+
+    SearchLocation:
+      type: object
+      required: [name, countryName]
+      properties:
+        name:
+          type: string
+        countryName:
+          type: string
+
+    Team:
+      type: object
+      required: [teamName]
+      properties:
+        teamName:
+          type: string
+
+    JobDetailResponse:
+      type: object
+      required: [res]
+      properties:
+        res:
+          $ref: "#/components/schemas/JobDetail"
+
+    JobDetail:
+      type: object
+      required:
+        - positionId
+        - jobNumber
+        - postingTitle
+        - transformedPostingTitle
+        - teamNames
+        - locations
+        - homeOffice
+        - postingDate
+      properties:
+        positionId:
+          type: string
+        jobNumber:
+          type: string
+        postingTitle:
+          type: string
+        transformedPostingTitle:
+          type: string
+        jobSummary:
+          type: [string, "null"]
+        description:
+          type: [string, "null"]
+        responsibilities:
+          type: [string, "null"]
+        minimumQualifications:
+          type: [string, "null"]
+        preferredQualifications:
+          type: [string, "null"]
+        teamNames:
+          type: array
+          items:
+            type: string
+        locations:
+          type: array
+          items:
+            $ref: "#/components/schemas/DetailLocation"
+        employmentType:
+          type: [string, "null"]
+        homeOffice:
+          type: boolean
+        postingDate:
+          type: string
+
+    DetailLocation:
+      type: object
+      required: [id, name, countryName]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        city:
+          type: string
+        stateProvince:
+          type: string
+        metro:
+          type: string
+        countryName:
+          type: string
+        zipCode:
+          type: string
+
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
