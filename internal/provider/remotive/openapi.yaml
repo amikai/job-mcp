@@ -1,0 +1,231 @@
+openapi: 3.1.0
+
+info:
+  title: Remotive Remote Jobs API
+  version: "1"
+  contact:
+    name: Remotive
+    url: https://github.com/remotive-com/remote-jobs-api
+  description: >
+    Remotive's public remote-jobs API, hand-written from the official
+    endpoint documentation at
+    https://github.com/remotive-com/remote-jobs-api and verified against
+    live captured responses (2026-07-19, see testdata/*.hurl). The
+    official README documents the endpoints in prose only; no official
+    OpenAPI document exists.
+
+    ## Deviations from the official README
+
+    * The documented query parameters (`category`, `company_name`,
+      `search`, `limit`) are all no-ops live: responses are served from a
+      Cloudflare cache whose key ignores the query string
+      (`cf-cache-status: HIT` with a multi-hour `age`, and byte-identical
+      bodies for `?limit=5`, `?search=devops&limit=3`, an unknown
+      `company_name`, and a nonexistent `category`). They are therefore
+      not modeled here — this client treats the endpoint as a full dump
+      and filters client-side.
+
+    * Because the query string is ignored, there is no error shape to
+      model either: unknown companies and bad categories return the same
+      HTTP 200 dump.
+
+    * The envelope carries `00-warning`, `total-job-count`, and per-job
+      `tags` — none documented in the README. `total-job-count` equals
+      `job-count` in every observed response; the free tier exposes only
+      a small dump (42 jobs at capture time), delayed 24h upstream.
+
+    * `publication_date` carries no timezone offset
+      ("2026-07-16T13:28:02"), so it is modeled as a plain string —
+      `format: date-time` would make ogen's RFC3339 decoder reject every
+      response.
+
+    * `company_logo_url` duplicates `company_logo` but appears on only
+      some jobs (21 of 42 observed) — optional.
+
+    * `/remote-jobs/categories` reuses the jobs envelope: the category
+      list arrives under the `jobs` key and `job-count` holds the
+      category count.
+
+    ## Usage limits
+
+    Upstream blocks clients exceeding 2 requests/minute and asks for at
+    most ~4 fetches/day; data changes at most daily (jobs are delayed by
+    24 hours). Cache accordingly; never poll.
+
+servers:
+  - url: https://remotive.com/api
+
+tags:
+  - name: jobs
+    description: Remote jobs API
+
+paths:
+  /remote-jobs:
+    get:
+      summary: Full dump of currently listed remote jobs
+      description: >
+        Returns every job the free API currently exposes, with full HTML
+        descriptions inline. The documented query parameters are no-ops
+        (see the API description) — search, category, company, and limit
+        narrowing all happen client-side.
+      operationId: listJobs
+      tags: [jobs]
+      responses:
+        "200":
+          description: OK — returned even for unknown filter values.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JobList"
+
+  /remote-jobs/categories:
+    get:
+      summary: List job categories
+      description: >
+        Returns the category list wrapped in the same envelope as the
+        jobs endpoint — categories arrive under the `jobs` key and
+        `job-count` holds the category count.
+      operationId: listCategories
+      tags: [jobs]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CategoryList"
+
+components:
+  schemas:
+    JobList:
+      type: object
+      required: [job-count, jobs]
+      x-ogen-properties:
+        0-legal-notice: {name: LegalNotice}
+        00-warning: {name: Warning}
+        job-count: {name: JobCount}
+        total-job-count: {name: TotalJobCount}
+      properties:
+        0-legal-notice:
+          type: string
+          description: Remotive's API terms; always present.
+        00-warning:
+          type: string
+          description: Legacy-domain migration notice; always present.
+        job-count:
+          type: integer
+          description: Number of entries in `jobs`.
+        total-job-count:
+          type: integer
+          description: >
+            Equals `job-count` in every observed response (the free tier
+            returns its whole dump at once).
+        jobs:
+          type: array
+          items:
+            $ref: "#/components/schemas/Job"
+
+    Job:
+      type: object
+      required:
+        - id
+        - url
+        - title
+        - company_name
+        - category
+        - job_type
+        - publication_date
+        - candidate_required_location
+        - salary
+        - tags
+        - description
+      properties:
+        id:
+          type: integer
+          description: Unique Remotive job id.
+        url:
+          type: string
+          description: Public job page on remotive.com (link back to this).
+        title:
+          type: string
+        company_name:
+          type: string
+        company_logo:
+          type: string
+          description: Company logo URL (https://remotive.com/job/{id}/logo).
+        company_logo_url:
+          type: string
+          description: >
+            Duplicate of `company_logo`; present on only some jobs (21 of
+            42 observed).
+        category:
+          type: string
+          description: >
+            Category display name (e.g. "Software Development") — the
+            `name`, not the `slug`, from /remote-jobs/categories.
+        tags:
+          type: array
+          items:
+            type: string
+          description: Free-form skill/topic tags; may be empty.
+        job_type:
+          type: string
+          description: >
+            Observed values: full_time, contract, part_time, freelance;
+            the README also documents internship. Kept an open string.
+        publication_date:
+          type: string
+          description: >
+            Local timestamp without timezone offset, e.g.
+            "2026-07-16T13:28:02" — not RFC3339, hence not
+            `format: date-time`.
+        candidate_required_location:
+          type: string
+          description: >
+            Free-form location constraint, e.g. "Worldwide", "USA",
+            "Americas, Europe, Israel".
+        salary:
+          type: string
+          description: >
+            Free-form salary text, e.g. "$90 - $150 /hour" or "$36k";
+            empty string when the posting lists none.
+        description:
+          type: string
+          description: Full job description, HTML.
+
+    CategoryList:
+      type: object
+      required: [jobs]
+      x-ogen-properties:
+        0-legal-notice: {name: LegalNotice}
+        00-warning: {name: Warning}
+        job-count: {name: JobCount}
+        total-job-count: {name: TotalJobCount}
+      properties:
+        0-legal-notice:
+          type: string
+        00-warning:
+          type: string
+        job-count:
+          type: integer
+          description: Number of categories (envelope reuse quirk).
+        total-job-count:
+          type: integer
+        jobs:
+          type: array
+          description: The categories themselves (envelope reuse quirk).
+          items:
+            $ref: "#/components/schemas/Category"
+
+    Category:
+      type: object
+      required: [id, name, slug]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+          description: Display name, the value jobs carry in `category`.
+        slug:
+          type: string
+          description: URL slug (e.g. "software-development").

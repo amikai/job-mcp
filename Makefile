@@ -21,6 +21,7 @@ OPENAPI_SPECS := \
 	internal/provider/recruitee/openapi.yaml \
 	internal/provider/remotefirstjobs/openapi.yaml \
 	internal/provider/remoteok/openapi.yaml \
+	internal/provider/remotive/openapi.yaml \
 	internal/provider/rippling/openapi.yaml \
 	internal/provider/smartrecruiters/openapi.yaml \
 	internal/provider/successfactors/openapi.yaml \
