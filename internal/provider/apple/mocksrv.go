@@ -5,17 +5,29 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 )
 
 const (
 	mockCSRFToken        = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 	mockSearchKeyword    = "software engineer"
-	mockFilteredKeyword  = "camera"
+	mockFilteredKeyword  = "engineer"
 	mockSearchLocation   = "postLocation-TWN"
 	mockFilteredLocation = "postLocation-USA"
 	MockJobID            = "200624996"
 	MockNotFoundJobID    = "999999999"
 )
+
+// mockFilteredFilters is the exact filter set captured in
+// testdata/jobs_filtered_req.hurl; the mock search endpoint only serves the
+// filtered fixture for a byte-identical filter payload.
+var mockFilteredFilters = mockSearchFilters{
+	Locations: []string{mockFilteredLocation},
+	Keywords:  []string{"camera"},
+	Teams:     []mockTeamFilter{{Team: "teamsAndSubTeams-HRDWR", SubTeam: "subTeam-CAM"}},
+	Products:  []string{"productsAndServices-IPHN"},
+	Languages: []string{"language-en_US"},
+}
 
 //go:embed testdata/jobs_rsp.json
 var mockJobsResponse []byte
@@ -74,8 +86,18 @@ type mockDateFormat struct {
 	MediumDate string `json:"mediumDate"`
 }
 
+type mockTeamFilter struct {
+	Team    string `json:"team"`
+	SubTeam string `json:"subTeam"`
+}
+
 type mockSearchFilters struct {
-	Locations []string `json:"locations"`
+	Locations  []string         `json:"locations"`
+	HomeOffice *bool            `json:"homeOffice"`
+	Keywords   []string         `json:"keywords"`
+	Teams      []mockTeamFilter `json:"teams"`
+	Products   []string         `json:"products"`
+	Languages  []string         `json:"languages"`
 }
 
 type mockSearchRequest struct {
@@ -96,9 +118,9 @@ func searchFixture(r *http.Request) ([]byte, bool) {
 		return nil, false
 	}
 	switch {
-	case request.matches(mockSearchKeyword, mockSearchLocation, "relevance", 1):
+	case request.matches(mockSearchKeyword, "relevance", 1, mockSearchFilters{Locations: []string{mockSearchLocation}}):
 		return mockJobsResponse, true
-	case request.matches(mockFilteredKeyword, mockFilteredLocation, "newest", 2):
+	case request.matches(mockFilteredKeyword, "newest", 2, mockFilteredFilters):
 		return mockFilteredJobsResponse, true
 	default:
 		return nil, false
@@ -112,11 +134,11 @@ func (r mockSearchRequest) hasValidEnvelope() bool {
 		len(r.Filters.Locations) == 1
 }
 
-func (r mockSearchRequest) matches(query, location, sort string, page int) bool {
+func (r mockSearchRequest) matches(query, sort string, page int, filters mockSearchFilters) bool {
 	return r.Query == query &&
-		r.Filters.Locations[0] == location &&
 		r.Sort == sort &&
-		r.Page == page
+		r.Page == page &&
+		reflect.DeepEqual(r.Filters, filters)
 }
 
 func serveMockJSON(w http.ResponseWriter, status int, data []byte) {

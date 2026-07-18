@@ -34,14 +34,19 @@ func main() {
 
 	searchFS := ff.NewFlagSet("search").SetParent(rootFlags)
 	var (
-		keyword = searchFS.StringLong("keyword", "", "keyword query (required)")
-		country = searchFS.StringLong("country", "", "ISO 3166-1 alpha-3 country code, e.g. TWN or USA (required)")
-		sort    = searchFS.StringEnumLong("sort", "result order", "relevance", "newest")
-		page    = searchFS.IntLong("page", 1, "1-based page of 20 results")
+		keyword        = searchFS.StringLong("keyword", "", "keyword query (required)")
+		country        = searchFS.StringLong("country", "", "ISO 3166-1 alpha-3 country code, e.g. TWN or USA (required)")
+		sort           = searchFS.StringEnumLong("sort", "result order", "relevance", "newest", "teamAsc", "teamDesc", "locationAsc", "locationDesc")
+		page           = searchFS.IntLong("page", 1, "1-based page of 20 results")
+		homeOffice     = searchFS.BoolLong("home-office", "only remote-eligible postings")
+		filterKeywords = searchFS.StringListLong("filter-keyword", "extra keyword filter chip (repeatable)")
+		teams          = searchFS.StringListLong("team", "team filter as TEAM/SUBTEAM codes, e.g. HRDWR/CAM (repeatable)")
+		products       = searchFS.StringListLong("product", "product code, e.g. IPHN (repeatable)")
+		languages      = searchFS.StringListLong("language", "language code, e.g. en_US (repeatable)")
 	)
 	searchCmd := &ff.Command{
 		Name:      "search",
-		Usage:     "apple search --keyword TEXT --country ISO3 [--sort relevance|newest] [--page N]",
+		Usage:     "apple search --keyword TEXT --country ISO3 [--sort ORDER] [--page N] [--home-office] [--filter-keyword TEXT] [--team TEAM/SUB] [--product CODE] [--language CODE]",
 		ShortHelp: "search jobs.apple.com listings",
 		Flags:     searchFS,
 		Exec: func(ctx context.Context, args []string) error {
@@ -49,13 +54,18 @@ func main() {
 				return fmt.Errorf("search takes no positional arguments, got %v", args)
 			}
 			return runSearch(ctx, searchFlags{
-				baseURL: *baseURL,
-				timeout: *timeout,
-				format:  *format,
-				keyword: *keyword,
-				country: *country,
-				sort:    *sort,
-				page:    *page,
+				baseURL:        *baseURL,
+				timeout:        *timeout,
+				format:         *format,
+				keyword:        *keyword,
+				country:        *country,
+				sort:           *sort,
+				page:           *page,
+				homeOffice:     *homeOffice,
+				filterKeywords: *filterKeywords,
+				teams:          *teams,
+				products:       *products,
+				languages:      *languages,
 			}, os.Stdout)
 		},
 	}
@@ -102,13 +112,18 @@ func main() {
 }
 
 type searchFlags struct {
-	baseURL string
-	format  string
-	keyword string
-	country string
-	sort    string
-	timeout time.Duration
-	page    int
+	baseURL        string
+	format         string
+	keyword        string
+	country        string
+	sort           string
+	filterKeywords []string
+	teams          []string
+	products       []string
+	languages      []string
+	timeout        time.Duration
+	page           int
+	homeOffice     bool
 }
 
 func runSearch(ctx context.Context, flags searchFlags, out io.Writer) error {
@@ -120,6 +135,10 @@ func runSearch(ctx context.Context, flags searchFlags, out io.Writer) error {
 	}
 	if flags.page < 1 {
 		return fmt.Errorf("--page must be >= 1, got %d", flags.page)
+	}
+	teams, err := teamFilters(flags.teams)
+	if err != nil {
+		return err
 	}
 
 	client, err := apple.NewJobsClient(flags.baseURL, nil)
@@ -134,11 +153,28 @@ func runSearch(ctx context.Context, flags searchFlags, out io.Writer) error {
 		CountryCode: flags.country,
 		Sort:        apple.Sort(flags.sort),
 		Page:        flags.page,
+		HomeOffice:  flags.homeOffice,
+		Keywords:    flags.filterKeywords,
+		Teams:       teams,
+		Products:    flags.products,
+		Languages:   flags.languages,
 	})
 	if err != nil {
 		return fmt.Errorf("search apple jobs: %w", err)
 	}
 	return writeSearch(out, flags.format, flags.page, response)
+}
+
+func teamFilters(values []string) ([]apple.TeamFilter, error) {
+	teams := make([]apple.TeamFilter, 0, len(values))
+	for _, value := range values {
+		teamCode, subTeamCode, ok := strings.Cut(value, "/")
+		if !ok {
+			return nil, fmt.Errorf("--team must be TEAM/SUBTEAM codes such as HRDWR/CAM, got %q", value)
+		}
+		teams = append(teams, apple.TeamFilter{TeamCode: teamCode, SubTeamCode: subTeamCode})
+	}
+	return teams, nil
 }
 
 func writeSearch(out io.Writer, format string, page int, response *apple.SearchResponse) error {

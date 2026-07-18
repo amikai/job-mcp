@@ -28,15 +28,43 @@ const (
 	SortRelevance Sort = SearchJobsRequestSortRelevance
 	// SortNewest orders results by posting date, newest first.
 	SortNewest Sort = SearchJobsRequestSortNewest
+	// SortTeamAsc and the orderings below sort by team or location name.
+	SortTeamAsc      Sort = SearchJobsRequestSortTeamAsc
+	SortTeamDesc     Sort = SearchJobsRequestSortTeamDesc
+	SortLocationAsc  Sort = SearchJobsRequestSortLocationAsc
+	SortLocationDesc Sort = SearchJobsRequestSortLocationDesc
 )
 
+// TeamFilter selects one Apple team and sub-team pair by bare code, such as
+// {SFTWR, AF} for "Software and Services: Apps and Frameworks". Codes are
+// listed by the public /api/v1/refData/teamsofinterest endpoint.
+type TeamFilter struct {
+	TeamCode    string
+	SubTeamCode string
+}
+
 // SearchRequest contains the stable, caller-facing Apple search parameters.
-// CountryCode is an ISO 3166-1 alpha-3 code such as TWN or USA.
+// CountryCode is an ISO 3166-1 alpha-3 code such as TWN or USA; Keyword and
+// CountryCode are required and every other filter narrows the result set.
 type SearchRequest struct {
 	Keyword     string
 	CountryCode string
 	Sort        Sort
-	Page        int
+
+	// Keywords are extra keyword filter chips, applied separately from the
+	// ranked Keyword query.
+	Keywords []string
+	// Teams selects team and sub-team pairs; results match any listed pair.
+	Teams []TeamFilter
+	// Products are bare product codes such as IPHN, MAC, or ICLD.
+	Products []string
+	// Languages are case-sensitive language codes such as en_US or zh_HK,
+	// listed by the public /api/v1/refData/languagesByInput endpoint.
+	Languages []string
+
+	Page int
+	// HomeOffice keeps only remote-eligible postings when true.
+	HomeOffice bool
 }
 
 // JobsClient composes the generated OAS [Client] with Apple's anonymous search
@@ -167,23 +195,113 @@ func searchAPIRequest(request SearchRequest) (*SearchJobsRequest, error) {
 	if sort == "" {
 		sort = SortRelevance
 	}
-	if err := sort.Validate(); err != nil {
-		return nil, fmt.Errorf("invalid sort %q: %w", sort, err)
+	if validateErr := sort.Validate(); validateErr != nil {
+		return nil, fmt.Errorf("invalid sort %q: %w", sort, validateErr)
+	}
+
+	filters, err := searchFilters(request, locationID)
+	if err != nil {
+		return nil, err
 	}
 
 	return &SearchJobsRequest{
-		Query: keyword,
-		Filters: SearchFilters{
-			Locations: []string{locationID},
-		},
-		Page:   page,
-		Locale: defaultLocale,
-		Sort:   sort,
+		Query:   keyword,
+		Filters: filters,
+		Page:    page,
+		Locale:  defaultLocale,
+		Sort:    sort,
 		Format: DateFormat{
 			LongDate:   longDateFormat,
 			MediumDate: mediumDateFormat,
 		},
 	}, nil
+}
+
+func searchFilters(request SearchRequest, locationID string) (SearchFilters, error) {
+	filters := SearchFilters{
+		Locations: []string{locationID},
+	}
+	if request.HomeOffice {
+		filters.HomeOffice = NewOptBool(true)
+	}
+	for _, chip := range request.Keywords {
+		chip = strings.TrimSpace(chip)
+		if chip == "" {
+			return SearchFilters{}, errors.New("keyword filters must not be blank")
+		}
+		filters.Keywords = append(filters.Keywords, chip)
+	}
+	teams, err := teamSearchFilters(request.Teams)
+	if err != nil {
+		return SearchFilters{}, err
+	}
+	filters.Teams = teams
+	for _, product := range request.Products {
+		productCode, err := filterCode("product", product)
+		if err != nil {
+			return SearchFilters{}, err
+		}
+		filters.Products = append(filters.Products, "productsAndServices-"+productCode)
+	}
+	for _, language := range request.Languages {
+		languageCode, err := languageFilterCode(language)
+		if err != nil {
+			return SearchFilters{}, err
+		}
+		filters.Languages = append(filters.Languages, "language-"+languageCode)
+	}
+	return filters, nil
+}
+
+func teamSearchFilters(teams []TeamFilter) ([]SearchTeamFilter, error) {
+	if len(teams) == 0 {
+		return nil, nil
+	}
+	filters := make([]SearchTeamFilter, 0, len(teams))
+	for _, team := range teams {
+		teamCode, err := filterCode("team", team.TeamCode)
+		if err != nil {
+			return nil, err
+		}
+		subTeamCode, err := filterCode("sub-team", team.SubTeamCode)
+		if err != nil {
+			return nil, err
+		}
+		filters = append(filters, SearchTeamFilter{
+			Team:    "teamsAndSubTeams-" + teamCode,
+			SubTeam: "subTeam-" + subTeamCode,
+		})
+	}
+	return filters, nil
+}
+
+// filterCode validates a bare Apple filter code such as SFTWR or IPHN and
+// returns its canonical uppercase form.
+func filterCode(kind, code string) (string, error) {
+	code = strings.ToUpper(strings.TrimSpace(code))
+	if code == "" {
+		return "", fmt.Errorf("%s code must not be blank", kind)
+	}
+	for _, char := range code {
+		if (char < 'A' || char > 'Z') && (char < '0' || char > '9') {
+			return "", fmt.Errorf("%s code must contain only ascii letters and digits, got %q", kind, code)
+		}
+	}
+	return code, nil
+}
+
+// languageFilterCode validates a case-sensitive language code such as en_US.
+func languageFilterCode(code string) (string, error) {
+	code = strings.TrimSpace(code)
+	if code == "" {
+		return "", errors.New("language code must not be blank")
+	}
+	for _, char := range code {
+		if (char < 'A' || char > 'Z') && (char < 'a' || char > 'z') && char != '_' {
+			return "", fmt.Errorf("language code must contain only ascii letters and underscores, got %q", code)
+		}
+	}
+	return code, nil
 }
 
 func countryLocationID(countryCode string) (string, error) {

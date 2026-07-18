@@ -17,8 +17,20 @@ info:
     - pages are 1-based and contain at most 20 results;
     - `sort: relevance` is required for `query` to affect ranking; an empty
       sort can behave like an unfiltered newest search;
-    - country filters are Apple IDs such as `postLocation-TWN`, not the rich
-      location objects embedded in the server-rendered page;
+    - the extra sort terms (`teamAsc`, `teamDesc`, `locationAsc`,
+      `locationDesc`) come from the site bundle's SEARCH_SORT_TERMS constant;
+    - location filters are Apple IDs at any granularity: country
+      (`postLocation-TWN`), state (`postLocation-TPEI`), metro area
+      (`postLocation-TAIP`), or city (`postLocation-NTC9`); several may be
+      combined and match any listed location. The public typeahead
+      `GET /api/v1/refData/postlocation?input=…` resolves names to IDs;
+    - team and language IDs come from the public
+      `GET /api/v1/refData/teamsofinterest` and
+      `GET /api/v1/refData/languagesByInput?input=…` endpoints; product IDs
+      are embedded in the server-rendered page (the refData products
+      endpoint rejects anonymous sessions);
+    - the site omits `homeOffice` until the checkbox is first toggled and
+      `keywords` chips are separate from the ranked `query` text;
     - `totalRecords` can describe the broad ranked result set rather than an
       exact keyword match count, so callers must inspect returned summaries.
 servers:
@@ -125,7 +137,7 @@ components:
           enum: [en-us]
         sort:
           type: string
-          enum: [relevance, newest]
+          enum: [relevance, newest, teamAsc, teamDesc, locationAsc, locationDesc]
         format:
           $ref: "#/components/schemas/DateFormat"
 
@@ -137,10 +149,42 @@ components:
         locations:
           type: array
           minItems: 1
-          maxItems: 1
           items:
             type: string
-            pattern: '^postLocation-[A-Z]{3}$'
+            pattern: '^postLocation-[A-Z0-9]+$'
+        homeOffice:
+          type: boolean
+        keywords:
+          type: array
+          items:
+            type: string
+            minLength: 1
+        languages:
+          type: array
+          items:
+            type: string
+            pattern: '^language-[A-Za-z_]+$'
+        products:
+          type: array
+          items:
+            type: string
+            pattern: '^productsAndServices-[A-Z0-9]+$'
+        teams:
+          type: array
+          items:
+            $ref: "#/components/schemas/SearchTeamFilter"
+
+    SearchTeamFilter:
+      type: object
+      additionalProperties: false
+      required: [team, subTeam]
+      properties:
+        team:
+          type: string
+          pattern: '^teamsAndSubTeams-[A-Z0-9]+$'
+        subTeam:
+          type: string
+          pattern: '^subTeam-[A-Z0-9]+$'
 
     DateFormat:
       type: object

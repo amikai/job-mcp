@@ -21,7 +21,8 @@ func TestRunSearchValidation(t *testing.T) {
 	}{
 		{name: "keyword", flags: searchFlags{country: cliTestCountryCode, page: 1}, want: "--keyword is required"},
 		{name: "country", flags: searchFlags{keyword: "camera", page: 1}, want: "--country is required"},
-		{name: "page", flags: searchFlags{keyword: "camera", country: cliTestCountryCode}, want: "--page must be >= 1"},
+		{name: "page", flags: searchFlags{keyword: "sensor", country: cliTestCountryCode}, want: "--page must be >= 1"},
+		{name: "team", flags: searchFlags{keyword: "sensor", country: cliTestCountryCode, page: 1, teams: []string{"HRDWR"}}, want: "--team must be TEAM/SUBTEAM"},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
