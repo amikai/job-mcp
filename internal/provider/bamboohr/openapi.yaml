@@ -1,0 +1,393 @@
+openapi: 3.1.0
+
+info:
+  title: BambooHR Public Careers API
+  version: "1.0.0"
+  description: >
+    Minimal client surface for BambooHR's public hosted careers site, written
+    from captured traffic (no official spec covers this surface; BambooHR's
+    documented API at documentation.bamboohr.com is a separate, authenticated
+    product). Each customer hosts a board at
+    `https://{subdomain}.bamboohr.com/careers`, and the same subdomain selects
+    the tenant here: callers construct a client against one tenant's origin.
+
+    The surface is a full-dump pair: `/careers/list` returns every open
+    posting's summary in one unpaginated response with no server-side search
+    or filters, and `/careers/{id}/detail` returns one full posting. The
+    summaries are sparse - description, compensation, and posting date live
+    only on the detail endpoint.
+
+    Quirk: an unknown tenant subdomain is not an error status. Both endpoints
+    302-redirect to the marketing site (https://www.bamboohr.com), so a
+    client that follows redirects lands on an HTML page with HTTP 200.
+    A tenant that exists but publishes nothing returns totalCount 0, so an
+    empty board and an unused hosted careers site are indistinguishable.
+
+servers:
+  - url: https://example.bamboohr.com
+    description: Production careers site template
+
+tags:
+  - name: Jobs
+    description: Public hosted careers-site jobs
+
+paths:
+  /careers/list:
+    get:
+      tags: [Jobs]
+      operationId: listJobs
+      summary: Return every open posting's summary on the tenant's board
+      responses:
+        "200":
+          description: The tenant's full board as sparse summaries.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListResponse"
+        "302":
+          description: >
+            Unknown tenant subdomain - redirect to https://www.bamboohr.com.
+            A client must disable redirect-following to observe this; the
+            redirect target is an HTML page that answers HTTP 200.
+
+  /careers/{id}/detail:
+    get:
+      tags: [Jobs]
+      operationId: getJobDetail
+      summary: Return one full posting
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: >
+            Job opening id, exactly as returned in a list row's `id` (a
+            numeric string).
+          schema:
+            type: string
+          example: "201"
+      responses:
+        "200":
+          description: The full posting plus its application-form metadata.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DetailResponse"
+        "302":
+          description: >
+            Unknown tenant subdomain - redirect to https://www.bamboohr.com,
+            same as the list endpoint.
+        "404":
+          description: No job opening exists with the given id on this tenant.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotFoundError"
+
+components:
+  schemas:
+    ListResponse:
+      type: object
+      required: [meta, result]
+      properties:
+        meta:
+          $ref: "#/components/schemas/ListMeta"
+        result:
+          type: array
+          description: Every open posting on the board, as sparse summaries.
+          items:
+            $ref: "#/components/schemas/ListJob"
+
+    ListMeta:
+      type: object
+      required: [totalCount]
+      properties:
+        totalCount:
+          type: integer
+          description: Number of rows in `result` (the feed is unpaginated).
+          example: 5
+
+    ListJob:
+      type: object
+      description: >
+        One posting summary. Sparse by design - no description, compensation,
+        or posting date; those live only on the detail endpoint.
+      required:
+        - id
+        - jobOpeningName
+        - departmentId
+        - departmentLabel
+        - employmentStatusLabel
+        - location
+        - atsLocation
+        - isRemote
+        - locationType
+      properties:
+        id:
+          type: string
+          description: >
+            Job opening id as a numeric string; pass it to the detail
+            endpoint's path parameter unchanged.
+          example: "292"
+        jobOpeningName:
+          type: string
+          description: Job title.
+          example: Software Developer
+        departmentId:
+          type: string
+          nullable: true
+          description: Department id; null when the job has no department.
+          example: "18708"
+        departmentLabel:
+          type: string
+          nullable: true
+          description: >
+            Department display name; null when the job has no department
+            (the detail endpoint reports an empty string instead).
+          example: Sales & Success
+        employmentStatusLabel:
+          type: string
+          description: >
+            Tenant-defined employment type label, free-form. Observed values
+            include "Full-Time", "Full Time", "Permanent Full-Time",
+            "Contractor", "Independent Contractor", "Part-time Co-op", and
+            "TBC".
+          example: Full-Time
+        location:
+          $ref: "#/components/schemas/ListLocation"
+        atsLocation:
+          $ref: "#/components/schemas/ListAtsLocation"
+        isRemote:
+          type: boolean
+          nullable: true
+          description: >
+            Observed as null on every row of every surveyed board, including
+            remote jobs - derive work mode from `locationType` instead.
+        locationType:
+          type: string
+          nullable: true
+          description: >
+            Work mode as a numeric string: "0" on-site, "1" remote,
+            "2" hybrid. Observed only in that domain but not declared an
+            enum, since the surface is undocumented.
+          example: "1"
+
+    ListLocation:
+      type: object
+      description: Structured location of a list row.
+      required: [city, state]
+      properties:
+        city:
+          type: string
+          nullable: true
+          example: Ottawa
+        state:
+          type: string
+          nullable: true
+          description: State or province display name.
+          example: Ontario
+
+    ListAtsLocation:
+      type: object
+      description: >
+        ATS-side location of a list row. Carries the country when the
+        board provides one (the sibling `location` never does); observed
+        all-null on most rows. Unlike the detail endpoint's variant, it has
+        `province` and no `countryId`.
+      required: [country, state, province, city]
+      properties:
+        country:
+          type: string
+          nullable: true
+          example: United States
+        state:
+          type: string
+          nullable: true
+          example: California
+        province:
+          type: string
+          nullable: true
+        city:
+          type: string
+          nullable: true
+          example: Long Beach
+
+    DetailResponse:
+      type: object
+      required: [meta, result]
+      properties:
+        meta:
+          type: object
+          description: Observed as an empty object.
+        result:
+          $ref: "#/components/schemas/DetailResult"
+
+    DetailResult:
+      type: object
+      required: [jobOpening]
+      properties:
+        jobOpening:
+          $ref: "#/components/schemas/JobOpening"
+        formFields:
+          type: object
+          additionalProperties: true
+          description: >
+            Application-form field metadata (labels, required flags, select
+            options) for the posting's apply page. Not job data; surfaced
+            as free-form JSON.
+
+    JobOpening:
+      type: object
+      description: One full posting.
+      required:
+        - jobOpeningShareUrl
+        - jobOpeningName
+        - jobOpeningStatus
+        - jobCategoryId
+        - departmentId
+        - departmentLabel
+        - employmentStatusLabel
+        - location
+        - atsLocation
+        - description
+        - compensation
+        - datePosted
+        - minimumExperience
+        - locationType
+        - seekPromoted
+      properties:
+        jobOpeningShareUrl:
+          type: string
+          description: Human-clickable posting page URL.
+          example: https://curtinmaritime.bamboohr.com/careers/201
+        jobOpeningName:
+          type: string
+          description: Job title.
+          example: Port Engineer
+        jobOpeningStatus:
+          type: string
+          description: Observed as "Open" on every published posting.
+          example: Open
+        jobCategoryId:
+          type: string
+          nullable: true
+          description: Tenant-defined category id; null when uncategorized.
+          example: "18376"
+        departmentId:
+          type: string
+          nullable: true
+          description: Department id; null when the job has no department.
+        departmentLabel:
+          type: string
+          nullable: true
+          description: >
+            Department display name. Observed as an empty string (not null)
+            when the job has no department, unlike the list feed's null.
+        employmentStatusLabel:
+          type: string
+          description: >
+            Tenant-defined employment type label, free-form; same domain as
+            the list feed's field.
+          example: Full-Time
+        location:
+          $ref: "#/components/schemas/DetailLocation"
+        atsLocation:
+          $ref: "#/components/schemas/DetailAtsLocation"
+        description:
+          type: string
+          description: Full job description as HTML.
+        compensation:
+          type: string
+          nullable: true
+          description: >
+            Free-form compensation text; null when the posting publishes
+            none. Observed values range from salaries to day rates, e.g.
+            "$300 - $425/Day ($21.43 - $30.35 per hour)".
+        datePosted:
+          type: string
+          nullable: true
+          description: >
+            Posting date as YYYY-MM-DD. Kept a plain string since the
+            surface is undocumented.
+          example: "2025-04-22"
+        minimumExperience:
+          type: string
+          nullable: true
+          description: >
+            Experience level label; null when unset. Observed values are
+            "Entry-level", "Mid-level", and "Experienced".
+        locationType:
+          type: string
+          nullable: true
+          description: >
+            Work mode as a numeric string: "0" on-site, "1" remote,
+            "2" hybrid - same encoding as the list feed's field.
+          example: "0"
+        seekPromoted:
+          type: boolean
+          nullable: true
+          description: >
+            Whether the posting is promoted on Seek. Observed only as false.
+
+    DetailLocation:
+      type: object
+      description: >
+        Structured location of a posting - a superset of the list feed's
+        variant, adding postal code and country.
+      required: [city, state, postalCode, addressCountry]
+      properties:
+        city:
+          type: string
+          nullable: true
+          example: Long Beach
+        state:
+          type: string
+          nullable: true
+          example: California
+        postalCode:
+          type: string
+          nullable: true
+          example: "90802"
+        addressCountry:
+          type: string
+          nullable: true
+          example: United States
+
+    DetailAtsLocation:
+      type: object
+      description: >
+        ATS-side location of a posting. Unlike the list feed's variant, it
+        has `countryId` and no `province`; observed all-null on most
+        postings.
+      required: [country, countryId, state, city]
+      properties:
+        country:
+          type: string
+          nullable: true
+        countryId:
+          type: string
+          nullable: true
+        state:
+          type: string
+          nullable: true
+        city:
+          type: string
+          nullable: true
+
+    NotFoundError:
+      type: object
+      description: Structured error body returned for an unknown job id.
+      required: [type, title]
+      properties:
+        type:
+          type: string
+          example: not_found
+        title:
+          type: string
+          example: Resource not found.
+        details:
+          type: string
+          example: Looks like the id you provided doesn't exist.
+        meta:
+          type: array
+          description: Observed as an empty array.
+          items: {}
