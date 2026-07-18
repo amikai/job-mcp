@@ -56,14 +56,19 @@ type Job struct {
 	// labels: 正社員, 契約社員, 業務委託, 人材紹介, パート・アルバイト,
 	// 一般派遣, 紹介予定派遣, or FCオーナー.
 	EmploymentStatus string
-	Conditions       []string // condition tags, e.g. 転勤なし, リモートワーク可
-	Description      string   // job-description (仕事内容) summary, server-truncated
-	Target           string   // target-applicant (対象となる方) summary, server-truncated
-	Location         string   // work-location (勤務地) summary, server-truncated
-	Salary           string   // salary (給与) summary, server-truncated
-	FirstYearIncome  string   // first-year income (初年度年収) range, absent on some postings
-	UpdatedDate      string   // last-updated date (情報更新日), YYYY/MM/DD
-	EndDate          string   // listing end date (掲載終了予定日), YYYY/MM/DD
+	// Conditions are tags from the small fixed vocabulary mirroring the
+	// search form's boolean condition flags. Observed across ~250 live
+	// cards: 職種・業種未経験OK (also its 職種未経験OK / 業種未経験OK
+	// halves), 第二新卒歓迎, 転勤なし, 完全週休2日制, 学歴不問,
+	// リモートワーク可, 上場.
+	Conditions      []string
+	Description     string // job-description (仕事内容) summary, server-truncated
+	Target          string // target-applicant (対象となる方) summary, server-truncated
+	Location        string // work-location (勤務地) summary, server-truncated
+	Salary          string // salary (給与) summary, server-truncated
+	FirstYearIncome string // first-year income (初年度年収) range, absent on some postings
+	UpdatedDate     string // last-updated date (情報更新日), YYYY/MM/DD
+	EndDate         string // listing end date (掲載終了予定日), YYYY/MM/DD
 }
 
 type JobsResponse struct {
@@ -81,21 +86,24 @@ type Location struct {
 // JobDetailResponse carries every field of the detail page's schema.org
 // JobPosting JSON-LD. HTML-valued fields are flattened to plain text.
 type JobDetailResponse struct {
-	ID                     string
-	URL                    string
-	Title                  string
-	Company                string
-	CompanyURL             string // the employer's own site
-	EmploymentType         string // schema.org value, e.g. FULL_TIME
-	Industry               string
-	OccupationalCategory   string
+	ID         string
+	URL        string
+	Title      string
+	Company    string
+	CompanyURL string // the employer's own site
+	// EmploymentType is schema.org's enum, mapped from the posting's
+	// 雇用形態; observed live: FULL_TIME (正社員), CONTRACTOR (契約社員),
+	// OTHER (業務委託, 一般派遣, 紹介予定派遣).
+	EmploymentType         string
+	Industry               string // ／-joined values from the site's fixed industry (業種) taxonomy
+	OccupationalCategory   string // value from the site's fixed occupation (職種) taxonomy
 	DatePosted             string // YYYY-MM-DD
 	ValidThrough           string // YYYY-MM-DD; the posting 404s after this
 	Locations              []Location
-	SalaryCurrency         string // e.g. JPY
+	SalaryCurrency         string // "JPY" on every observed posting
 	SalaryMin              string // numeric string, e.g. "4200000"
 	SalaryMax              string
-	SalaryUnit             string // e.g. YEAR
+	SalaryUnit             string // "YEAR" on every observed posting that carries a salary; empty otherwise
 	Description            string
 	ExperienceRequirements string
 	WorkHours              string

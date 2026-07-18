@@ -59,7 +59,7 @@ type mynaviJobSummary struct {
 	Company          string   `json:"company,omitempty"`
 	CatchCopy        string   `json:"catch_copy,omitempty" jsonschema:"The employer's own tagline shown beside its name."`
 	EmploymentStatus string   `json:"employment_status,omitempty" jsonschema:"One of the site's employment types, e.g. 正社員 (permanent), 契約社員 (contract), 業務委託 (freelance contract), 一般派遣 (temp staffing)."`
-	Conditions       []string `json:"conditions,omitempty" jsonschema:"Condition tags, e.g. 転勤なし (no relocation), リモートワーク可 (remote OK), 未経験OK (no experience needed)."`
+	Conditions       []string `json:"conditions,omitempty" jsonschema:"Tags from a small fixed set: 転勤なし (no relocation), リモートワーク可 (remote OK), 完全週休2日制 (5-day workweek), 学歴不問 (no education requirement), 第二新卒歓迎 (early-career switchers welcome), 職種・業種未経験OK (no experience needed), 上場 (listed company)."`
 	Description      string   `json:"description,omitempty" jsonschema:"Job-description (仕事内容) summary, truncated by the site; fetch the detail for the full text."`
 	Target           string   `json:"target,omitempty" jsonschema:"Target-applicant (対象となる方) summary, truncated by the site."`
 	Location         string   `json:"location,omitempty"`
@@ -115,7 +115,7 @@ type mynaviDetailOutput struct {
 	Title                  string           `json:"title"`
 	Company                string           `json:"company,omitempty"`
 	CompanyURL             string           `json:"company_url,omitempty" jsonschema:"The employer's own website."`
-	EmploymentType         string           `json:"employment_type,omitempty" jsonschema:"schema.org value, e.g. FULL_TIME."`
+	EmploymentType         string           `json:"employment_type,omitempty" jsonschema:"schema.org enum: FULL_TIME (正社員), CONTRACTOR (契約社員), or OTHER (dispatch/freelance types); coarser than the search summary's employment_status."`
 	Industry               string           `json:"industry,omitempty"`
 	Occupation             string           `json:"occupation,omitempty"`
 	DatePosted             string           `json:"date_posted,omitempty" jsonschema:"YYYY-MM-DD."`
