@@ -209,6 +209,7 @@ func newATSRegistry(hc, hcEightfold *http.Client) (*ats.Registry, error) {
 		greenhouseAdapter,
 		ats.NewTeamtailorAdapter(hc),
 		ats.NewRecruiteeAdapter(hc),
+		ats.NewBambooHRAdapter(hc),
 		ats.NewEightfoldAdapter(hcEightfold),
 		ats.NewSuccessFactorsAdapter(hc),
 		smartrecruitersAdapter,

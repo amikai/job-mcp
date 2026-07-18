@@ -2,6 +2,7 @@
 
 OPENAPI_SPECS := \
 	internal/provider/ashby/openapi.yaml \
+	internal/provider/bamboohr/openapi.yaml \
 	internal/provider/cake/openapi.yaml \
 	internal/provider/eightfold/openapi.yaml \
 	internal/provider/google/openapi.yaml \

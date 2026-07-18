@@ -241,3 +241,18 @@ func TestATSRegistryIncludesJoin(t *testing.T) {
 	assert.Equal(t, "join", adapter.Name())
 	assert.Equal(t, "routinelabs", slug)
 }
+
+func TestATSRegistryIncludesBambooHR(t *testing.T) {
+	registry, err := newATSRegistry(http.DefaultClient, http.DefaultClient)
+	require.NoError(t, err)
+
+	adapter, slug, err := registry.Resolve("Concept2")
+	require.NoError(t, err)
+	assert.Equal(t, "bamboohr", adapter.Name())
+	assert.Equal(t, "concept2", slug)
+
+	adapter, slug, err = registry.Resolve("https://unlisted.bamboohr.com/careers")
+	require.NoError(t, err)
+	assert.Equal(t, "bamboohr", adapter.Name())
+	assert.Equal(t, "unlisted", slug)
+}

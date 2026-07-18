@@ -31,6 +31,7 @@ import (
 // providerOrder fixes the --provider default and the report's grouping order.
 var providerOrder = []string{
 	"ashby",
+	"bamboohr",
 	"eightfold",
 	"greenhouse",
 	"icims",
@@ -175,6 +176,8 @@ func buildAdapters(names []string) ([]ats.Adapter, error) {
 		switch name {
 		case "ashby":
 			a, err = ats.NewAshbyAdapter("https://api.ashbyhq.com", hc)
+		case "bamboohr":
+			a = ats.NewBambooHRAdapter(hc)
 		case "eightfold":
 			// Eightfold's edge 403s Go's default User-Agent instead of
 			// returning JSON, so it gets its own client rather than hc.

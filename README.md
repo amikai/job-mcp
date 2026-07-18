@@ -22,7 +22,8 @@ sites from any MCP client: Claude Code, Codex, Gemini CLI, and others.
   **[iCIMS](https://www.icims.com)**,
   **[Oracle Recruiting Cloud](https://www.oracle.com/human-capital-management/recruiting/)**,
   **[JOIN](https://join.com)**,
-  and **[UKG Pro (UltiPro)](https://www.ukg.com/products/ukg-pro)**
+  **[UKG Pro (UltiPro)](https://www.ukg.com/products/ukg-pro)**,
+  and **[BambooHR](https://www.bamboohr.com)**
   ATS platforms, all behind one company-search tool. A company outside the
   built-in roster works too: pass its careers-page URL on any of those platforms
   except Eightfold, SAP SuccessFactors, and JOIN, which support roster companies only.
