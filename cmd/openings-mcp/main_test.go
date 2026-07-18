@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/amikai/openings-mcp/internal/provider/apple"
 	"github.com/amikai/openings-mcp/internal/provider/cake"
 	"github.com/amikai/openings-mcp/internal/provider/google"
 	"github.com/amikai/openings-mcp/internal/provider/indeed"
@@ -30,6 +31,8 @@ func TestServerListsJobTools(t *testing.T) {
 	ctx := t.Context()
 	c104, err := job104.NewClient("https://www.104.com.tw", job104.WithClient(http.DefaultClient))
 	require.NoError(t, err)
+	cApple, err := apple.NewClient("https://jobs.apple.com", http.DefaultClient)
+	require.NoError(t, err)
 	cCake, err := cake.NewClient("https://api.cake.me", cake.WithClient(http.DefaultClient))
 	require.NoError(t, err)
 	cNvidia, err := nvidia.NewClient("https://nvidia.wd5.myworkdayjobs.com/wday/cxs/nvidia/NVIDIAExternalCareerSite", nvidia.WithClient(http.DefaultClient))
@@ -43,6 +46,7 @@ func TestServerListsJobTools(t *testing.T) {
 	require.NoError(t, err)
 	server := newServer(providerClients{
 		job104:   c104,
+		apple:    cApple,
 		cake:     cCake,
 		nvidia:   cNvidia,
 		tsmc:     cTsmc,
@@ -69,6 +73,8 @@ func TestServerListsJobTools(t *testing.T) {
 	for _, name := range []string{
 		"104_search_jobs",
 		"104_get_job_detail",
+		"apple_search_jobs",
+		"apple_get_job_detail",
 		"cake_search_jobs",
 		"cake_get_job_detail",
 		"nvidia_search_jobs",
