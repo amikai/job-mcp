@@ -9,6 +9,7 @@ sites from any MCP client: Claude Code, Codex, Gemini CLI, and others.
 
 - **Job boards**: **[104](https://www.104.com.tw)**, **[Cake](https://www.cake.me)**,
   **[Jobindex](https://www.jobindex.dk)** (Denmark),
+  **[マイナビ転職](https://tenshoku.mynavi.jp)** (Japan),
   **[LinkedIn](https://www.linkedin.com)**, and **[Indeed](https://www.indeed.com)**
   (public search).
 - **Company career sites**: 3,500+ companies hosted on the
