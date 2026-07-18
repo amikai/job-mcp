@@ -141,7 +141,8 @@ has a stable, roster-able feed URL and multi-company routing is worth it.
 5. **Debug CLI** — `cmd/<name>/main.go` using ff/v4 with `search`,
    `detail`, and `companies` subcommands for live manual checks. Validate
    pagination flags and reject stray positional args (mirror
-   `cmd/smartrecruiters`).
+   `cmd/smartrecruiters`). Do not add `cmd/<name>/doc.go`; package-level
+   documentation belongs only in `internal/provider/<name>/doc.go`.
 6. **MCP surface**
    - ATS adapter: `internal/ats/<name>.go` implementing `Adapter`
      (Name, Roster, ParseCareersURL, Search, Filters, Detail) + tests.
