@@ -18,6 +18,7 @@ import (
 	"github.com/amikai/openings-mcp/internal/ats"
 	"github.com/amikai/openings-mcp/internal/logging"
 	"github.com/amikai/openings-mcp/internal/openingsmcp"
+	"github.com/amikai/openings-mcp/internal/provider/amazon"
 	"github.com/amikai/openings-mcp/internal/provider/apple"
 	"github.com/amikai/openings-mcp/internal/provider/cake"
 	"github.com/amikai/openings-mcp/internal/provider/eightfold"
@@ -41,11 +42,11 @@ var (
 // serverInstructions carries the cross-tool guidance for host LLMs: provider
 // routing and the shared search→detail flow. Per-tool behavior stays in each
 // tool's description.
-const serverInstructions = `openings-mcp exposes job-search tools in two families: (1) per-provider tools for the job boards 104, Cake.me (Taiwan-centric), Jobindex (Denmark), Mynavi Tenshoku (Japan), LinkedIn and Indeed (global), plus the careers sites of Apple, Google, NVIDIA, and TSMC; (2) unified company tools — search_jobs_by_company, get_filters_by_company, get_job_detail_by_company — covering thousands of companies behind one company parameter.
+const serverInstructions = `openings-mcp exposes job-search tools in two families: (1) per-provider tools for the job boards 104, Cake.me (Taiwan-centric), Jobindex (Denmark), Mynavi Tenshoku (Japan), LinkedIn and Indeed (global), plus the careers sites of Amazon, Apple, Google, NVIDIA, and TSMC; (2) unified company tools — search_jobs_by_company, get_filters_by_company, get_job_detail_by_company — covering thousands of companies behind one company parameter.
 
 Tool selection:
 - When the user names a specific company, try search_jobs_by_company first; it covers thousands of companies and its error message suggests close matches when a name isn't recognized. Fall back to the per-provider tools (linkedin, indeed, 104, jobindex, mynavi, ...) when the company isn't covered.
-- When the user explicitly names a job board or careers site as the desired source (for example LinkedIn, Indeed, 104, Cake.me, Jobindex, マイナビ転職/Mynavi, Apple Careers, Google Careers, NVIDIA Careers, or TSMC Careers), use that source's dedicated tools. A company name by itself is not a source selection.
+- When the user explicitly names a job board or careers site as the desired source (for example LinkedIn, Indeed, 104, Cake.me, Jobindex, マイナビ転職/Mynavi, Amazon Jobs, Apple Careers, Google Careers, NVIDIA Careers, or TSMC Careers), use that source's dedicated tools. A company name by itself is not a source selection.
 - When the user has no target in mind, offer them the provider choices; if they don't pick one, start with the job boards (104, Cake.me, LinkedIn, Indeed, Jobindex for Denmark, and Mynavi for Japan) rather than a single company's careers site.
 - search_jobs_by_company also accepts recognized public careers-page URLs on supported ATS providers. Do not pass other careers sites; some ATS providers accept URLs only for companies already in the curated roster.
 
@@ -130,6 +131,10 @@ func runWithTransport(transport mcp.Transport, logger *slog.Logger) error {
 	}
 
 	hc := &http.Client{Timeout: 30 * time.Second}
+	cAmazon, err := amazon.NewClient("https://www.amazon.jobs", amazon.WithClient(hc))
+	if err != nil {
+		return fmt.Errorf("create Amazon client: %w", err)
+	}
 
 	// Eightfold's edge 403s Go's default User-Agent instead of returning
 	// JSON, so it gets its own client rather than sharing hc.
@@ -169,6 +174,7 @@ func runWithTransport(transport mcp.Transport, logger *slog.Logger) error {
 	}
 
 	server := newServer(providerClients{
+		amazon:   cAmazon,
 		job104:   c104,
 		apple:    cApple,
 		cake:     cCake,
@@ -240,6 +246,7 @@ func newATSRegistry(hc, hcEightfold *http.Client) (*ats.Registry, error) {
 // providerClients bundles one client per per-provider tool family, so
 // newServer's signature doesn't grow with every provider added.
 type providerClients struct {
+	amazon   *amazon.Client
 	job104   *job104.Client
 	apple    *apple.JobsClient
 	cake     *cake.Client
@@ -261,6 +268,7 @@ func newServer(clients providerClients, registry *ats.Registry, logger *slog.Log
 	// Registered last so it wraps outermost, catching panics from tool
 	// handlers and from other middleware alike.
 	server.AddReceivingMiddleware(logging.RecoveryMiddleware(logger))
+	openingsmcp.RegisterAmazon(server, clients.amazon)
 	openingsmcp.RegisterJob104(server, clients.job104)
 	openingsmcp.RegisterApple(server, clients.apple)
 	openingsmcp.RegisterCake(server, clients.cake)

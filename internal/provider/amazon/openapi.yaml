@@ -1,0 +1,224 @@
+openapi: 3.1.0
+
+info:
+  title: Amazon Jobs Minimal Search API
+  version: "1.0.0"
+  description: >
+    Reverse-engineered minimal client surface for the public Amazon Jobs
+    careers endpoint. No official API specification or developer documentation
+    is published. The endpoint is unauthenticated and is the JSON request used
+    by https://www.amazon.jobs/en/search.
+
+    Search results already include the full description, basic qualifications,
+    preferred qualifications, and application URL. There is no separate JSON
+    detail endpoint. A numeric `id_icims` returned by search can be supplied as
+    `base_query`; callers must verify an exact `id_icims` match because this is
+    still a search operation.
+
+    Observed 2026-07-19: unknown sort values silently fall back to relevance;
+    `result_limit` above 100 returns HTTP 200 with an error string and
+    `jobs: null`; an unknown job id returns HTTP 200 with zero hits and an
+    empty jobs array.
+
+servers:
+  - url: https://www.amazon.jobs
+    description: Amazon Jobs production site
+
+tags:
+  - name: Jobs
+    description: Public Amazon job search
+
+paths:
+  /en/search.json:
+    get:
+      tags: [Jobs]
+      summary: Search Amazon jobs
+      operationId: searchJobs
+      description: >
+        Searches jobs using server-side filters and zero-based offset
+        pagination. All parameters are optional upstream. Array filters are
+        encoded as repeated query parameters whose names end in `[]`.
+      parameters:
+        - name: base_query
+          in: query
+          description: Free-text query, or a numeric id_icims for detail lookup.
+          schema:
+            type: string
+        - name: normalized_country_code[]
+          in: query
+          description: ISO 3166-1 alpha-3 country codes, OR'd together.
+          style: form
+          explode: true
+          schema:
+            type: array
+            items:
+              type: string
+          example: [TWN]
+        - name: normalized_city_name[]
+          in: query
+          description: Normalized city names, OR'd together.
+          style: form
+          explode: true
+          schema:
+            type: array
+            items:
+              type: string
+          example: [Taipei City]
+        - name: category[]
+          in: query
+          description: Job category display names, OR'd together.
+          style: form
+          explode: true
+          schema:
+            type: array
+            items:
+              type: string
+          example: [Software Development]
+        - name: business_category[]
+          in: query
+          description: Business-category slugs, OR'd together.
+          style: form
+          explode: true
+          schema:
+            type: array
+            items:
+              type: string
+          example: [aws]
+        - name: schedule_type_id[]
+          in: query
+          description: Schedule type display values, OR'd together.
+          style: form
+          explode: true
+          schema:
+            type: array
+            items:
+              type: string
+          example: [Full-Time]
+        - name: sort
+          in: query
+          description: Result ordering. The upstream defaults to relevance.
+          schema:
+            type: string
+            enum: [relevant, recent]
+        - name: offset
+          in: query
+          description: Zero-based result offset.
+          schema:
+            type: integer
+            minimum: 0
+        - name: result_limit
+          in: query
+          description: Page size. Values above 100 produce a soft error payload.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+      responses:
+        "200":
+          description: >
+            Search result or a soft error. Inspect `error` before using `jobs`.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SearchResponse"
+components:
+  schemas:
+    SearchResponse:
+      type: object
+      required: [hits]
+      properties:
+        error:
+          type: string
+          nullable: true
+          description: Upstream validation error; null on a successful search.
+        hits:
+          type: integer
+          minimum: 0
+          description: Total number of matching jobs.
+        jobs:
+          type: array
+          nullable: true
+          description: >
+            Current page of jobs. Null only when `error` reports a soft
+            validation failure.
+          items:
+            $ref: "#/components/schemas/Job"
+
+    Job:
+      type: object
+      required:
+        - id
+        - id_icims
+        - title
+        - location
+        - normalized_location
+        - city
+        - country_code
+        - company_name
+        - job_path
+        - posted_date
+        - updated_time
+        - description_short
+        - description
+        - basic_qualifications
+        - preferred_qualifications
+        - job_category
+        - business_category
+        - job_schedule_type
+        - url_next_step
+      properties:
+        id:
+          type: string
+          description: Opaque internal UUID; not the public MCP job id.
+        id_icims:
+          type: string
+          description: Numeric public posting id used in job_path and lookup.
+        title:
+          type: string
+        location:
+          type: string
+          description: Display location, such as `TW, TPE, Taipei`.
+        normalized_location:
+          type: string
+          description: Normalized city, region, and country.
+        city:
+          type: string
+        country_code:
+          type: string
+          description: ISO 3166-1 alpha-3 country code.
+        company_name:
+          type: string
+          description: Amazon legal employing entity.
+        job_path:
+          type: string
+          description: Public path beginning with `/en/jobs/{id_icims}/`.
+        posted_date:
+          type: string
+          description: Human-readable publication date supplied by Amazon.
+        updated_time:
+          type: string
+          description: Human-readable age of the latest update.
+        description_short:
+          type: string
+          description: Plain-text preview from the search index.
+        description:
+          type: string
+          description: Full HTML-fragment job description.
+        basic_qualifications:
+          type: string
+          description: Required qualifications as an HTML fragment.
+        preferred_qualifications:
+          type: string
+          description: Preferred qualifications as an HTML fragment.
+        job_category:
+          type: string
+        business_category:
+          type: string
+          description: Amazon business-category slug.
+        job_schedule_type:
+          type: string
+          description: Normalized schedule type, such as `full-time`.
+        url_next_step:
+          type: string
+          format: uri
+          description: Application URL.

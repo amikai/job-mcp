@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/amikai/openings-mcp/internal/provider/amazon"
 	"github.com/amikai/openings-mcp/internal/provider/apple"
 	"github.com/amikai/openings-mcp/internal/provider/cake"
 	"github.com/amikai/openings-mcp/internal/provider/google"
@@ -29,6 +30,8 @@ func (writeCloser) Close() error { return nil }
 
 func TestServerListsJobTools(t *testing.T) {
 	ctx := t.Context()
+	cAmazon, err := amazon.NewClient("https://www.amazon.jobs", amazon.WithClient(http.DefaultClient))
+	require.NoError(t, err)
 	c104, err := job104.NewClient("https://www.104.com.tw", job104.WithClient(http.DefaultClient))
 	require.NoError(t, err)
 	cApple, err := apple.NewJobsClient("https://jobs.apple.com", http.DefaultClient)
@@ -45,6 +48,7 @@ func TestServerListsJobTools(t *testing.T) {
 	registry, err := newATSRegistry(http.DefaultClient, http.DefaultClient)
 	require.NoError(t, err)
 	server := newServer(providerClients{
+		amazon:   cAmazon,
 		job104:   c104,
 		apple:    cApple,
 		cake:     cCake,
@@ -71,6 +75,8 @@ func TestServerListsJobTools(t *testing.T) {
 		got[tool.Name] = tool
 	}
 	for _, name := range []string{
+		"amazon_search_jobs",
+		"amazon_get_job_detail",
 		"104_search_jobs",
 		"104_get_job_detail",
 		"apple_search_jobs",
