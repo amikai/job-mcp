@@ -1,0 +1,431 @@
+openapi: 3.1.0
+
+info:
+  title: Himalayas Remote Jobs API
+  version: "1.0.0"
+  contact:
+    name: Himalayas
+    url: https://himalayas.app
+    email: hi@himalayas.app
+  description: >
+    Himalayas (https://himalayas.app) is a remote-jobs board with a free,
+    public REST API — no authentication required. This document is trimmed
+    from the official OpenAPI 3.1 spec published at
+    https://himalayas.app/docs/openapi.json; the official spec is the
+    source of truth for paths and parameters, but its response schemas
+    drift from the live API in several places. The deviations below are
+    grounded in live responses captured 2026-07-18 (see testdata/).
+
+    ## Deviations from the official document
+
+    * `updatedAt`, `pubDate`, and `expiryDate` are published as Unix
+      timestamps in milliseconds, but the API returns Unix **seconds**.
+
+    * `locationRestrictions` is published as an array of Location objects
+      (`alpha2`/`name`/`slug`), but the API returns an array of plain
+      country-name strings (e.g. `["United States"]`).
+
+    * `timezoneRestrictions` is published as an array of strings like
+      `"UTC-5"`, but the API returns an array of **numbers** — integer and
+      fractional UTC offsets (e.g. `-5`, `-3.5`, `5.75`, `12.75`).
+
+    * `currency` is published as a required ISO 4217 enum, but the API
+      returns `null` whenever no salary is disclosed (~44% of sampled
+      jobs). Modeled as nullable string without the enum.
+
+    * The search endpoint's 400 body is `{"ok": false, "errors": "..."}`
+      (SearchError), not the documented `{"error": "..."}` object. An
+      unrecognized `company` slug is also a 400 "Invalid company", not an
+      empty 200 result.
+
+    * The browse endpoint's documented 400 for out-of-range parameters was
+      not observed: `limit` above 20 is silently clamped to 20 (HTTP 200).
+
+    ## Quirks
+
+    * A search page may contain fewer than `limit` jobs even when more
+      pages remain (observed: totalCount 1333 with 2 jobs on page 1).
+      Paginate by `totalCount` and `page`, never by page fullness.
+
+    * Free-text `q` search is fuzzy-relevance ranked: a keyword with no
+      exact match still returns fallback results, so `q` alone never
+      yields `totalCount: 0`.
+
+    * `guid` doubles as the job's public himalayas.app posting URL and
+      equals `applicationLink` in every sampled job.
+
+    * `description` is the full sanitized-HTML posting body — the feed
+      already carries complete descriptions, so there is no separate
+      detail endpoint.
+
+    * Data is cached upstream and refreshed roughly every 24 hours;
+      exceeding the rate limit returns HTTP 429.
+
+servers:
+  - url: https://himalayas.app
+
+tags:
+  - name: jobs
+    description: Remote job listings from Himalayas.
+
+paths:
+  /jobs/api:
+    get:
+      summary: Browse the full Himalayas remote jobs feed
+      description: >
+        Returns the full unfiltered remote jobs feed with offset/limit
+        pagination. `limit` values above 20 are clamped to 20 server-side
+        (no 400, despite the official document).
+      operationId: browseJobs
+      tags: [jobs]
+      parameters:
+        - in: query
+          name: limit
+          description: Number of jobs per page. Maximum and default is 20.
+          required: false
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 20
+        - in: query
+          name: offset
+          description: >
+            Number of jobs to skip. Start at 0, then increment by limit.
+            Use totalCount from the response to know when to stop.
+          required: false
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+      responses:
+        "200":
+          description: Remote job listings.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JobsResponse"
+
+  /jobs/api/search:
+    get:
+      summary: Search Himalayas remote jobs with filters
+      description: >
+        Returns filtered remote job results in the same JSON shape as
+        `GET /jobs/api`, paginated by 1-based `page` (fixed 20 per page;
+        the response echoes the equivalent offset). A returned page may
+        hold fewer than 20 jobs even when more pages remain — paginate by
+        totalCount, not page fullness.
+      operationId: searchJobs
+      tags: [jobs]
+      parameters:
+        - in: query
+          name: q
+          description: >
+            Free-text job search query. Fuzzy-relevance ranked — an
+            unmatched keyword still returns fallback results rather than
+            an empty set.
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: country
+          description: >
+            Country filter. Supports ISO alpha-2, common country names,
+            slugs, and common abbreviations. Unrecognized values are a
+            400 "Invalid country".
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: worldwide
+          description: Limit results to worldwide-friendly jobs.
+          required: false
+          schema:
+            type: boolean
+            default: false
+        - in: query
+          name: exclude_worldwide
+          description: >
+            Exclude worldwide matches when a country filter is present.
+          required: false
+          schema:
+            type: boolean
+            default: false
+        - in: query
+          name: seniority
+          description: >
+            Comma-separated seniority filters. Valid values are
+            Entry-level, Mid-level, Senior, Manager, Director, and
+            Executive.
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: employment_type
+          description: >
+            Comma-separated employment type filters. Valid values are
+            Full Time, Part Time, Contractor, Temporary, Intern,
+            Volunteer, and Other.
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: company
+          description: >
+            Canonical Himalayas company slug (the slug in
+            himalayas.app/companies/<slug>); supports comma-separated
+            values. An unrecognized slug is a 400 "Invalid company", not
+            an empty result.
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: timezone
+          description: >
+            Timezone filter. Supports numeric UTC offsets and variants
+            like `UTC-5` or `UTC+05:30`.
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: sort
+          description: >
+            Sort order for results. 'relevant' ranks by best match to the
+            query and filters (default). 'recent' returns newest jobs
+            first. 'salaryAsc'/'salaryDesc' sort by salary. 'nameAToZ'/
+            'nameZToA' sort by company name. 'jobs' sorts by companies
+            with the most open roles first.
+          required: false
+          schema:
+            type: string
+            enum:
+              - relevant
+              - recent
+              - salaryAsc
+              - salaryDesc
+              - nameAToZ
+              - nameZToA
+              - jobs
+            default: relevant
+        - in: query
+          name: page
+          description: 1-based results page.
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+      responses:
+        "200":
+          description: Filtered remote job listings.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JobsResponse"
+        "400":
+          description: >
+            Invalid explicit filter value, such as an unrecognized
+            country, timezone, or company slug.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SearchError"
+
+components:
+  schemas:
+    JobsResponse:
+      type: object
+      required: [updatedAt, offset, limit, totalCount, jobs]
+      properties:
+        comments:
+          type: string
+          description: Release notes or changelog for the Himalayas API.
+        updatedAt:
+          type: integer
+          format: int64
+          description: >
+            Unix timestamp in seconds (not milliseconds, despite the
+            official document) when the data was last updated.
+        offset:
+          type: integer
+          description: >
+            The offset used in this request. The search endpoint reports
+            the offset equivalent of its page parameter ((page-1)*20).
+        limit:
+          type: integer
+          description: The limit used in this request.
+        totalCount:
+          type: integer
+          description: >
+            Total number of matching jobs across all pages. A page may
+            still hold fewer than limit jobs before the last page.
+        jobs:
+          type: array
+          items:
+            $ref: "#/components/schemas/Job"
+
+    Job:
+      type: object
+      required:
+        - title
+        - excerpt
+        - companyName
+        - companySlug
+        - companyLogo
+        - employmentType
+        - seniority
+        - currency
+        - salaryPeriod
+        - locationRestrictions
+        - timezoneRestrictions
+        - categories
+        - parentCategories
+        - description
+        - pubDate
+        - expiryDate
+        - applicationLink
+        - guid
+      properties:
+        title:
+          type: string
+          description: Job title.
+        excerpt:
+          type: string
+          description: Short plain-text summary of the job.
+        companyName:
+          type: string
+          description: Name of the hiring company.
+        companySlug:
+          type: string
+          description: >
+            Canonical company slug for the search endpoint's company
+            filter and himalayas.app/companies/<slug> pages.
+        companyLogo:
+          type: string
+          description: URL of the company logo image.
+        employmentType:
+          type: string
+          description: >
+            Type of employment. 'Contractor' includes freelance and
+            contract roles.
+          enum:
+            - Full Time
+            - Part Time
+            - Contractor
+            - Temporary
+            - Intern
+            - Volunteer
+            - Other
+        minSalary:
+          type: [number, "null"]
+          description: >
+            Minimum salary in the pay period specified by salaryPeriod,
+            in the currency field. Null if not disclosed.
+        maxSalary:
+          type: [number, "null"]
+          description: >
+            Maximum salary in the pay period specified by salaryPeriod,
+            in the currency field. Null if not disclosed.
+        salaryPeriod:
+          type: string
+          description: >
+            Pay period for minSalary and maxSalary. Legacy listings
+            without an explicit period report annual.
+          enum:
+            - hourly
+            - weekly
+            - fortnightly
+            - monthly
+            - annual
+        seniority:
+          type: array
+          description: >
+            Required seniority levels. A job may accept multiple levels
+            (e.g., both Mid-level and Senior).
+          items:
+            type: string
+            enum:
+              - Entry-level
+              - Mid-level
+              - Senior
+              - Manager
+              - Director
+              - Executive
+        currency:
+          type: [string, "null"]
+          description: >
+            ISO 4217 currency code for the salary. Null whenever no
+            salary is disclosed (the official document's required enum is
+            wrong on both counts).
+        locationRestrictions:
+          type: array
+          description: >
+            Country names (plain strings, not the official document's
+            Location objects) where candidates must be located. An empty
+            array means the job is open worldwide.
+          items:
+            type: string
+        timezoneRestrictions:
+          type: array
+          description: >
+            Numeric UTC offsets the candidate must overlap with —
+            integers or fractional offsets like -3.5 or 5.75 (not the
+            official document's "UTC-5" strings). An empty array means no
+            timezone requirement.
+          items:
+            type: number
+        categories:
+          type: array
+          description: >
+            Job categories and skills, such as 'React' or 'Product
+            Management'. A dynamic set — match with substring or fuzzy
+            matching.
+          items:
+            type: string
+        parentCategories:
+          type: array
+          description: >
+            Broad job function categories such as 'Engineering' or
+            'Marketing'. May be empty.
+          items:
+            type: string
+        description:
+          type: string
+          description: >
+            Full job description as sanitized HTML. The feed carries the
+            complete posting body; there is no separate detail endpoint.
+        pubDate:
+          type: integer
+          format: int64
+          description: >
+            Unix timestamp in seconds (not milliseconds, despite the
+            official document) when the job was published.
+        expiryDate:
+          type: integer
+          format: int64
+          description: >
+            Unix timestamp in seconds (not milliseconds, despite the
+            official document) when the job expires.
+        applicationLink:
+          type: string
+          description: >
+            The job's posting page on himalayas.app. Equal to guid in
+            every sampled job.
+        guid:
+          type: string
+          description: >
+            Unique identifier for the job listing — the job's public
+            himalayas.app posting URL.
+
+    SearchError:
+      type: object
+      description: >
+        Observed 400 body of the search endpoint, e.g.
+        {"ok": false, "errors": "Invalid country"}. Differs from the
+        officially documented {"error": "..."} shape.
+      required: [ok, errors]
+      properties:
+        ok:
+          type: boolean
+        errors:
+          type: string
