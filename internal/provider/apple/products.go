@@ -2,8 +2,8 @@ package apple
 
 // Product is one Apple products-and-services filter option.
 type Product struct {
-	Code string
-	Name string
+	Code string `json:"code"`
+	Name string `json:"name"`
 }
 
 // Products is the products-and-services filter taxonomy. Unlike teams it

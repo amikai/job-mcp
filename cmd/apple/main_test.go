@@ -20,7 +20,7 @@ func TestRunSearchValidation(t *testing.T) {
 		flags searchFlags
 	}{
 		{name: "keyword", flags: searchFlags{country: cliTestCountryCode, page: 1}, want: "--keyword is required"},
-		{name: "country", flags: searchFlags{keyword: "camera", page: 1}, want: "--country is required"},
+		{name: "country or location", flags: searchFlags{keyword: "camera", page: 1}, want: "--country or --location is required"},
 		{name: "page", flags: searchFlags{keyword: "sensor", country: cliTestCountryCode}, want: "--page must be >= 1"},
 		{name: "team", flags: searchFlags{keyword: "sensor", country: cliTestCountryCode, page: 1, teams: []string{"HRDWR"}}, want: "team filter must be TEAM/SUBTEAM"},
 	}
@@ -30,6 +30,24 @@ func TestRunSearchValidation(t *testing.T) {
 			assert.ErrorContains(t, err, test.want)
 		})
 	}
+}
+
+func TestRunSearchLocationWithoutCountry(t *testing.T) {
+	// runSearch always builds its own http.Client from baseURL alone, so it
+	// cannot be pointed at apple.NewMockServer's self-signed TLS listener
+	// the way writeSearch/writeDetail tests do via server.Client(); the
+	// server round trip for --location is covered instead by
+	// TestSearchJobsMultipleLocationsWithoutCountry. This only confirms
+	// --location alone clears CLI validation.
+	err := runSearch(t.Context(), searchFlags{
+		baseURL:   "https://127.0.0.1:0",
+		timeout:   time.Second,
+		keyword:   "distributed engineer",
+		locations: []string{"TPEI", "NTC9"},
+		page:      1,
+	}, &bytes.Buffer{})
+	require.Error(t, err)
+	assert.NotContains(t, err.Error(), "is required")
 }
 
 func TestRunDetailRequiresJobID(t *testing.T) {

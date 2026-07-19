@@ -97,6 +97,25 @@ func TestAppleSearchJobsFilteredE2E(t *testing.T) {
 	require.Len(t, output.Data, 20)
 }
 
+func TestAppleSearchJobsLocationsWithoutCountryE2E(t *testing.T) {
+	client := testAppleMCPClientServer(t)
+	result, err := client.CallTool(t.Context(), &mcp.CallToolParams{
+		Name: "apple_search_jobs",
+		Arguments: map[string]any{
+			appleTestKeywordKey: "distributed engineer",
+			"locations":         []string{"TPEI", "NTC9"},
+		},
+	})
+	require.NoError(t, err)
+	require.False(t, result.IsError)
+
+	data, err := json.Marshal(result.StructuredContent)
+	require.NoError(t, err)
+	var output appleSearchOutput
+	require.NoError(t, json.Unmarshal(data, &output))
+	assert.Equal(t, 11, output.Total)
+}
+
 func TestAppleSearchJobsE2E(t *testing.T) {
 	client := testAppleMCPClientServer(t)
 	tools, err := client.ListTools(t.Context(), nil)

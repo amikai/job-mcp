@@ -53,11 +53,16 @@ func ParseTeamFilter(value string) (TeamFilter, error) {
 }
 
 // SearchRequest contains the stable, caller-facing Apple search parameters.
-// CountryCode is an ISO 3166-1 alpha-3 code such as TWN or USA; Keyword and
-// CountryCode are required and every other filter narrows the result set.
+// Keyword is required, and at least one of CountryCode or Locations must be
+// set; every other filter narrows the result set. CountryCode is an ISO
+// 3166-1 alpha-3 code such as TWN or USA. Locations are bare Apple location
+// codes at any granularity (state, metro, or city, such as TPEI, TAIP, or
+// NTC9), listed by jobs.apple.com's location typeahead. CountryCode and
+// Locations combine into one OR'd location filter when both are set.
 type SearchRequest struct {
 	Keyword     string
 	CountryCode string
+	Locations   []string
 	Sort        Sort
 
 	// Keywords are extra keyword filter chips, applied separately from the
@@ -197,7 +202,7 @@ func searchAPIRequest(request SearchRequest) (*SearchJobsRequest, error) {
 		return nil, errors.New("keyword is required")
 	}
 
-	locationID, err := countryLocationID(request.CountryCode)
+	locationIDs, err := locationFilterIDs(request)
 	if err != nil {
 		return nil, err
 	}
@@ -218,7 +223,7 @@ func searchAPIRequest(request SearchRequest) (*SearchJobsRequest, error) {
 		return nil, fmt.Errorf("invalid sort %q: %w", sort, validateErr)
 	}
 
-	filters, err := searchFilters(request, locationID)
+	filters, err := searchFilters(request, locationIDs)
 	if err != nil {
 		return nil, err
 	}
@@ -236,9 +241,33 @@ func searchAPIRequest(request SearchRequest) (*SearchJobsRequest, error) {
 	}, nil
 }
 
-func searchFilters(request SearchRequest, locationID string) (SearchFilters, error) {
+// locationFilterIDs resolves CountryCode and Locations into one OR'd list of
+// Apple location IDs; at least one of the two fields must be set.
+func locationFilterIDs(request SearchRequest) ([]string, error) {
+	var ids []string
+	if strings.TrimSpace(request.CountryCode) != "" {
+		locationID, err := countryLocationID(request.CountryCode)
+		if err != nil {
+			return nil, err
+		}
+		ids = append(ids, locationID)
+	}
+	for _, location := range request.Locations {
+		locationCode, err := filterCode("location", location)
+		if err != nil {
+			return nil, err
+		}
+		ids = append(ids, "postLocation-"+locationCode)
+	}
+	if len(ids) == 0 {
+		return nil, errors.New("at least one of country code or locations is required")
+	}
+	return ids, nil
+}
+
+func searchFilters(request SearchRequest, locationIDs []string) (SearchFilters, error) {
 	filters := SearchFilters{
-		Locations: []string{locationID},
+		Locations: locationIDs,
 	}
 	if request.HomeOffice {
 		filters.HomeOffice = NewOptBool(true)

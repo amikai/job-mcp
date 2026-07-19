@@ -9,13 +9,14 @@ import (
 )
 
 const (
-	mockCSRFToken        = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-	mockSearchKeyword    = "software engineer"
-	mockFilteredKeyword  = "engineer"
-	mockSearchLocation   = "postLocation-TWN"
-	mockFilteredLocation = "postLocation-USA"
-	MockJobID            = "200624996"
-	MockNotFoundJobID    = "999999999"
+	mockCSRFToken            = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+	mockSearchKeyword        = "software engineer"
+	mockFilteredKeyword      = "engineer"
+	mockMultiLocationKeyword = "distributed engineer"
+	mockSearchLocation       = "postLocation-TWN"
+	mockFilteredLocation     = "postLocation-USA"
+	MockJobID                = "200624996"
+	MockNotFoundJobID        = "999999999"
 )
 
 // mockFilteredFilters is the exact filter set captured in
@@ -27,6 +28,13 @@ var mockFilteredFilters = mockSearchFilters{
 	Teams:     []mockTeamFilter{{Team: "teamsAndSubTeams-HRDWR", SubTeam: "subTeam-CAM"}},
 	Products:  []string{"productsAndServices-IPHN"},
 	Languages: []string{"language-en_US"},
+}
+
+// mockMultiLocationFilters exercises a request combining more than one
+// location ID at different granularities (state and city), reusing the
+// jobs_rsp.json fixture since only the request plumbing is under test.
+var mockMultiLocationFilters = mockSearchFilters{
+	Locations: []string{"postLocation-TPEI", "postLocation-NTC9"},
 }
 
 //go:embed testdata/jobs_rsp.json
@@ -128,6 +136,8 @@ func searchFixture(r *http.Request) ([]byte, bool) {
 		return mockJobsResponse, true
 	case request.matches(mockFilteredKeyword, "newest", 2, mockFilteredFilters):
 		return mockFilteredJobsResponse, true
+	case request.matches(mockMultiLocationKeyword, "relevance", 1, mockMultiLocationFilters):
+		return mockJobsResponse, true
 	default:
 		return nil, false
 	}
@@ -137,7 +147,7 @@ func (r mockSearchRequest) hasValidEnvelope() bool {
 	return r.Locale == "en-us" &&
 		r.Format.LongDate == "MMMM D, YYYY" &&
 		r.Format.MediumDate == "MMM D, YYYY" &&
-		len(r.Filters.Locations) == 1
+		len(r.Filters.Locations) >= 1
 }
 
 func (r mockSearchRequest) matches(query, sort string, page int, filters mockSearchFilters) bool {

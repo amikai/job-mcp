@@ -21,8 +21,13 @@ var appleSearchInputRawSchema = []byte(`{
 		},
 		"country_code": {
 			"type": "string",
-			"description": "ISO 3166-1 alpha-3 country code, e.g. TWN or USA.",
+			"description": "ISO 3166-1 alpha-3 country code, e.g. TWN or USA. Required unless locations is set.",
 			"pattern": "^[A-Za-z]{3}$"
+		},
+		"locations": {
+			"type": "array",
+			"description": "Location codes at any granularity (state, metro, or city), e.g. TPEI or NTC9, OR'd with country_code. Required unless country_code is set.",
+			"items": {"type": "string", "pattern": "^[A-Za-z0-9]+$"}
 		},
 		"sort": {
 			"type": "string",
@@ -61,7 +66,7 @@ var appleSearchInputRawSchema = []byte(`{
 			"items": {"type": "string", "pattern": "^[A-Za-z_]+$"}
 		}
 	},
-	"required": ["keyword", "country_code"],
+	"required": ["keyword"],
 	"additionalProperties": false
 }`)
 
@@ -75,8 +80,9 @@ const (
 
 type appleSearchInput struct {
 	Keyword     string   `json:"keyword"`
-	CountryCode string   `json:"country_code"`
+	CountryCode string   `json:"country_code,omitempty"`
 	Sort        string   `json:"sort,omitempty"`
+	Locations   []string `json:"locations,omitempty"`
 	Keywords    []string `json:"keywords,omitempty"`
 	Teams       []string `json:"teams,omitempty"`
 	Products    []string `json:"products,omitempty"`
@@ -166,6 +172,7 @@ func appleMCPToHTTPRequest(input *appleSearchInput) (apple.SearchRequest, error)
 	return apple.SearchRequest{
 		Keyword:     input.Keyword,
 		CountryCode: input.CountryCode,
+		Locations:   input.Locations,
 		Sort:        apple.Sort(input.Sort),
 		Page:        cmp.Or(input.Page, 1),
 		HomeOffice:  input.HomeOffice,

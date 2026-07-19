@@ -31,14 +31,15 @@ func main() {
 	)
 	rootCmd := &ff.Command{
 		Name:  "apple",
-		Usage: "apple [FLAGS] <search|detail> [FLAGS]",
+		Usage: "apple [FLAGS] <search|detail|filters> [FLAGS]",
 		Flags: rootFlags,
 	}
 
 	searchFS := ff.NewFlagSet("search").SetParent(rootFlags)
 	var (
 		keyword        = searchFS.StringLong("keyword", "", "keyword query (required)")
-		country        = searchFS.StringLong("country", "", "ISO 3166-1 alpha-3 country code, e.g. TWN or USA (required)")
+		country        = searchFS.StringLong("country", "", "ISO 3166-1 alpha-3 country code, e.g. TWN or USA (required unless --location is set)")
+		locations      = searchFS.StringListLong("location", "location code at any granularity, e.g. TPEI or NTC9, OR'd with --country (repeatable)")
 		sort           = searchFS.StringEnumLong("sort", "result order", "relevance", "newest", "teamAsc", "teamDesc", "locationAsc", "locationDesc")
 		page           = searchFS.IntLong("page", 1, "1-based page of 20 results")
 		homeOffice     = searchFS.BoolLong("home-office", "only remote-eligible postings")
@@ -49,7 +50,7 @@ func main() {
 	)
 	searchCmd := &ff.Command{
 		Name:      "search",
-		Usage:     "apple search --keyword TEXT --country ISO3 [--sort ORDER] [--page N] [--home-office] [--filter-keyword TEXT] [--team TEAM/SUB] [--product CODE] [--language CODE]",
+		Usage:     "apple search --keyword TEXT [--country ISO3] [--location CODE] [--sort ORDER] [--page N] [--home-office] [--filter-keyword TEXT] [--team TEAM/SUB] [--product CODE] [--language CODE]",
 		ShortHelp: "search jobs.apple.com listings",
 		Flags:     searchFS,
 		Exec: func(ctx context.Context, args []string) error {
@@ -62,6 +63,7 @@ func main() {
 				format:         *format,
 				keyword:        *keyword,
 				country:        *country,
+				locations:      *locations,
 				sort:           *sort,
 				page:           *page,
 				homeOffice:     *homeOffice,
@@ -124,7 +126,7 @@ func main() {
 	}
 	if rootCmd.GetSelected() == rootCmd {
 		fmt.Fprintln(os.Stderr, ffhelp.Command(rootCmd))
-		fmt.Fprintln(os.Stderr, "err: a subcommand (search or detail) is required")
+		fmt.Fprintln(os.Stderr, "err: a subcommand (search, detail, or filters) is required")
 		os.Exit(1)
 	}
 	if err := rootCmd.Run(context.Background()); err != nil {
@@ -139,6 +141,7 @@ type searchFlags struct {
 	keyword        string
 	country        string
 	sort           string
+	locations      []string
 	filterKeywords []string
 	teams          []string
 	products       []string
@@ -152,8 +155,8 @@ func runSearch(ctx context.Context, flags searchFlags, out io.Writer) error {
 	if strings.TrimSpace(flags.keyword) == "" {
 		return errors.New("--keyword is required")
 	}
-	if strings.TrimSpace(flags.country) == "" {
-		return errors.New("--country is required")
+	if strings.TrimSpace(flags.country) == "" && len(flags.locations) == 0 {
+		return errors.New("--country or --location is required")
 	}
 	if flags.page < 1 {
 		return fmt.Errorf("--page must be >= 1, got %d", flags.page)
@@ -173,6 +176,7 @@ func runSearch(ctx context.Context, flags searchFlags, out io.Writer) error {
 	response, err := client.SearchJobs(ctx, apple.SearchRequest{
 		Keyword:     flags.keyword,
 		CountryCode: flags.country,
+		Locations:   flags.locations,
 		Sort:        apple.Sort(flags.sort),
 		Page:        flags.page,
 		HomeOffice:  flags.homeOffice,

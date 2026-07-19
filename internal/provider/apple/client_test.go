@@ -75,6 +75,31 @@ func TestSearchAPIRequestFilters(t *testing.T) {
 	assert.Empty(t, request.Filters.Languages)
 }
 
+func TestSearchAPIRequestMultipleLocations(t *testing.T) {
+	request, err := searchAPIRequest(SearchRequest{
+		Keyword:     "go",
+		CountryCode: testCountryCode,
+		Locations:   []string{"TPEI", "ntc9"},
+	})
+	require.NoError(t, err)
+	assert.Equal(t, []string{"postLocation-TWN", "postLocation-TPEI", "postLocation-NTC9"}, request.Filters.Locations,
+		"CountryCode and Locations combine into one OR'd list")
+}
+
+func TestSearchJobsMultipleLocationsWithoutCountry(t *testing.T) {
+	srv := NewMockServer()
+	t.Cleanup(srv.Close)
+	client, err := NewJobsClient(srv.URL, srv.Client())
+	require.NoError(t, err)
+
+	response, err := client.SearchJobs(t.Context(), SearchRequest{
+		Keyword:   mockMultiLocationKeyword,
+		Locations: []string{"tpei", "NTC9"},
+	})
+	require.NoError(t, err, "Locations alone, without CountryCode, must reach the search endpoint")
+	assert.Equal(t, 11, response.Res.TotalRecords)
+}
+
 func TestSearchJobsValidation(t *testing.T) {
 	client, err := NewJobsClient("https://jobs.apple.com", http.DefaultClient)
 	require.NoError(t, err)
@@ -85,8 +110,10 @@ func TestSearchJobsValidation(t *testing.T) {
 		request SearchRequest
 	}{
 		{name: "missing keyword", request: SearchRequest{CountryCode: testCountryCode}, want: "keyword is required"},
+		{name: "missing location", request: SearchRequest{Keyword: "go"}, want: "at least one of country code or locations is required"},
 		{name: "short country", request: SearchRequest{Keyword: "go", CountryCode: "TW"}, want: "three ascii letters"},
 		{name: "non-ascii country", request: SearchRequest{Keyword: "go", CountryCode: "台灣"}, want: "three ascii letters"},
+		{name: "invalid location code", request: SearchRequest{Keyword: "go", Locations: []string{"tpei!"}}, want: "location code must contain only ascii letters and digits"},
 		{name: "negative page", request: SearchRequest{Keyword: "go", CountryCode: testCountryCode, Page: -1}, want: "page must be >= 1"},
 		{name: "invalid sort", request: SearchRequest{Keyword: "go", CountryCode: testCountryCode, Sort: Sort("oldest")}, want: "invalid sort"},
 		{name: "blank keyword filter", request: SearchRequest{Keyword: "go", CountryCode: testCountryCode, Keywords: []string{" "}}, want: "keyword filters must not be blank"},
