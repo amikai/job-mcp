@@ -16,23 +16,23 @@ var appleSearchInputRawSchema = []byte(`{
 	"properties": {
 		"keyword": {
 			"type": "string",
-			"description": "Free-text keyword query. Apple ranks matches by relevance unless sort is newest.",
+			"description": "Free-text keyword query.",
 			"minLength": 1
 		},
 		"country_code": {
 			"type": "string",
-			"description": "ISO 3166-1 alpha-3 country code, such as TWN, USA, JPN, or SGP.",
+			"description": "ISO 3166-1 alpha-3 country code, e.g. TWN or USA.",
 			"pattern": "^[A-Za-z]{3}$"
 		},
 		"sort": {
 			"type": "string",
-			"description": "Result order. Relevance ranks against keyword; newest orders by posting date; the rest sort by team or location name.",
+			"description": "Result order. Defaults to relevance.",
 			"enum": ["relevance", "newest", "teamAsc", "teamDesc", "locationAsc", "locationDesc"],
 			"default": "relevance"
 		},
 		"page": {
 			"type": "integer",
-			"description": "1-based page number; a full page has 20 results.",
+			"description": "1-based page number; 20 results per page.",
 			"minimum": 1,
 			"default": 1
 		},
@@ -42,22 +42,22 @@ var appleSearchInputRawSchema = []byte(`{
 		},
 		"keywords": {
 			"type": "array",
-			"description": "Extra keyword filter chips applied alongside keyword.",
+			"description": "Extra keyword filter chips.",
 			"items": {"type": "string", "minLength": 1}
 		},
 		"teams": {
 			"type": "array",
-			"description": "TEAM/SUBTEAM code pairs from apple_get_search_filters, such as HRDWR/CAM. Results match any listed pair.",
+			"description": "TEAM/SUBTEAM pairs, options from apple_get_search_filters.",
 			"items": {"type": "string", "pattern": "^[A-Za-z0-9]+/[A-Za-z0-9]+$"}
 		},
 		"products": {
 			"type": "array",
-			"description": "Product codes from apple_get_search_filters, such as IPHN.",
+			"description": "Product codes, options from apple_get_search_filters.",
 			"items": {"type": "string", "pattern": "^[A-Za-z0-9]+$"}
 		},
 		"languages": {
 			"type": "array",
-			"description": "Case-sensitive language codes such as en_US or zh_HK.",
+			"description": "Language codes, e.g. en_US or zh_HK.",
 			"items": {"type": "string", "pattern": "^[A-Za-z_]+$"}
 		}
 	},
@@ -239,7 +239,7 @@ func appleLocationLabel(name, country string) string {
 func RegisterApple(server *mcp.Server, client *apple.JobsClient) {
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        appleSearchToolName,
-		Description: "Search jobs on Apple Careers by keyword and ISO alpha-3 country code, optionally narrowed by the team and product codes from apple_get_search_filters.",
+		Description: "Search jobs on the Apple careers site.",
 		Annotations: &mcp.ToolAnnotations{Title: "Search Apple Careers jobs", ReadOnlyHint: true},
 		InputSchema: appleSearchInputSchema,
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, input *appleSearchInput) (*mcp.CallToolResult, *appleSearchOutput, error) {
@@ -256,7 +256,7 @@ func RegisterApple(server *mcp.Server, client *apple.JobsClient) {
 
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        appleFiltersToolName,
-		Description: "Get the team and product filter codes accepted by apple_search_jobs. Teams are fetched live from Apple; products change rarely. Languages need no lookup: they are locale codes such as en_US or zh_HK.",
+		Description: "Get Apple Careers' current search filter values. Call before filtered apple_search_jobs queries.",
 		Annotations: &mcp.ToolAnnotations{Title: "Get Apple search filters", ReadOnlyHint: true},
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, _ *struct{}) (*mcp.CallToolResult, *appleFiltersOutput, error) {
 		teams, err := client.ListTeams(ctx)
@@ -268,7 +268,7 @@ func RegisterApple(server *mcp.Server, client *apple.JobsClient) {
 
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        appleDetailToolName,
-		Description: "Get the full posting, responsibilities, and qualifications for an Apple job by numeric position ID.",
+		Description: "Get the full job description and requirements for an Apple job by job ID.",
 		Annotations: &mcp.ToolAnnotations{Title: "Get Apple job details", ReadOnlyHint: true},
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, input *appleDetailInput) (*mcp.CallToolResult, *appleDetailOutput, error) {
 		response, err := client.JobDetail(ctx, input.JobID)
