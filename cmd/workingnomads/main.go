@@ -131,13 +131,17 @@ type jobSummaryJSON struct {
 }
 
 func summarize(j workingnomads.Job) jobSummaryJSON {
+	var postedAt string
+	if !j.PostedAt.IsZero() {
+		postedAt = j.PostedAt.Format(time.RFC3339)
+	}
 	return jobSummaryJSON{
 		ID:       j.ID,
 		Title:    j.Title,
 		Company:  j.Company,
 		Category: j.Category,
 		Location: j.Location,
-		PostedAt: j.PostedAt.Format(time.RFC3339),
+		PostedAt: postedAt,
 		URL:      j.URL,
 	}
 }
@@ -235,7 +239,9 @@ func printDetail(j workingnomads.Job, format string) error {
 	if len(j.Tags) > 0 {
 		fmt.Printf("Tags: %v\n", j.Tags)
 	}
-	fmt.Printf("Posted: %s\n", j.PostedAt.Format(time.RFC3339))
+	if !j.PostedAt.IsZero() {
+		fmt.Printf("Posted: %s\n", j.PostedAt.Format(time.RFC3339))
+	}
 	fmt.Printf("URL: %s\n", j.URL)
 
 	rendered, err := html2text.FromString(j.Description, html2text.Options{})
