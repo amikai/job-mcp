@@ -18,9 +18,13 @@ import (
 )
 
 var regexMap = map[string]ogenregex.Regexp{
-	"^[0-9]+$":                ogenregex.MustCompile("^[0-9]+$"),
-	"^[0-9a-f]{64}$":          ogenregex.MustCompile("^[0-9a-f]{64}$"),
-	"^postLocation-[A-Z]{3}$": ogenregex.MustCompile("^postLocation-[A-Z]{3}$"),
+	"^[0-9]+$":                        ogenregex.MustCompile("^[0-9]+$"),
+	"^[0-9a-f]{64}$":                  ogenregex.MustCompile("^[0-9a-f]{64}$"),
+	"^language-[A-Za-z_]+$":           ogenregex.MustCompile("^language-[A-Za-z_]+$"),
+	"^postLocation-[A-Za-z0-9]+$":     ogenregex.MustCompile("^postLocation-[A-Za-z0-9]+$"),
+	"^productsAndServices-[A-Z0-9]+$": ogenregex.MustCompile("^productsAndServices-[A-Z0-9]+$"),
+	"^subTeam-[A-Z0-9]+$":             ogenregex.MustCompile("^subTeam-[A-Z0-9]+$"),
+	"^teamsAndSubTeams-[A-Z0-9]+$":    ogenregex.MustCompile("^teamsAndSubTeams-[A-Z0-9]+$"),
 }
 var (
 	// Allocate option closure once.

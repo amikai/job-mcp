@@ -561,6 +561,52 @@ func (s *JobSummary) SetHomeOffice(val bool) {
 	s.HomeOffice = val
 }
 
+// NewOptBool returns new OptBool with value set to v.
+func NewOptBool(v bool) OptBool {
+	return OptBool{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptBool is optional bool.
+type OptBool struct {
+	Value bool
+	Set   bool
+}
+
+// IsSet returns true if OptBool was set.
+func (o OptBool) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptBool) Reset() {
+	var v bool
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptBool) SetTo(v bool) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptBool) Get() (v bool, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptBool) Or(d bool) bool {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
 // NewOptNilString returns new OptNilString with value set to v.
 func NewOptNilString(v string) OptNilString {
 	return OptNilString{
@@ -677,7 +723,12 @@ func (o OptString) Or(d string) string {
 
 // Ref: #/components/schemas/SearchFilters
 type SearchFilters struct {
-	Locations []string `json:"locations"`
+	Locations  []string           `json:"locations"`
+	HomeOffice OptBool            `json:"homeOffice"`
+	Keywords   []string           `json:"keywords"`
+	Languages  []string           `json:"languages"`
+	Products   []string           `json:"products"`
+	Teams      []SearchTeamFilter `json:"teams"`
 }
 
 // GetLocations returns the value of Locations.
@@ -685,9 +736,59 @@ func (s *SearchFilters) GetLocations() []string {
 	return s.Locations
 }
 
+// GetHomeOffice returns the value of HomeOffice.
+func (s *SearchFilters) GetHomeOffice() OptBool {
+	return s.HomeOffice
+}
+
+// GetKeywords returns the value of Keywords.
+func (s *SearchFilters) GetKeywords() []string {
+	return s.Keywords
+}
+
+// GetLanguages returns the value of Languages.
+func (s *SearchFilters) GetLanguages() []string {
+	return s.Languages
+}
+
+// GetProducts returns the value of Products.
+func (s *SearchFilters) GetProducts() []string {
+	return s.Products
+}
+
+// GetTeams returns the value of Teams.
+func (s *SearchFilters) GetTeams() []SearchTeamFilter {
+	return s.Teams
+}
+
 // SetLocations sets the value of Locations.
 func (s *SearchFilters) SetLocations(val []string) {
 	s.Locations = val
+}
+
+// SetHomeOffice sets the value of HomeOffice.
+func (s *SearchFilters) SetHomeOffice(val OptBool) {
+	s.HomeOffice = val
+}
+
+// SetKeywords sets the value of Keywords.
+func (s *SearchFilters) SetKeywords(val []string) {
+	s.Keywords = val
+}
+
+// SetLanguages sets the value of Languages.
+func (s *SearchFilters) SetLanguages(val []string) {
+	s.Languages = val
+}
+
+// SetProducts sets the value of Products.
+func (s *SearchFilters) SetProducts(val []string) {
+	s.Products = val
+}
+
+// SetTeams sets the value of Teams.
+func (s *SearchFilters) SetTeams(val []SearchTeamFilter) {
+	s.Teams = val
 }
 
 // Ref: #/components/schemas/SearchJobsRequest
@@ -797,8 +898,12 @@ func (s *SearchJobsRequestLocale) UnmarshalText(data []byte) error {
 type SearchJobsRequestSort string
 
 const (
-	SearchJobsRequestSortRelevance SearchJobsRequestSort = "relevance"
-	SearchJobsRequestSortNewest    SearchJobsRequestSort = "newest"
+	SearchJobsRequestSortRelevance    SearchJobsRequestSort = "relevance"
+	SearchJobsRequestSortNewest       SearchJobsRequestSort = "newest"
+	SearchJobsRequestSortTeamAsc      SearchJobsRequestSort = "teamAsc"
+	SearchJobsRequestSortTeamDesc     SearchJobsRequestSort = "teamDesc"
+	SearchJobsRequestSortLocationAsc  SearchJobsRequestSort = "locationAsc"
+	SearchJobsRequestSortLocationDesc SearchJobsRequestSort = "locationDesc"
 )
 
 // AllValues returns all SearchJobsRequestSort values.
@@ -806,6 +911,10 @@ func (SearchJobsRequestSort) AllValues() []SearchJobsRequestSort {
 	return []SearchJobsRequestSort{
 		SearchJobsRequestSortRelevance,
 		SearchJobsRequestSortNewest,
+		SearchJobsRequestSortTeamAsc,
+		SearchJobsRequestSortTeamDesc,
+		SearchJobsRequestSortLocationAsc,
+		SearchJobsRequestSortLocationDesc,
 	}
 }
 
@@ -815,6 +924,14 @@ func (s SearchJobsRequestSort) MarshalText() ([]byte, error) {
 	case SearchJobsRequestSortRelevance:
 		return []byte(s), nil
 	case SearchJobsRequestSortNewest:
+		return []byte(s), nil
+	case SearchJobsRequestSortTeamAsc:
+		return []byte(s), nil
+	case SearchJobsRequestSortTeamDesc:
+		return []byte(s), nil
+	case SearchJobsRequestSortLocationAsc:
+		return []byte(s), nil
+	case SearchJobsRequestSortLocationDesc:
 		return []byte(s), nil
 	default:
 		return nil, errors.Errorf("invalid value: %q", s)
@@ -829,6 +946,18 @@ func (s *SearchJobsRequestSort) UnmarshalText(data []byte) error {
 		return nil
 	case SearchJobsRequestSortNewest:
 		*s = SearchJobsRequestSortNewest
+		return nil
+	case SearchJobsRequestSortTeamAsc:
+		*s = SearchJobsRequestSortTeamAsc
+		return nil
+	case SearchJobsRequestSortTeamDesc:
+		*s = SearchJobsRequestSortTeamDesc
+		return nil
+	case SearchJobsRequestSortLocationAsc:
+		*s = SearchJobsRequestSortLocationAsc
+		return nil
+	case SearchJobsRequestSortLocationDesc:
+		*s = SearchJobsRequestSortLocationDesc
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)
@@ -904,6 +1033,72 @@ func (s *SearchResult) SetTotalRecords(val int) {
 	s.TotalRecords = val
 }
 
+// Ref: #/components/schemas/SearchTeamFilter
+type SearchTeamFilter struct {
+	Team    string `json:"team"`
+	SubTeam string `json:"subTeam"`
+}
+
+// GetTeam returns the value of Team.
+func (s *SearchTeamFilter) GetTeam() string {
+	return s.Team
+}
+
+// GetSubTeam returns the value of SubTeam.
+func (s *SearchTeamFilter) GetSubTeam() string {
+	return s.SubTeam
+}
+
+// SetTeam sets the value of Team.
+func (s *SearchTeamFilter) SetTeam(val string) {
+	s.Team = val
+}
+
+// SetSubTeam sets the value of SubTeam.
+func (s *SearchTeamFilter) SetSubTeam(val string) {
+	s.SubTeam = val
+}
+
+// Ref: #/components/schemas/SubTeam
+type SubTeam struct {
+	// Bare sub-team code, such as CAM.
+	Code string `json:"code"`
+	// Bare parent team code, such as HRDWR.
+	TeamCode string `json:"teamCode"`
+	// Full label, such as "Hardware: Camera Technologies".
+	DisplayName string `json:"displayName"`
+}
+
+// GetCode returns the value of Code.
+func (s *SubTeam) GetCode() string {
+	return s.Code
+}
+
+// GetTeamCode returns the value of TeamCode.
+func (s *SubTeam) GetTeamCode() string {
+	return s.TeamCode
+}
+
+// GetDisplayName returns the value of DisplayName.
+func (s *SubTeam) GetDisplayName() string {
+	return s.DisplayName
+}
+
+// SetCode sets the value of Code.
+func (s *SubTeam) SetCode(val string) {
+	s.Code = val
+}
+
+// SetTeamCode sets the value of TeamCode.
+func (s *SubTeam) SetTeamCode(val string) {
+	s.TeamCode = val
+}
+
+// SetDisplayName sets the value of DisplayName.
+func (s *SubTeam) SetDisplayName(val string) {
+	s.DisplayName = val
+}
+
 // Ref: #/components/schemas/Team
 type Team struct {
 	TeamName string `json:"teamName"`
@@ -917,4 +1112,57 @@ func (s *Team) GetTeamName() string {
 // SetTeamName sets the value of TeamName.
 func (s *Team) SetTeamName(val string) {
 	s.TeamName = val
+}
+
+// Ref: #/components/schemas/TeamGroup
+type TeamGroup struct {
+	ID string `json:"id"`
+	// Human-readable group name, such as "Hardware".
+	Type  string    `json:"type"`
+	Teams []SubTeam `json:"teams"`
+}
+
+// GetID returns the value of ID.
+func (s *TeamGroup) GetID() string {
+	return s.ID
+}
+
+// GetType returns the value of Type.
+func (s *TeamGroup) GetType() string {
+	return s.Type
+}
+
+// GetTeams returns the value of Teams.
+func (s *TeamGroup) GetTeams() []SubTeam {
+	return s.Teams
+}
+
+// SetID sets the value of ID.
+func (s *TeamGroup) SetID(val string) {
+	s.ID = val
+}
+
+// SetType sets the value of Type.
+func (s *TeamGroup) SetType(val string) {
+	s.Type = val
+}
+
+// SetTeams sets the value of Teams.
+func (s *TeamGroup) SetTeams(val []SubTeam) {
+	s.Teams = val
+}
+
+// Ref: #/components/schemas/TeamsResponse
+type TeamsResponse struct {
+	Res []TeamGroup `json:"res"`
+}
+
+// GetRes returns the value of Res.
+func (s *TeamsResponse) GetRes() []TeamGroup {
+	return s.Res
+}
+
+// SetRes sets the value of Res.
+func (s *TeamsResponse) SetRes(val []TeamGroup) {
+	s.Res = val
 }

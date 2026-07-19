@@ -3,6 +3,7 @@ package openingsmcp
 import (
 	"cmp"
 	"context"
+	"fmt"
 	"strings"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -15,43 +16,79 @@ var appleSearchInputRawSchema = []byte(`{
 	"properties": {
 		"keyword": {
 			"type": "string",
-			"description": "Free-text keyword query. Apple ranks matches by relevance unless sort is newest.",
+			"description": "Free-text keyword query.",
 			"minLength": 1
 		},
 		"country_code": {
 			"type": "string",
-			"description": "ISO 3166-1 alpha-3 country code, such as TWN, USA, JPN, or SGP.",
+			"description": "ISO 3166-1 alpha-3 country code, e.g. TWN or USA. Required unless locations is set.",
 			"pattern": "^[A-Za-z]{3}$"
+		},
+		"locations": {
+			"type": "array",
+			"description": "Case-sensitive location codes at any granularity (state, metro, or city), e.g. TPEI or state953, OR'd with country_code. Required unless country_code is set.",
+			"items": {"type": "string", "pattern": "^[A-Za-z0-9]+$"}
 		},
 		"sort": {
 			"type": "string",
-			"description": "Result order. Relevance ranks against keyword; newest orders by posting date.",
-			"enum": ["relevance", "newest"],
+			"description": "Result order. Defaults to relevance.",
+			"enum": ["relevance", "newest", "teamAsc", "teamDesc", "locationAsc", "locationDesc"],
 			"default": "relevance"
 		},
 		"page": {
 			"type": "integer",
-			"description": "1-based page number; a full page has 20 results.",
+			"description": "1-based page number; 20 results per page.",
 			"minimum": 1,
 			"default": 1
+		},
+		"home_office": {
+			"type": "boolean",
+			"description": "Only remote-eligible postings."
+		},
+		"keywords": {
+			"type": "array",
+			"description": "Extra keyword filter chips.",
+			"items": {"type": "string", "minLength": 1}
+		},
+		"teams": {
+			"type": "array",
+			"description": "TEAM/SUBTEAM pairs, options from apple_get_search_filters.",
+			"items": {"type": "string", "pattern": "^[A-Za-z0-9]+/[A-Za-z0-9]+$"}
+		},
+		"products": {
+			"type": "array",
+			"description": "Product codes, options from apple_get_search_filters.",
+			"items": {"type": "string", "pattern": "^[A-Za-z0-9]+$"}
+		},
+		"languages": {
+			"type": "array",
+			"description": "Language codes, e.g. en_US or zh_HK.",
+			"items": {"type": "string", "pattern": "^[A-Za-z_]+$"}
 		}
 	},
-	"required": ["keyword", "country_code"],
+	"required": ["keyword"],
 	"additionalProperties": false
 }`)
 
 var appleSearchInputSchema = mustSchema(appleSearchInputRawSchema)
 
 const (
-	appleSearchToolName = "apple_search_jobs"
-	appleDetailToolName = "apple_get_job_detail"
+	appleSearchToolName  = "apple_search_jobs"
+	appleDetailToolName  = "apple_get_job_detail"
+	appleFiltersToolName = "apple_get_search_filters"
 )
 
 type appleSearchInput struct {
-	Keyword     string `json:"keyword"`
-	CountryCode string `json:"country_code"`
-	Sort        string `json:"sort,omitempty"`
-	Page        int    `json:"page,omitempty"`
+	Keyword     string   `json:"keyword"`
+	CountryCode string   `json:"country_code,omitempty"`
+	Sort        string   `json:"sort,omitempty"`
+	Locations   []string `json:"locations,omitempty"`
+	Keywords    []string `json:"keywords,omitempty"`
+	Teams       []string `json:"teams,omitempty"`
+	Products    []string `json:"products,omitempty"`
+	Languages   []string `json:"languages,omitempty"`
+	Page        int      `json:"page,omitempty"`
+	HomeOffice  bool     `json:"home_office,omitempty"`
 }
 
 type appleSearchOutput struct {
@@ -70,6 +107,37 @@ type appleJobSummary struct {
 	Locations   []string `json:"locations,omitempty"`
 	WeeklyHours float64  `json:"weekly_hours,omitempty"`
 	HomeOffice  bool     `json:"home_office,omitempty"`
+}
+
+type appleFilterOption struct {
+	Value string `json:"value" jsonschema:"Code to pass to apple_search_jobs."`
+	Name  string `json:"name" jsonschema:"Human-readable label."`
+}
+
+type appleFiltersOutput struct {
+	Teams    []appleFilterOption `json:"teams" jsonschema:"TEAM/SUBTEAM pairs for apple_search_jobs teams, fetched live from Apple."`
+	Products []appleFilterOption `json:"products" jsonschema:"Product codes for apple_search_jobs products."`
+}
+
+func appleHTTPToMCPFilters(teams *apple.TeamsResponse) *appleFiltersOutput {
+	output := &appleFiltersOutput{
+		Products: make([]appleFilterOption, 0, len(apple.Products)),
+	}
+	for _, group := range teams.Res {
+		for _, subTeam := range group.Teams {
+			output.Teams = append(output.Teams, appleFilterOption{
+				Value: subTeam.TeamCode + "/" + subTeam.Code,
+				Name:  subTeam.DisplayName,
+			})
+		}
+	}
+	for _, product := range apple.Products {
+		output.Products = append(output.Products, appleFilterOption{
+			Value: product.Code,
+			Name:  product.Name,
+		})
+	}
+	return output
 }
 
 type appleDetailInput struct {
@@ -92,13 +160,27 @@ type appleDetailOutput struct {
 	HomeOffice              bool     `json:"home_office,omitempty"`
 }
 
-func appleMCPToHTTPRequest(input *appleSearchInput) apple.SearchRequest {
+func appleMCPToHTTPRequest(input *appleSearchInput) (apple.SearchRequest, error) {
+	teams := make([]apple.TeamFilter, 0, len(input.Teams))
+	for _, value := range input.Teams {
+		team, err := apple.ParseTeamFilter(value)
+		if err != nil {
+			return apple.SearchRequest{}, fmt.Errorf("parse team filter: %w", err)
+		}
+		teams = append(teams, team)
+	}
 	return apple.SearchRequest{
 		Keyword:     input.Keyword,
 		CountryCode: input.CountryCode,
+		Locations:   input.Locations,
 		Sort:        apple.Sort(input.Sort),
 		Page:        cmp.Or(input.Page, 1),
-	}
+		HomeOffice:  input.HomeOffice,
+		Keywords:    input.Keywords,
+		Teams:       teams,
+		Products:    input.Products,
+		Languages:   input.Languages,
+	}, nil
 }
 
 func appleHTTPToMCPResponse(page int, response *apple.SearchResponse) *appleSearchOutput {
@@ -164,11 +246,14 @@ func appleLocationLabel(name, country string) string {
 func RegisterApple(server *mcp.Server, client *apple.JobsClient) {
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        appleSearchToolName,
-		Description: "Search jobs on Apple Careers by keyword and ISO alpha-3 country code.",
+		Description: "Search jobs on the Apple careers site.",
 		Annotations: &mcp.ToolAnnotations{Title: "Search Apple Careers jobs", ReadOnlyHint: true},
 		InputSchema: appleSearchInputSchema,
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, input *appleSearchInput) (*mcp.CallToolResult, *appleSearchOutput, error) {
-		request := appleMCPToHTTPRequest(input)
+		request, err := appleMCPToHTTPRequest(input)
+		if err != nil {
+			return errorResult(err), nil, nil
+		}
 		response, err := client.SearchJobs(ctx, request)
 		if err != nil {
 			return errorResult(err), nil, nil
@@ -177,8 +262,20 @@ func RegisterApple(server *mcp.Server, client *apple.JobsClient) {
 	})
 
 	mcp.AddTool(server, &mcp.Tool{
+		Name:        appleFiltersToolName,
+		Description: "Get Apple Careers' current search filter values. Call before filtered apple_search_jobs queries.",
+		Annotations: &mcp.ToolAnnotations{Title: "Get Apple search filters", ReadOnlyHint: true},
+	}, func(ctx context.Context, _ *mcp.CallToolRequest, _ *struct{}) (*mcp.CallToolResult, *appleFiltersOutput, error) {
+		teams, err := client.ListTeams(ctx)
+		if err != nil {
+			return errorResult(err), nil, nil
+		}
+		return nil, appleHTTPToMCPFilters(teams), nil
+	})
+
+	mcp.AddTool(server, &mcp.Tool{
 		Name:        appleDetailToolName,
-		Description: "Get the full posting, responsibilities, and qualifications for an Apple job by numeric position ID.",
+		Description: "Get the full job description and requirements for an Apple job by job ID.",
 		Annotations: &mcp.ToolAnnotations{Title: "Get Apple job details", ReadOnlyHint: true},
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, input *appleDetailInput) (*mcp.CallToolResult, *appleDetailOutput, error) {
 		response, err := client.JobDetail(ctx, input.JobID)

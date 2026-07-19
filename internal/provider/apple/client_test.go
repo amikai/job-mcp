@@ -32,22 +32,82 @@ func TestSearchJobs(t *testing.T) {
 	assert.Equal(t, "Taipei", first.Locations[0].Name)
 }
 
-func TestSearchJobsPageAndSort(t *testing.T) {
+func TestSearchJobsFiltered(t *testing.T) {
 	srv := NewMockServer()
 	t.Cleanup(srv.Close)
 	client, err := NewJobsClient(srv.URL, srv.Client())
 	require.NoError(t, err)
 
 	response, err := client.SearchJobs(t.Context(), SearchRequest{
-		Keyword:     "camera",
+		Keyword:     "engineer",
 		CountryCode: "USA",
 		Sort:        SortNewest,
 		Page:        2,
+		Keywords:    []string{"camera"},
+		Teams:       []TeamFilter{{TeamCode: "hrdwr", SubTeamCode: "cam"}},
+		Products:    []string{"iphn"},
+		Languages:   []string{"en_US"},
 	})
 	require.NoError(t, err)
-	assert.Equal(t, 250, response.Res.TotalRecords)
+	assert.Equal(t, 63, response.Res.TotalRecords)
 	require.Len(t, response.Res.SearchResults, 20)
-	assert.Equal(t, "200669881", response.Res.SearchResults[0].PositionId)
+	assert.Equal(t, "200666897", response.Res.SearchResults[0].PositionId)
+}
+
+func TestSearchAPIRequestFilters(t *testing.T) {
+	request, err := searchAPIRequest(SearchRequest{
+		Keyword:     "go",
+		CountryCode: testCountryCode,
+		HomeOffice:  true,
+	})
+	require.NoError(t, err)
+	homeOffice, ok := request.Filters.HomeOffice.Get()
+	require.True(t, ok)
+	assert.True(t, homeOffice)
+
+	request, err = searchAPIRequest(SearchRequest{Keyword: "go", CountryCode: testCountryCode})
+	require.NoError(t, err)
+	_, ok = request.Filters.HomeOffice.Get()
+	assert.False(t, ok, "homeOffice must be omitted unless requested, matching the site")
+	assert.Empty(t, request.Filters.Keywords)
+	assert.Empty(t, request.Filters.Teams)
+	assert.Empty(t, request.Filters.Products)
+	assert.Empty(t, request.Filters.Languages)
+}
+
+func TestSearchAPIRequestMultipleLocations(t *testing.T) {
+	request, err := searchAPIRequest(SearchRequest{
+		Keyword:     "go",
+		CountryCode: testCountryCode,
+		Locations:   []string{"TPEI", "state953"},
+	})
+	require.NoError(t, err)
+	assert.Equal(t, []string{"postLocation-TWN", "postLocation-TPEI", "postLocation-state953"}, request.Filters.Locations,
+		"CountryCode and Locations combine into one OR'd list, preserving location-code case")
+}
+
+func TestLocationFilterCodePreservesCase(t *testing.T) {
+	// Apple location codes are case-sensitive: postLocation-state953 and
+	// postLocation-STATE953 are different filters, and only the correctly
+	// cased one returns live matches. Unlike team, sub-team, and product
+	// codes, location codes must never be uppercased.
+	request, err := searchAPIRequest(SearchRequest{Keyword: "go", Locations: []string{"state953"}})
+	require.NoError(t, err)
+	assert.Equal(t, []string{"postLocation-state953"}, request.Filters.Locations)
+}
+
+func TestSearchJobsMultipleLocationsWithoutCountry(t *testing.T) {
+	srv := NewMockServer()
+	t.Cleanup(srv.Close)
+	client, err := NewJobsClient(srv.URL, srv.Client())
+	require.NoError(t, err)
+
+	response, err := client.SearchJobs(t.Context(), SearchRequest{
+		Keyword:   mockMultiLocationKeyword,
+		Locations: []string{"TPEI", "NTC9"},
+	})
+	require.NoError(t, err, "Locations alone, without CountryCode, must reach the search endpoint")
+	assert.Equal(t, 11, response.Res.TotalRecords)
 }
 
 func TestSearchJobsValidation(t *testing.T) {
@@ -60,10 +120,17 @@ func TestSearchJobsValidation(t *testing.T) {
 		request SearchRequest
 	}{
 		{name: "missing keyword", request: SearchRequest{CountryCode: testCountryCode}, want: "keyword is required"},
+		{name: "missing location", request: SearchRequest{Keyword: "go"}, want: "at least one of country code or locations is required"},
 		{name: "short country", request: SearchRequest{Keyword: "go", CountryCode: "TW"}, want: "three ascii letters"},
 		{name: "non-ascii country", request: SearchRequest{Keyword: "go", CountryCode: "台灣"}, want: "three ascii letters"},
+		{name: "invalid location code", request: SearchRequest{Keyword: "go", Locations: []string{"tpei!"}}, want: "location code must contain only ascii letters and digits"},
 		{name: "negative page", request: SearchRequest{Keyword: "go", CountryCode: testCountryCode, Page: -1}, want: "page must be >= 1"},
 		{name: "invalid sort", request: SearchRequest{Keyword: "go", CountryCode: testCountryCode, Sort: Sort("oldest")}, want: "invalid sort"},
+		{name: "blank keyword filter", request: SearchRequest{Keyword: "go", CountryCode: testCountryCode, Keywords: []string{" "}}, want: "keyword filters must not be blank"},
+		{name: "blank team code", request: SearchRequest{Keyword: "go", CountryCode: testCountryCode, Teams: []TeamFilter{{SubTeamCode: "AF"}}}, want: "team code must not be blank"},
+		{name: "invalid sub-team code", request: SearchRequest{Keyword: "go", CountryCode: testCountryCode, Teams: []TeamFilter{{TeamCode: "SFTWR", SubTeamCode: "A-F"}}}, want: "sub-team code must contain only ascii letters and digits"},
+		{name: "invalid product code", request: SearchRequest{Keyword: "go", CountryCode: testCountryCode, Products: []string{"iPhone 17"}}, want: "product code must contain only ascii letters and digits"},
+		{name: "invalid language code", request: SearchRequest{Keyword: "go", CountryCode: testCountryCode, Languages: []string{"zh-TW"}}, want: "language code must contain only ascii letters and underscores"},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -71,6 +138,34 @@ func TestSearchJobsValidation(t *testing.T) {
 			assert.ErrorContains(t, err, test.want)
 		})
 	}
+}
+
+func TestListTeams(t *testing.T) {
+	srv := NewMockServer()
+	t.Cleanup(srv.Close)
+	client, err := NewJobsClient(srv.URL, srv.Client())
+	require.NoError(t, err)
+
+	response, err := client.ListTeams(t.Context())
+	require.NoError(t, err)
+	require.Len(t, response.Res, 11)
+
+	first := response.Res[0]
+	assert.Equal(t, "teamsAndSubTeams-MLAI", first.ID)
+	assert.Equal(t, "Machine Learning and AI", first.Type)
+	require.NotEmpty(t, first.Teams)
+	assert.Equal(t, "MLI", first.Teams[0].Code)
+	assert.Equal(t, "MLAI", first.Teams[0].TeamCode)
+	assert.Equal(t, "Machine Learning and AI: Machine Learning Infrastructure", first.Teams[0].DisplayName)
+}
+
+func TestParseTeamFilter(t *testing.T) {
+	team, err := ParseTeamFilter("HRDWR/CAM")
+	require.NoError(t, err)
+	assert.Equal(t, TeamFilter{TeamCode: "HRDWR", SubTeamCode: "CAM"}, team)
+
+	_, err = ParseTeamFilter("HRDWR")
+	assert.ErrorContains(t, err, "TEAM/SUBTEAM")
 }
 
 func TestJobDetail(t *testing.T) {

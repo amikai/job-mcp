@@ -28,15 +28,59 @@ const (
 	SortRelevance Sort = SearchJobsRequestSortRelevance
 	// SortNewest orders results by posting date, newest first.
 	SortNewest Sort = SearchJobsRequestSortNewest
+	// SortTeamAsc and the orderings below sort by team or location name.
+	SortTeamAsc      Sort = SearchJobsRequestSortTeamAsc
+	SortTeamDesc     Sort = SearchJobsRequestSortTeamDesc
+	SortLocationAsc  Sort = SearchJobsRequestSortLocationAsc
+	SortLocationDesc Sort = SearchJobsRequestSortLocationDesc
 )
 
+// TeamFilter selects one Apple team and sub-team pair by bare code, such as
+// {SFTWR, AF} for "Software and Services: Apps and Frameworks". Codes are
+// listed by [JobsClient.ListTeams].
+type TeamFilter struct {
+	TeamCode    string
+	SubTeamCode string
+}
+
+// ParseTeamFilter splits a TEAM/SUBTEAM code pair such as HRDWR/CAM.
+func ParseTeamFilter(value string) (TeamFilter, error) {
+	teamCode, subTeamCode, ok := strings.Cut(value, "/")
+	if !ok {
+		return TeamFilter{}, fmt.Errorf("team filter must be TEAM/SUBTEAM codes such as HRDWR/CAM, got %q", value)
+	}
+	return TeamFilter{TeamCode: teamCode, SubTeamCode: subTeamCode}, nil
+}
+
 // SearchRequest contains the stable, caller-facing Apple search parameters.
-// CountryCode is an ISO 3166-1 alpha-3 code such as TWN or USA.
+// Keyword is required, and at least one of CountryCode or Locations must be
+// set; every other filter narrows the result set. CountryCode is an ISO
+// 3166-1 alpha-3 code such as TWN or USA. Locations are bare, case-sensitive
+// Apple location codes at any granularity (state, metro, or city, such as
+// TPEI or state953), listed by jobs.apple.com's location typeahead; passing
+// the wrong case (e.g. STATE953) resolves to a different, usually empty,
+// filter. CountryCode and Locations combine into one OR'd location filter
+// when both are set.
 type SearchRequest struct {
 	Keyword     string
 	CountryCode string
+	Locations   []string
 	Sort        Sort
-	Page        int
+
+	// Keywords are extra keyword filter chips, applied separately from the
+	// ranked Keyword query.
+	Keywords []string
+	// Teams selects team and sub-team pairs; results match any listed pair.
+	Teams []TeamFilter
+	// Products are bare product codes such as IPHN, MAC, or ICLD.
+	Products []string
+	// Languages are case-sensitive language codes such as en_US or zh_HK,
+	// listed by the public /api/v1/refData/languagesByInput endpoint.
+	Languages []string
+
+	Page int
+	// HomeOffice keeps only remote-eligible postings when true.
+	HomeOffice bool
 }
 
 // JobsClient composes the generated OAS [Client] with Apple's anonymous search
@@ -110,6 +154,16 @@ func (c *JobsClient) SearchJobs(ctx context.Context, request SearchRequest) (*Se
 	}
 }
 
+// ListTeams returns Apple's team and sub-team filter taxonomy. The endpoint
+// is anonymous reference data and needs no search session.
+func (c *JobsClient) ListTeams(ctx context.Context) (*TeamsResponse, error) {
+	response, err := c.api.ListTeams(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("list apple teams: %w", err)
+	}
+	return response, nil
+}
+
 // JobDetail returns the complete public posting for a numeric Apple position
 // ID returned by SearchJobs.
 func (c *JobsClient) JobDetail(ctx context.Context, jobID string) (*JobDetailResponse, error) {
@@ -150,7 +204,7 @@ func searchAPIRequest(request SearchRequest) (*SearchJobsRequest, error) {
 		return nil, errors.New("keyword is required")
 	}
 
-	locationID, err := countryLocationID(request.CountryCode)
+	locationIDs, err := locationFilterIDs(request)
 	if err != nil {
 		return nil, err
 	}
@@ -167,23 +221,157 @@ func searchAPIRequest(request SearchRequest) (*SearchJobsRequest, error) {
 	if sort == "" {
 		sort = SortRelevance
 	}
-	if err := sort.Validate(); err != nil {
-		return nil, fmt.Errorf("invalid sort %q: %w", sort, err)
+	if validateErr := sort.Validate(); validateErr != nil {
+		return nil, fmt.Errorf("invalid sort %q: %w", sort, validateErr)
+	}
+
+	filters, err := searchFilters(request, locationIDs)
+	if err != nil {
+		return nil, err
 	}
 
 	return &SearchJobsRequest{
-		Query: keyword,
-		Filters: SearchFilters{
-			Locations: []string{locationID},
-		},
-		Page:   page,
-		Locale: defaultLocale,
-		Sort:   sort,
+		Query:   keyword,
+		Filters: filters,
+		Page:    page,
+		Locale:  defaultLocale,
+		Sort:    sort,
 		Format: DateFormat{
 			LongDate:   longDateFormat,
 			MediumDate: mediumDateFormat,
 		},
 	}, nil
+}
+
+// locationFilterIDs resolves CountryCode and Locations into one OR'd list of
+// Apple location IDs; at least one of the two fields must be set.
+func locationFilterIDs(request SearchRequest) ([]string, error) {
+	var ids []string
+	if strings.TrimSpace(request.CountryCode) != "" {
+		locationID, err := countryLocationID(request.CountryCode)
+		if err != nil {
+			return nil, err
+		}
+		ids = append(ids, locationID)
+	}
+	for _, location := range request.Locations {
+		code, err := locationFilterCode(location)
+		if err != nil {
+			return nil, err
+		}
+		ids = append(ids, "postLocation-"+code)
+	}
+	if len(ids) == 0 {
+		return nil, errors.New("at least one of country code or locations is required")
+	}
+	return ids, nil
+}
+
+func searchFilters(request SearchRequest, locationIDs []string) (SearchFilters, error) {
+	filters := SearchFilters{
+		Locations: locationIDs,
+	}
+	if request.HomeOffice {
+		filters.HomeOffice = NewOptBool(true)
+	}
+	for _, chip := range request.Keywords {
+		chip = strings.TrimSpace(chip)
+		if chip == "" {
+			return SearchFilters{}, errors.New("keyword filters must not be blank")
+		}
+		filters.Keywords = append(filters.Keywords, chip)
+	}
+	teams, err := teamSearchFilters(request.Teams)
+	if err != nil {
+		return SearchFilters{}, err
+	}
+	filters.Teams = teams
+	for _, product := range request.Products {
+		productCode, err := filterCode("product", product)
+		if err != nil {
+			return SearchFilters{}, err
+		}
+		filters.Products = append(filters.Products, "productsAndServices-"+productCode)
+	}
+	for _, language := range request.Languages {
+		languageCode, err := languageFilterCode(language)
+		if err != nil {
+			return SearchFilters{}, err
+		}
+		filters.Languages = append(filters.Languages, "language-"+languageCode)
+	}
+	return filters, nil
+}
+
+func teamSearchFilters(teams []TeamFilter) ([]SearchTeamFilter, error) {
+	if len(teams) == 0 {
+		return nil, nil
+	}
+	filters := make([]SearchTeamFilter, 0, len(teams))
+	for _, team := range teams {
+		teamCode, err := filterCode("team", team.TeamCode)
+		if err != nil {
+			return nil, err
+		}
+		subTeamCode, err := filterCode("sub-team", team.SubTeamCode)
+		if err != nil {
+			return nil, err
+		}
+		filters = append(filters, SearchTeamFilter{
+			Team:    "teamsAndSubTeams-" + teamCode,
+			SubTeam: "subTeam-" + subTeamCode,
+		})
+	}
+	return filters, nil
+}
+
+// filterCode validates a bare Apple filter code such as SFTWR or IPHN and
+// returns its canonical uppercase form. Team, sub-team, and product codes
+// are uppercase-only, so coercing case here is safe and forgiving of
+// caller input.
+func filterCode(kind, code string) (string, error) {
+	code = strings.ToUpper(strings.TrimSpace(code))
+	if code == "" {
+		return "", fmt.Errorf("%s code must not be blank", kind)
+	}
+	for _, char := range code {
+		if (char < 'A' || char > 'Z') && (char < '0' || char > '9') {
+			return "", fmt.Errorf("%s code must contain only ascii letters and digits, got %q", kind, code)
+		}
+	}
+	return code, nil
+}
+
+// locationFilterCode validates a bare Apple location code such as TPEI or
+// state953 and preserves its case. Unlike team, sub-team, and product
+// codes, location codes are case-sensitive: postLocation-state953 and
+// postLocation-STATE953 are different filters, and only the correctly
+// cased one returns matches.
+func locationFilterCode(code string) (string, error) {
+	code = strings.TrimSpace(code)
+	if code == "" {
+		return "", errors.New("location code must not be blank")
+	}
+	for _, char := range code {
+		if (char < 'A' || char > 'Z') && (char < 'a' || char > 'z') && (char < '0' || char > '9') {
+			return "", fmt.Errorf("location code must contain only ascii letters and digits, got %q", code)
+		}
+	}
+	return code, nil
+}
+
+// languageFilterCode validates a case-sensitive language code such as en_US.
+func languageFilterCode(code string) (string, error) {
+	code = strings.TrimSpace(code)
+	if code == "" {
+		return "", errors.New("language code must not be blank")
+	}
+	for _, char := range code {
+		if (char < 'A' || char > 'Z') && (char < 'a' || char > 'z') && char != '_' {
+			return "", fmt.Errorf("language code must contain only ascii letters and underscores, got %q", code)
+		}
+	}
+	return code, nil
 }
 
 func countryLocationID(countryCode string) (string, error) {
