@@ -1,5 +1,12 @@
 # Registry Multi-Match Implementation Plan
 
+> **Superseded in part:** executed as written, then revised in the same
+> branch — slugs are globally unique again, search/filters fail fast with
+> slug-prefixed errors instead of tolerating partial failure, and
+> multi-match filters return per-slug sections instead of a flat union.
+> The spec (`../specs/2026-07-20-registry-multi-match-design.md`) reflects
+> the final design.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Merge the registry's `bySlug`/`byName` maps into one multi-value map so colliding rosters no longer fail startup, and fan the three company MCP tools out over every match, merging results.

@@ -129,25 +129,43 @@ func TestCompanyFilters(t *testing.T) {
 	assert.Len(t, out.Filters["team"], 2)
 }
 
-func TestCompanyFiltersUnionsMultiMatch(t *testing.T) {
-	a := &stubAdapter{filterSet: ats.FilterSet{"team": {"ML", "Web"}, "level": {"Senior"}}}
+func TestCompanyFiltersMultiMatchSections(t *testing.T) {
+	// Filter values are never mixed across sources: each match gets its own
+	// section keyed by its slug, so a value can't reach an adapter that
+	// doesn't understand it.
+	a := &stubAdapter{filterSet: ats.FilterSet{"team": {"ML", "Web"}}}
 	b := &stubAdapter{filterSet: ats.FilterSet{"team": {"Web", "Hardware"}}}
 	reg := testMultiRegistry(t, a, b)
 
 	out, err := companyFilters(t.Context(), reg, &companyFiltersInput{Company: "Acme Corp"})
 	require.NoError(t, err)
-	assert.Equal(t, []string{"ML", "Web", "Hardware"}, out.Filters["team"], "values dedupe, first-seen order")
-	assert.Equal(t, []string{"Senior"}, out.Filters["level"], "dimensions union")
+	assert.Empty(t, out.Filters, "multi-match must not return a flat union")
+	require.Len(t, out.Sources, 2)
+	assert.Equal(t, "acme", out.Sources[0].Company)
+	assert.Equal(t, []string{"ML", "Web"}, out.Sources[0].Filters["team"])
+	assert.Equal(t, "acme-jp", out.Sources[1].Company)
+	assert.Equal(t, []string{"Web", "Hardware"}, out.Sources[1].Filters["team"])
 }
 
-func TestCompanyFiltersSkipsFailedAdapter(t *testing.T) {
+func TestCompanyFiltersSingleMatchStaysFlat(t *testing.T) {
+	stub := &stubAdapter{filterSet: ats.FilterSet{"team": {"ML"}}}
+	reg := testCompanyRegistry(t, stub)
+
+	out, err := companyFilters(t.Context(), reg, &companyFiltersInput{Company: "acme"})
+	require.NoError(t, err)
+	assert.Equal(t, []string{"ML"}, out.Filters["team"])
+	assert.Empty(t, out.Sources, "single match keeps the historical flat shape")
+}
+
+func TestCompanyFiltersFailFast(t *testing.T) {
 	a := &stubAdapter{filtersErr: errors.New("upstream 500")}
 	b := &stubAdapter{filterSet: ats.FilterSet{"team": {"Web"}}}
 	reg := testMultiRegistry(t, a, b)
 
-	out, err := companyFilters(t.Context(), reg, &companyFiltersInput{Company: "Acme Corp"})
-	require.NoError(t, err)
-	assert.Equal(t, []string{"Web"}, out.Filters["team"])
+	_, err := companyFilters(t.Context(), reg, &companyFiltersInput{Company: "Acme Corp"})
+	require.Error(t, err, "an adapter failure must not be swallowed")
+	assert.ErrorContains(t, err, `company "acme"`, "error names the failing slug")
+	assert.ErrorContains(t, err, "upstream 500")
 }
 
 func TestCompanyDetailFirstSuccess(t *testing.T) {
@@ -167,8 +185,8 @@ func TestCompanyDetailAllFail(t *testing.T) {
 
 	_, err := companyDetail(t.Context(), reg, &companyDetailInput{Company: "Acme Corp", JobID: "zzz"})
 	require.Error(t, err)
-	assert.ErrorContains(t, err, "not found in a")
-	assert.ErrorContains(t, err, "not found in b")
+	assert.ErrorContains(t, err, `company "acme": job not found in a`)
+	assert.ErrorContains(t, err, `company "acme-jp": job not found in b`)
 }
 
 func TestCompanySearchMergesMultiMatch(t *testing.T) {
@@ -193,7 +211,9 @@ func TestCompanySearchMergesMultiMatch(t *testing.T) {
 	assert.Equal(t, 1, out.Page)
 }
 
-func TestCompanySearchSkipsFailedAdapter(t *testing.T) {
+func TestCompanySearchFailFast(t *testing.T) {
+	// A failed adapter must not silently shrink the merged result; the
+	// error carries the slug so the caller can retry per source.
 	a := &stubAdapter{searchErr: errors.New("upstream 500")}
 	b := &stubAdapter{searchResult: &ats.SearchResult{
 		Jobs:       []ats.JobSummary{{JobID: "b1"}},
@@ -201,22 +221,10 @@ func TestCompanySearchSkipsFailedAdapter(t *testing.T) {
 	}}
 	reg := testMultiRegistry(t, a, b)
 
-	out, err := companySearch(t.Context(), reg, &companySearchInput{Company: "Acme Corp"})
-	require.NoError(t, err, "one healthy adapter is enough")
-	require.Len(t, out.Data, 1)
-	assert.Equal(t, "b1", out.Data[0].JobID)
-	assert.Equal(t, 1, out.TotalCount)
-}
-
-func TestCompanySearchAllAdaptersFail(t *testing.T) {
-	a := &stubAdapter{searchErr: errors.New("upstream 500")}
-	b := &stubAdapter{searchErr: errors.New("upstream 503")}
-	reg := testMultiRegistry(t, a, b)
-
 	_, err := companySearch(t.Context(), reg, &companySearchInput{Company: "Acme Corp"})
 	require.Error(t, err)
-	assert.ErrorContains(t, err, "500")
-	assert.ErrorContains(t, err, "503")
+	assert.ErrorContains(t, err, `company "acme"`, "error names the failing slug")
+	assert.ErrorContains(t, err, "upstream 500")
 }
 
 func TestCompanyDetail(t *testing.T) {

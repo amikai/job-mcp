@@ -3,7 +3,7 @@ package openingsmcp
 import (
 	"context"
 	"errors"
-	"slices"
+	"fmt"
 
 	"github.com/amikai/openings-mcp/internal/ats"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -90,12 +90,13 @@ func companySearch(ctx context.Context, reg *ats.Registry, in *companySearchInpu
 		Page:     in.Page,
 	}
 	out := &companySearchOutput{Data: []companyJobSummary{}}
-	var errs []error
 	for _, rc := range resolved {
 		res, err := rc.Adapter.Search(ctx, rc.Slug, params)
 		if err != nil {
-			errs = append(errs, err)
-			continue
+			// Fail the whole request: a skipped source would silently
+			// shrink the merged totals. The slug tells the caller which
+			// source to retry or drop.
+			return nil, fmt.Errorf("company %q: %w", rc.Slug, err)
 		}
 		for _, j := range res.Jobs {
 			out.Data = append(out.Data, companyJobSummary{
@@ -110,9 +111,6 @@ func companySearch(ctx context.Context, reg *ats.Registry, in *companySearchInpu
 		out.Page = res.Page
 		out.TotalPages = max(out.TotalPages, res.TotalPages)
 	}
-	if len(errs) == len(resolved) {
-		return nil, errors.Join(errs...)
-	}
 	return out, nil
 }
 
@@ -120,8 +118,14 @@ type companyFiltersInput struct {
 	Company string `json:"company" jsonschema:"Company name or slug, or a recognized public careers-page URL on a supported ATS. Other careers URLs are unsupported; some ATS providers accept URLs only for companies in the curated roster."`
 }
 
+type companyFilterSource struct {
+	Company string              `json:"company" jsonschema:"Company slug owning this filter set. Pass it as search_jobs_by_company's company param to search exactly this source with these filters."`
+	Filters map[string][]string `json:"filters" jsonschema:"Filter dimension to its currently valid values for this source only."`
+}
+
 type companyFiltersOutput struct {
-	Filters map[string][]string `json:"filters" jsonschema:"Filter dimension to its currently valid values. Pass any subset to search_jobs_by_company's filters param."`
+	Filters map[string][]string   `json:"filters,omitempty" jsonschema:"Filter dimension to its currently valid values. Pass any subset to search_jobs_by_company's filters param. Absent when the company matches several sources; see sources."`
+	Sources []companyFilterSource `json:"sources,omitempty" jsonschema:"Present when the company name matches several sources. Filter values are only valid for their own source; search with the section's company slug to apply them."`
 }
 
 func companyFilters(ctx context.Context, reg *ats.Registry, in *companyFiltersInput) (*companyFiltersOutput, error) {
@@ -129,26 +133,20 @@ func companyFilters(ctx context.Context, reg *ats.Registry, in *companyFiltersIn
 	if err != nil {
 		return nil, err
 	}
-	merged := ats.FilterSet{}
-	var errs []error
+	sources := make([]companyFilterSource, 0, len(resolved))
 	for _, rc := range resolved {
 		fs, err := rc.Adapter.Filters(ctx, rc.Slug)
 		if err != nil {
-			errs = append(errs, err)
-			continue
+			return nil, fmt.Errorf("company %q: %w", rc.Slug, err)
 		}
-		for dim, vals := range fs {
-			for _, v := range vals {
-				if !slices.Contains(merged[dim], v) {
-					merged[dim] = append(merged[dim], v)
-				}
-			}
-		}
+		sources = append(sources, companyFilterSource{Company: rc.Slug, Filters: fs})
 	}
-	if len(errs) == len(resolved) {
-		return nil, errors.Join(errs...)
+	// Single match keeps the historical flat shape; multi-match keeps each
+	// source's values apart, since they are only valid on their own source.
+	if len(sources) == 1 {
+		return &companyFiltersOutput{Filters: sources[0].Filters}, nil
 	}
-	return &companyFiltersOutput{Filters: merged}, nil
+	return &companyFiltersOutput{Sources: sources}, nil
 }
 
 type companyDetailInput struct {
@@ -171,12 +169,14 @@ func companyDetail(ctx context.Context, reg *ats.Registry, in *companyDetailInpu
 	if err != nil {
 		return nil, err
 	}
-	// The job_id belongs to exactly one adapter; take the first that has it.
+	// The job_id belongs to exactly one source; take the first that has it.
+	// Unlike search, a miss here is an expected probe, not signal — only
+	// all-fail surfaces, with each error naming its slug.
 	var errs []error
 	for _, rc := range resolved {
 		d, err := rc.Adapter.Detail(ctx, rc.Slug, in.JobID)
 		if err != nil {
-			errs = append(errs, err)
+			errs = append(errs, fmt.Errorf("company %q: %w", rc.Slug, err))
 			continue
 		}
 		return &companyDetailOutput{

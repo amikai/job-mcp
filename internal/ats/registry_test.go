@@ -87,11 +87,35 @@ func TestResolveMultiMatch(t *testing.T) {
 
 func TestResolveSlugKeyStaysSpecific(t *testing.T) {
 	r := testRegistry(t)
-	// The regional slug hits only its own entry, not the shared name key.
-	rs, err := r.Resolve("nvidia-jp")
+	// A slug hits only its own entry, not the shared name key.
+	for _, input := range []string{"nvidia-jp", "nvidia"} {
+		rs, err := r.Resolve(input)
+		require.NoErrorf(t, err, "Resolve(%q)", input)
+		require.Lenf(t, rs, 1, "Resolve(%q)", input)
+		assert.Equal(t, input, rs[0].Slug)
+	}
+}
+
+func TestResolveSlugUnionsSameKeyNameHits(t *testing.T) {
+	// The common roster shape: the slug and the display name normalize to
+	// the same key. A second roster sharing the display name must still be
+	// merged in, with the slug's own entry leading and not duplicated.
+	r, err := NewRegistry(
+		&fakeAdapter{name: "workday", roster: []CompanyInfo{{Slug: "stripe", Name: "Stripe"}}},
+		&fakeAdapter{name: "lever", roster: []CompanyInfo{{Slug: "stripe-jp", Name: "Stripe"}}},
+	)
+	require.NoError(t, err)
+
+	rs, err := r.Resolve("stripe")
+	require.NoError(t, err)
+	require.Len(t, rs, 2)
+	assert.Equal(t, "stripe", rs[0].Slug, "slug hit leads")
+	assert.Equal(t, "stripe-jp", rs[1].Slug)
+
+	rs, err = r.Resolve("stripe-jp")
 	require.NoError(t, err)
 	require.Len(t, rs, 1)
-	assert.Equal(t, "lever", rs[0].Adapter.Name())
+	assert.Equal(t, "stripe-jp", rs[0].Slug)
 }
 
 func TestResolveUnknownTeaches(t *testing.T) {
@@ -107,19 +131,16 @@ func TestResolveEmpty(t *testing.T) {
 	assert.Error(t, err, "want error for empty company")
 }
 
-func TestNewRegistryAllowsCrossAdapterCollision(t *testing.T) {
-	r, err := NewRegistry(
+func TestNewRegistryRejectsDuplicateSlug(t *testing.T) {
+	// Slugs are the globally unique public address; a collision anywhere is
+	// a curation bug.
+	_, err := NewRegistry(
 		&fakeAdapter{name: "workday", roster: []CompanyInfo{{Slug: "acme", Name: "Acme (Workday)"}}},
 		&fakeAdapter{name: "lever", roster: []CompanyInfo{{Slug: "acme", Name: "Acme (Lever)"}}},
 	)
-	require.NoError(t, err, "cross-adapter slug collision must not fail startup")
-	rs, err := r.Resolve("acme")
-	require.NoError(t, err)
-	assert.Len(t, rs, 2)
-}
+	assert.Error(t, err, "want error for duplicate slug across adapters")
 
-func TestNewRegistryRejectsDuplicateSlugWithinAdapter(t *testing.T) {
-	_, err := NewRegistry(
+	_, err = NewRegistry(
 		&fakeAdapter{name: "workday", roster: []CompanyInfo{
 			{Slug: "acme", Name: "Acme"},
 			{Slug: "Acme", Name: "Acme Holdings"},

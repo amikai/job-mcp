@@ -27,8 +27,8 @@ type slugEntry struct {
 // startup. It owns name resolution; adapters never see unresolved input.
 type Registry struct {
 	adapters []Adapter                  // registration order; polled for careers-URL input
-	entries  map[string][]registryEntry // key: normalize(slug) and normalize(name); collisions append
-	count    int                        // total roster companies, for the teaching error
+	bySlug   map[string]registryEntry   // key: normalize(slug); globally unique
+	byName   map[string][]registryEntry // key: normalize(display name); collisions append
 	slugs    []slugEntry                // sorted by slug, for suggestions
 }
 
@@ -63,30 +63,28 @@ var careersHostPatternsByAdapter = map[string]string{
 	"ultipro":         "recruiting<N>.ultipro.com/<companyCode>/JobBoard/<boardId>",
 }
 
-// NewRegistry unions the adapters' rosters. Slugs and display names may
-// collide across adapters — such keys resolve to every colliding entry. A
-// duplicate slug within one adapter's roster is a curation bug — fail
-// startup loudly rather than silently shadowing one company with another.
+// NewRegistry unions the adapters' rosters. Slugs are the globally unique
+// public address of one roster entry — a slug colliding with another entry's
+// slug is a curation bug, so fail startup loudly rather than silently
+// shadowing one company with another. Display names may collide freely;
+// that is how the same company lists on several ATSes.
 func NewRegistry(adapters ...Adapter) (*Registry, error) {
 	r := &Registry{
 		adapters: adapters,
-		entries:  make(map[string][]registryEntry),
+		bySlug:   make(map[string]registryEntry),
+		byName:   make(map[string][]registryEntry),
 	}
 	for _, a := range adapters {
-		seen := make(map[string]string) // normalized slug -> original slug, this adapter only
 		for _, c := range a.Roster() {
 			e := registryEntry{adapter: a, slug: c.Slug, name: c.Name}
 			slugKey := normalize(c.Slug)
-			if prev, ok := seen[slugKey]; ok {
-				return nil, fmt.Errorf("ats: adapter %s lists duplicate slug %q (collides with %q)",
-					a.Name(), c.Slug, prev)
+			if prev, ok := r.bySlug[slugKey]; ok {
+				return nil, fmt.Errorf("ats: company slug %q from %s collides with %q from %s",
+					c.Slug, a.Name(), prev.slug, prev.adapter.Name())
 			}
-			seen[slugKey] = c.Slug
-			r.entries[slugKey] = append(r.entries[slugKey], e)
-			if nameKey := normalize(c.Name); nameKey != slugKey {
-				r.entries[nameKey] = append(r.entries[nameKey], e)
-			}
-			r.count++
+			r.bySlug[slugKey] = e
+			nameKey := normalize(c.Name)
+			r.byName[nameKey] = append(r.byName[nameKey], e)
 			r.slugs = append(r.slugs, slugEntry{slug: c.Slug, norm: slugKey})
 		}
 	}
@@ -96,9 +94,12 @@ func NewRegistry(adapters ...Adapter) (*Registry, error) {
 
 // Resolve maps a user-supplied company string to every (adapter, slug) it
 // names. The input can be a roster slug, a display name, or a careers URL.
-// Slugs and names may collide across adapters; all colliding entries come
-// back, in adapter registration order, and callers merge their results. A
-// returned slug is not always a roster key: a careers URL for a company
+// A slug names exactly one roster entry; a display name may name several
+// (the same company listed on more than one ATS), and all of them come back
+// in adapter registration order for the caller to fan out over. When the
+// input is both a slug and a shared display name (rosters commonly slug a
+// company after its name), the slug's own entry leads and the rest follow.
+// A returned slug is not always a roster key: a careers URL for a company
 // outside the roster resolves to whatever slug the owning adapter minted via
 // [Adapter.ParseCareersURL] (Workday mints the canonical careers URL).
 // Misses return a teaching error carrying the closest slugs, so one retry
@@ -108,10 +109,21 @@ func (r *Registry) Resolve(company string) ([]ResolvedCompany, error) {
 	if key == "" {
 		return nil, errors.New("company is required")
 	}
-	// 1. match slug or display name
-	if es, ok := r.entries[key]; ok {
-		out := make([]ResolvedCompany, 0, len(es))
-		for _, e := range es {
+	// 1. match slug and display name; dedup the slug hit, whose own name
+	// usually normalizes to the same key
+	var entries []registryEntry
+	if e, ok := r.bySlug[key]; ok {
+		entries = append(entries, e)
+	}
+	for _, e := range r.byName[key] {
+		if len(entries) > 0 && entries[0].slug == e.slug {
+			continue
+		}
+		entries = append(entries, e)
+	}
+	if len(entries) > 0 {
+		out := make([]ResolvedCompany, 0, len(entries))
+		for _, e := range entries {
 			out = append(out, ResolvedCompany{Adapter: e.adapter, Slug: e.slug})
 		}
 		return out, nil
@@ -126,7 +138,7 @@ func (r *Registry) Resolve(company string) ([]ResolvedCompany, error) {
 		return nil, fmt.Errorf("unrecognized careers URL %q; supported careers-page hosts: %s", company, strings.Join(r.careersHostPatterns(), ", "))
 	}
 	return nil, fmt.Errorf("unknown company %q; closest matches: %s. %d companies are supported — pass one of the suggested slugs",
-		company, strings.Join(r.suggest(key, 3), ", "), r.count)
+		company, strings.Join(r.suggest(key, 3), ", "), len(r.bySlug))
 }
 
 // careersHostPatterns lists the careers-page URL shapes for r's registered
