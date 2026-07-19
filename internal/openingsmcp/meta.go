@@ -84,10 +84,10 @@ type metaSearchInput struct {
 type metaFiltersInput struct{}
 
 type metaFiltersOutput struct {
-	Teams        []string       `json:"teams" jsonschema:"Values for meta_search_jobs teams."`
-	Technologies []string       `json:"technologies" jsonschema:"Values for meta_search_jobs technologies."`
-	Roles        []string       `json:"roles" jsonschema:"Values for meta_search_jobs roles."`
-	Offices      []metaLocation `json:"offices" jsonschema:"Values for meta_search_jobs offices; id and display_name both match."`
+	Teams        []string       `json:"teams"`
+	Technologies []string       `json:"technologies"`
+	Roles        []string       `json:"roles"`
+	Offices      []metaLocation `json:"offices" jsonschema:"id and display_name both match."`
 }
 
 type metaLocation struct {
