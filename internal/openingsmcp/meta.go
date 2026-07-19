@@ -20,27 +20,27 @@ var metaSearchInputRawSchema = []byte(`{
 		"teams": {
 			"type": "array",
 			"items": {"type": "string"},
-			"description": "Team display names, e.g. Software Engineering, Artificial Intelligence, AR/VR. The list is dynamic; meta_get_search_filters returns current values."
+			"description": "Team display names, options from meta_get_search_filters."
 		},
 		"sub_teams": {
 			"type": "array",
 			"items": {"type": "string"},
-			"description": "Sub-team display names, e.g. Design, Network Engineering. Not enumerated by any filter endpoint; take values from search results' sub_teams."
+			"description": "Sub-team display names. Not enumerated by any filter endpoint; take values from search results' sub_teams."
 		},
 		"offices": {
 			"type": "array",
 			"items": {"type": "string"},
-			"description": "Office display names or IDs; both match, e.g. Menlo Park, CA or menlo-park. The list is dynamic; meta_get_search_filters returns current values."
+			"description": "Office display names or IDs, options from meta_get_search_filters; both forms match."
 		},
 		"technologies": {
 			"type": "array",
 			"items": {"type": "string"},
-			"description": "Product filter, e.g. Facebook, Instagram, WhatsApp, Meta Quest. The list is dynamic; meta_get_search_filters returns current values."
+			"description": "Product filter, options from meta_get_search_filters."
 		},
 		"roles": {
 			"type": "array",
 			"items": {"type": "string"},
-			"description": "Employment types, e.g. Full time employment, Internship, Short term employment. The list is dynamic; meta_get_search_filters returns current values."
+			"description": "Employment types, options from meta_get_search_filters."
 		},
 		"is_remote_only": {
 			"type": "boolean",
