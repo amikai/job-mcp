@@ -33,6 +33,7 @@ sites from any MCP client: Claude Code, Codex, Gemini CLI, and others.
 - **Dedicated sites**: **[Amazon Jobs](https://www.amazon.jobs)**,
   **[Apple Careers](https://jobs.apple.com)**,
   **[Google Careers](https://www.google.com/about/careers/applications/jobs)**,
+  **[Meta Careers](https://www.metacareers.com)**,
   **[NVIDIA careers](https://nvidia.wd5.myworkdayjobs.com/NVIDIAExternalCareerSite)**, and
   **[TSMC careers](https://careers.tsmc.com)**.
 
