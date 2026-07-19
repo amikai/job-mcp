@@ -12,6 +12,7 @@ OPENAPI_SPECS := \
 	internal/provider/himalayas/openapi.yaml \
 	internal/provider/icims/openapi.yaml \
 	internal/provider/job104/openapi.yaml \
+	internal/provider/jobicy/openapi.yaml \
 	internal/provider/jobindex/openapi.yaml \
 	internal/provider/lever/openapi.yaml \
 	internal/provider/linkedin/openapi.yaml \

@@ -1,0 +1,353 @@
+openapi: 3.1.0
+
+info:
+  title: Jobicy Minimal Remote Jobs API
+  description: >
+    Minimal client surface for the official, free, no-auth Jobicy remote-jobs
+    feed (https://github.com/Jobicy/remote-jobs-api). One endpoint serves
+    everything: with search params it returns job listings, and with the
+    `get` param it returns the taxonomy of valid filter slugs instead.
+
+    The feed is a full dump with server-side soft search: every listing row
+    already carries the complete HTML `jobDescription`, and no detail-by-id
+    endpoint exists upstream, so there is no search-then-detail flow.
+
+    This spec is written from captured traffic (2026-07-19, apiVersion
+    2.2.14), not from the vendor README, which drifts: the README claims
+    `id`, `jobIndustry`, and `jobType` are strings (they are a number and
+    two string arrays) and omits `jobSlug` and the `success` envelope flag.
+
+    Usage terms from the feed itself: credit Jobicy with a link, send
+    applicants to the original job `url`, and poll at most once per hour.
+    Listings appear with a 6-hour publication delay.
+  version: "1.0.0"
+
+servers:
+  - url: https://jobicy.com
+    description: Production
+
+tags:
+  - name: Jobs
+    description: Remote job listings and filter taxonomies
+
+paths:
+  /api/v2/remote-jobs:
+    get:
+      tags: [Jobs]
+      summary: Search remote jobs or fetch filter taxonomies
+      description: >
+        Without `get`, returns the latest remote jobs matching the search
+        params, newest first. With `get`, returns the requested taxonomy
+        (the valid `geo` or `industry` slugs) and ignores the search params.
+
+        Zero-match searches are HTTP 404, but the body still carries the
+        normal jobs envelope with an empty `jobs` array plus
+        `statusCode`/`message` trailer fields — treat it as an empty result,
+        not an error. An unknown `geo`/`industry` slug is HTTP 400 with a
+        small `{"success": false, "error": "..."}` body.
+      operationId: getRemoteJobs
+      parameters:
+        - name: count
+          in: query
+          description: Number of listings to return.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 100
+          example: 50
+        - name: geo
+          in: query
+          description: >
+            Region filter. Takes a `geoSlug` from `?get=locations`; any
+            other value is a 400. Jobs open to every region (`jobGeo`
+            "Anywhere") match all `geo` values.
+          schema:
+            type: string
+          example: "usa"
+        - name: industry
+          in: query
+          description: >
+            Category filter. Takes an `industrySlug` from `?get=industries`;
+            any other value is a 400. Slugs are historical and can diverge
+            from the display name they map to (e.g. slug `admin` is the
+            "DevOps & Infrastructure" industry, while `admin-support` is
+            "Admin & Virtual Assistant"), so always pick slugs from the
+            taxonomy rather than guessing from names.
+          schema:
+            type: string
+          example: "dev"
+        - name: tag
+          in: query
+          description: Free-text search over job title and description.
+          schema:
+            type: string
+          example: "golang"
+        - name: get
+          in: query
+          description: >
+            Taxonomy selector. When set, the response is the requested
+            taxonomy and all search params are ignored.
+          schema:
+            type: string
+            enum: [locations, industries]
+      responses:
+        "200":
+          description: >
+            Job listings, or a taxonomy when `get` is set. The variants are
+            distinguished by their unique required field (`jobs`,
+            `locations`, or `industries`).
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/JobsResponse"
+                  - $ref: "#/components/schemas/LocationsResponse"
+                  - $ref: "#/components/schemas/IndustriesResponse"
+        "404":
+          description: >
+            Zero-match search. The normal jobs envelope with `jobs: []`,
+            `success: false`, and the `statusCode`/`message` trailer;
+            `lastUpdate` is an empty string here.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JobsResponse"
+        default:
+          description: >
+            Request error. A 400 has been observed for unknown `geo` or
+            `industry` slugs.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+components:
+  schemas:
+    JobsResponse:
+      type: object
+      required:
+        - apiVersion
+        - documentationUrl
+        - friendlyNotice
+        - jobCount
+        - lastUpdate
+        - appliedFilters
+        - jobs
+        - success
+      properties:
+        apiVersion:
+          type: string
+          example: "2.2.14"
+        documentationUrl:
+          type: string
+          example: "https://jobi.cy/apidocs"
+        friendlyNotice:
+          type: string
+          description: Attribution reminder from the feed.
+        jobCount:
+          type: integer
+          description: Number of rows in `jobs`.
+          example: 3
+        lastUpdate:
+          type: string
+          description: >
+            UTC timestamp of the newest matching listing; empty string on
+            zero-match (404) responses.
+          example: "2026-07-18T09:40:07+00:00"
+        appliedFilters:
+          $ref: "#/components/schemas/AppliedFilters"
+        jobs:
+          type: array
+          items:
+            $ref: "#/components/schemas/Job"
+        success:
+          type: boolean
+          description: True on 200; false on the zero-match 404 envelope.
+        statusCode:
+          type: integer
+          description: Only present on the zero-match 404 envelope.
+          example: 404
+        message:
+          type: string
+          description: Only present on the zero-match 404 envelope.
+          example: "Nothing found. Please modify or simplify your request."
+
+    AppliedFilters:
+      type: object
+      description: Echo of the query params the server actually applied.
+      properties:
+        count:
+          type: integer
+          example: 3
+        geo:
+          type: string
+          example: "usa"
+        industry:
+          type: string
+          example: "dev"
+        tag:
+          type: string
+          example: "golang"
+        get:
+          type: string
+          description: Present on taxonomy responses.
+          example: "locations"
+
+    Job:
+      type: object
+      description: >
+        One listing. `jobDescription` is the complete posting as HTML, so no
+        separate detail fetch is needed. Display-name fields (`jobIndustry`,
+        `jobType`) carry HTML entities (e.g. "DevOps &amp; Infrastructure").
+      required:
+        - id
+        - url
+        - jobSlug
+        - jobTitle
+        - companyName
+        - companyLogo
+        - jobIndustry
+        - jobType
+        - jobGeo
+        - jobLevel
+        - jobExcerpt
+        - jobDescription
+        - pubDate
+      properties:
+        id:
+          type: integer
+          example: 144808
+        url:
+          type: string
+          description: >
+            Public job page; per the usage terms, applicants must be sent
+            here.
+          example: "https://jobicy.com/jobs/144808-senior-cloud-engineer-aws"
+        jobSlug:
+          type: string
+          example: "144808-senior-cloud-engineer-aws"
+        jobTitle:
+          type: string
+          example: "Senior Cloud Engineer (AWS)"
+        companyName:
+          type: string
+          example: "Leidos"
+        companyLogo:
+          type: string
+          description: Logo image URL.
+        jobIndustry:
+          type: array
+          description: Industry display names, not slugs.
+          items:
+            type: string
+          example: ["DevOps &amp; Infrastructure"]
+        jobType:
+          type: array
+          description: >
+            Employment-type display names. Observed values: "Full-Time",
+            "Part-Time", "Contract"; the vendor docs also list internships.
+          items:
+            type: string
+          example: ["Full-Time"]
+        jobGeo:
+          type: string
+          description: Region display name, or "Anywhere".
+          example: "USA"
+        jobLevel:
+          type: string
+          description: >
+            Seniority display name, or "Any". Observed values: "Any",
+            "Entry-Level, Junior", "Midweight", "Senior", "Director".
+          example: "Senior"
+        jobExcerpt:
+          type: string
+          description: Short plain-text preview of the description.
+        jobDescription:
+          type: string
+          description: Complete job posting as HTML.
+        pubDate:
+          type: string
+          description: UTC publication timestamp.
+          example: "2026-07-18T09:40:07+00:00"
+        salaryMin:
+          type: number
+          description: >
+            Present only when the posting states compensation; can appear
+            without `salaryMax`.
+          example: 107900
+        salaryMax:
+          type: number
+          example: 195050
+        salaryCurrency:
+          type: string
+          description: ISO 4217 code.
+          example: "USD"
+        salaryPeriod:
+          type: string
+          description: Pay period, e.g. "yearly" or "hourly".
+          example: "yearly"
+
+    LocationsResponse:
+      type: object
+      required: [locations]
+      properties:
+        locations:
+          type: array
+          items:
+            $ref: "#/components/schemas/Location"
+        appliedFilters:
+          $ref: "#/components/schemas/AppliedFilters"
+
+    Location:
+      type: object
+      required: [geoID, geoName, geoSlug]
+      properties:
+        geoID:
+          type: integer
+          example: 446
+        geoName:
+          type: string
+          example: "APAC"
+        geoSlug:
+          type: string
+          description: The value the `geo` search param accepts.
+          example: "apac"
+
+    IndustriesResponse:
+      type: object
+      required: [industries]
+      properties:
+        industries:
+          type: array
+          items:
+            $ref: "#/components/schemas/Industry"
+        appliedFilters:
+          $ref: "#/components/schemas/AppliedFilters"
+
+    Industry:
+      type: object
+      required: [industryID, industryName, industrySlug]
+      properties:
+        industryID:
+          type: integer
+          example: 178
+        industryName:
+          type: string
+          example: "DevOps & Infrastructure"
+        industrySlug:
+          type: string
+          description: The value the `industry` search param accepts.
+          example: "admin"
+
+    ErrorResponse:
+      type: object
+      description: Body of a 400 for an unknown `geo` or `industry` slug.
+      required: [success, error]
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+          example: "Invalid 'industry' value. This value must contain a predefined 'industrySlug'."
