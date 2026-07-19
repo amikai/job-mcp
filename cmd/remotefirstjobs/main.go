@@ -278,8 +278,8 @@ func printDetail(j remotefirstjobs.Job, format string) error {
 	if len(j.Locations) > 0 {
 		fmt.Printf("Locations: %v\n", j.Locations)
 	}
-	if min, ok := j.SalaryMin.Get(); ok {
-		fmt.Printf("Salary: %d - %d\n", min, j.SalaryMax.Or(0))
+	if min, max := j.SalaryMin.Or(0), j.SalaryMax.Or(0); min > 0 || max > 0 {
+		fmt.Printf("Salary: %d - %d\n", min, max)
 	}
 	fmt.Printf("Posted: %s\n", j.PublishedAt)
 	fmt.Printf("URL: %s\n", j.URL)
