@@ -183,8 +183,11 @@ func runSearch(ctx context.Context, f searchFlags) error {
 	defer cancel()
 
 	matched, err := newClient(f.baseURL).Search(ctx, f.opts)
-	if err != nil {
+	if len(matched) == 0 && err != nil {
 		return err
+	}
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "warning: some category feeds failed, results may be incomplete: %v\n", err)
 	}
 
 	shown := matched

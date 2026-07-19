@@ -3,6 +3,7 @@ package weworkremotely
 import (
 	"context"
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -82,15 +83,22 @@ func (c *Client) Jobs(ctx context.Context, category Category) ([]Job, error) {
 }
 
 // AllJobs fetches every category feed and merges them, deduplicating by
-// [Job.ID]. Categories are independent feeds fetched one at a time, so
-// this is 10 HTTP requests, not 1.
+// [Job.ID]. Categories are independent feeds fetched one at a time (10 HTTP
+// requests, not 1); one category's fetch failing does not abort the rest —
+// AllJobs returns the jobs it did get plus every failure joined into the
+// returned error, so a transient hiccup on one feed (e.g. the Cloudflare
+// challenge noted in the package doc) degrades results instead of failing
+// outright. A nil error means every category succeeded; check len(jobs)
+// rather than err == nil to tell partial success from total failure.
 func (c *Client) AllJobs(ctx context.Context) ([]Job, error) {
 	seen := make(map[string]bool)
 	var all []Job
+	var errs []error
 	for _, cat := range Categories {
 		jobs, err := c.Jobs(ctx, cat)
 		if err != nil {
-			return nil, err
+			errs = append(errs, err)
+			continue
 		}
 		for _, j := range jobs {
 			if seen[j.ID] {
@@ -100,12 +108,16 @@ func (c *Client) AllJobs(ctx context.Context) ([]Job, error) {
 			all = append(all, j)
 		}
 	}
-	return all, nil
+	return all, errors.Join(errs...)
 }
 
 // Search fetches the relevant feed(s) for opts and filters them with
 // [FilterJobs]. A recognized opts.Category fetches only that one feed
-// instead of the full 10-feed dump.
+// instead of the full 10-feed dump. When opts.Category isn't recognized
+// and some (not all) category feeds fail, Search still returns the
+// filtered results from whichever feeds succeeded, alongside the joined
+// error — check len(result) to distinguish a partial result from having
+// nothing to filter.
 func (c *Client) Search(ctx context.Context, opts FilterOptions) ([]Job, error) {
 	if cat, ok := lookupCategory(opts.Category); ok {
 		jobs, err := c.Jobs(ctx, cat)
@@ -117,24 +129,27 @@ func (c *Client) Search(ctx context.Context, opts FilterOptions) ([]Job, error) 
 		return FilterJobs(jobs, narrowed), nil
 	}
 	jobs, err := c.AllJobs(ctx)
-	if err != nil {
+	if len(jobs) == 0 && err != nil {
 		return nil, err
 	}
-	return FilterJobs(jobs, opts), nil
+	return FilterJobs(jobs, opts), err
 }
 
 // Detail resolves one job by [Job.ID] from a fresh [Client.AllJobs] fetch.
 // There is no per-job endpoint in use here — see the package doc for why.
-// An ID that has expired or rotated out of every feed is an error.
+// A job found in a feed that did succeed is returned even if other feeds
+// failed; an ID missing from every feed that did succeed is an error,
+// which mentions any concurrent feed failures since they may be why it
+// wasn't found.
 func (c *Client) Detail(ctx context.Context, id string) (*Job, error) {
 	jobs, err := c.AllJobs(ctx)
-	if err != nil {
-		return nil, err
-	}
 	for i := range jobs {
 		if jobs[i].ID == id {
 			return &jobs[i], nil
 		}
+	}
+	if err != nil {
+		return nil, fmt.Errorf("job %q not found, and some category feeds failed to fetch (it may be in one of them): %w", id, err)
 	}
 	return nil, fmt.Errorf("job %q not found in the current feeds; it may have expired or rotated out", id)
 }

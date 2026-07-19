@@ -2,12 +2,45 @@ package weworkremotely
 
 import (
 	"context"
+	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
 func testClient(t *testing.T) *Client {
 	t.Helper()
 	srv := NewMockServer()
+	t.Cleanup(srv.Close)
+	return NewClient(srv.URL, srv.Client())
+}
+
+// testClientWithFailingCategory behaves like testClient, except the given
+// category's feed answers HTTP 500 instead of its fixture — for exercising
+// AllJobs/Search/Detail's partial-failure handling.
+func testClientWithFailingCategory(t *testing.T, failSlug string) *Client {
+	t.Helper()
+	fixtures := map[string][]byte{
+		"remote-full-stack-programming-jobs": mockFullStackRsp,
+		"remote-design-jobs":                 mockDesignRsp,
+		"remote-back-end-programming-jobs":   mockBackEndRsp,
+	}
+
+	mux := http.NewServeMux()
+	for _, cat := range Categories {
+		if cat.Slug == failSlug {
+			mux.HandleFunc("/categories/"+cat.Slug+".rss", func(w http.ResponseWriter, r *http.Request) {
+				http.Error(w, "boom", http.StatusInternalServerError)
+			})
+			continue
+		}
+		body, ok := fixtures[cat.Slug]
+		if !ok {
+			body = []byte(emptyFeed)
+		}
+		mux.HandleFunc("/categories/"+cat.Slug+".rss", serveRSS(body))
+	}
+	srv := httptest.NewServer(mux)
 	t.Cleanup(srv.Close)
 	return NewClient(srv.URL, srv.Client())
 }
@@ -138,5 +171,60 @@ func TestClient_Detail_notFound(t *testing.T) {
 	_, err := c.Detail(context.Background(), "no-such-job-slug")
 	if err == nil {
 		t.Fatal("expected an error for an unknown job ID")
+	}
+}
+
+func TestClient_AllJobs_partialFailureReturnsWhatSucceeded(t *testing.T) {
+	c := testClientWithFailingCategory(t, "remote-full-stack-programming-jobs")
+	jobs, err := c.AllJobs(context.Background())
+	if err == nil {
+		t.Fatal("expected a non-nil error reporting the failed category")
+	}
+	// Design (23) + Back-End (7); Full-Stack's feed failed and every other
+	// category serves the mock's empty feed.
+	if want := 23 + 7; len(jobs) != want {
+		t.Fatalf("got %d jobs, want %d — a failing category should not discard jobs from feeds that succeeded", len(jobs), want)
+	}
+}
+
+func TestClient_Search_partialFailureReturnsWhatSucceeded(t *testing.T) {
+	c := testClientWithFailingCategory(t, "remote-full-stack-programming-jobs")
+	jobs, err := c.Search(context.Background(), FilterOptions{})
+	if err == nil {
+		t.Fatal("expected a non-nil error reporting the failed category")
+	}
+	if want := 23 + 7; len(jobs) != want {
+		t.Fatalf("got %d jobs, want %d", len(jobs), want)
+	}
+}
+
+func TestClient_Detail_succeedsDespitePartialFailure(t *testing.T) {
+	// The wanted job lives in Design, which stays healthy; only Full-Stack's
+	// feed fails.
+	healthy := testClient(t)
+	designJobs, err := healthy.Jobs(context.Background(), Categories[2]) // Design
+	if err != nil {
+		t.Fatalf("Jobs: %v", err)
+	}
+	want := designJobs[0]
+
+	c := testClientWithFailingCategory(t, "remote-full-stack-programming-jobs")
+	got, err := c.Detail(context.Background(), want.ID)
+	if err != nil {
+		t.Fatalf("Detail: %v (should succeed — the job's own feed did not fail)", err)
+	}
+	if got.ID != want.ID {
+		t.Fatalf("Detail returned job %q, want %q", got.ID, want.ID)
+	}
+}
+
+func TestClient_Detail_notFoundMentionsPartialFailure(t *testing.T) {
+	c := testClientWithFailingCategory(t, "remote-full-stack-programming-jobs")
+	_, err := c.Detail(context.Background(), "no-such-job-slug")
+	if err == nil {
+		t.Fatal("expected an error for an unknown job ID")
+	}
+	if !strings.Contains(err.Error(), "some category feeds failed") {
+		t.Errorf("error %q does not mention the underlying category failure", err)
 	}
 }
