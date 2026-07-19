@@ -255,7 +255,7 @@ func RegisterMeta(server *mcp.Server, client *meta.Client) {
 
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        metaDetailToolName,
-		Description: "Get the full posting, responsibilities, qualifications, and public pay ranges for a Meta job by requisition ID.",
+		Description: "Get the full job description and requirements for a Meta job by job ID.",
 		Annotations: &mcp.ToolAnnotations{Title: "Get Meta job details", ReadOnlyHint: true},
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, input *metaDetailInput) (*mcp.CallToolResult, *metaDetailOutput, error) {
 		detail, err := client.JobDetail(ctx, input.JobID)
