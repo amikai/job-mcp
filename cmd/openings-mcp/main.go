@@ -27,6 +27,7 @@ import (
 	"github.com/amikai/openings-mcp/internal/provider/job104"
 	"github.com/amikai/openings-mcp/internal/provider/jobindex"
 	"github.com/amikai/openings-mcp/internal/provider/linkedin"
+	"github.com/amikai/openings-mcp/internal/provider/meta"
 	"github.com/amikai/openings-mcp/internal/provider/mynavi"
 	"github.com/amikai/openings-mcp/internal/provider/nvidia"
 	"github.com/amikai/openings-mcp/internal/provider/tsmc"
@@ -42,11 +43,11 @@ var (
 // serverInstructions carries the cross-tool guidance for host LLMs: provider
 // routing and the shared search→detail flow. Per-tool behavior stays in each
 // tool's description.
-const serverInstructions = `openings-mcp exposes job-search tools in two families: (1) per-provider tools for the job boards 104, Cake.me (Taiwan-centric), Jobindex (Denmark), Mynavi Tenshoku (Japan), LinkedIn and Indeed (global), plus the careers sites of Amazon, Apple, Google, NVIDIA, and TSMC; (2) unified company tools — search_jobs_by_company, get_filters_by_company, get_job_detail_by_company — covering thousands of companies behind one company parameter.
+const serverInstructions = `openings-mcp exposes job-search tools in two families: (1) per-provider tools for the job boards 104, Cake.me (Taiwan-centric), Jobindex (Denmark), Mynavi Tenshoku (Japan), LinkedIn and Indeed (global), plus the careers sites of Amazon, Apple, Google, Meta, NVIDIA, and TSMC; (2) unified company tools — search_jobs_by_company, get_filters_by_company, get_job_detail_by_company — covering thousands of companies behind one company parameter.
 
 Tool selection:
 - When the user names a specific company, try search_jobs_by_company first; it covers thousands of companies and its error message suggests close matches when a name isn't recognized. Fall back to the per-provider tools (linkedin, indeed, 104, jobindex, mynavi, ...) when the company isn't covered.
-- When the user explicitly names a job board or careers site as the desired source (for example LinkedIn, Indeed, 104, Cake.me, Jobindex, マイナビ転職/Mynavi, Amazon Jobs, Apple Careers, Google Careers, NVIDIA Careers, or TSMC Careers), use that source's dedicated tools. A company name by itself is not a source selection.
+- When the user explicitly names a job board or careers site as the desired source (for example LinkedIn, Indeed, 104, Cake.me, Jobindex, マイナビ転職/Mynavi, Amazon Jobs, Apple Careers, Google Careers, Meta Careers, NVIDIA Careers, or TSMC Careers), use that source's dedicated tools. A company name by itself is not a source selection.
 - When the user has no target in mind, offer them the provider choices; if they don't pick one, start with the job boards (104, Cake.me, LinkedIn, Indeed, Jobindex for Denmark, and Mynavi for Japan) rather than a single company's careers site.
 - search_jobs_by_company also accepts recognized public careers-page URLs on supported ATS providers. Do not pass other careers sites; some ATS providers accept URLs only for companies already in the curated roster.
 
@@ -168,6 +169,8 @@ func runWithTransport(transport mcp.Transport, logger *slog.Logger) error {
 
 	cMynavi := mynavi.NewClient("https://tenshoku.mynavi.jp", hc)
 
+	cMeta := meta.NewClient("https://www.metacareers.com", hc)
+
 	registry, err := newATSRegistry(hc, hcEightfold)
 	if err != nil {
 		return err
@@ -185,6 +188,7 @@ func runWithTransport(transport mcp.Transport, logger *slog.Logger) error {
 		indeed:   cIndeed,
 		jobindex: cJobindex,
 		mynavi:   cMynavi,
+		meta:     cMeta,
 	}, registry, logger)
 
 	if err := server.Run(context.Background(), transport); err != nil && !errors.Is(err, io.EOF) {
@@ -258,6 +262,7 @@ type providerClients struct {
 	indeed   *indeed.Client
 	jobindex *jobindex.Client
 	mynavi   *mynavi.Client
+	meta     *meta.Client
 }
 
 func newServer(clients providerClients, registry *ats.Registry, logger *slog.Logger) *mcp.Server {
@@ -280,6 +285,7 @@ func newServer(clients providerClients, registry *ats.Registry, logger *slog.Log
 	openingsmcp.RegisterIndeed(server, clients.indeed)
 	openingsmcp.RegisterJobindex(server, clients.jobindex)
 	openingsmcp.RegisterMynavi(server, clients.mynavi)
+	openingsmcp.RegisterMeta(server, clients.meta)
 	openingsmcp.RegisterCompany(server, registry)
 	return server
 }
