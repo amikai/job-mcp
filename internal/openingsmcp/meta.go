@@ -243,7 +243,7 @@ func RegisterMeta(server *mcp.Server, client *meta.Client) {
 
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        metaFiltersToolName,
-		Description: "List Meta Careers' current search filter values: teams, technologies (products), employment types, and offices. Call before filtered meta_search_jobs queries when unsure of exact values.",
+		Description: "Get Meta Careers' current search filter values. Call before filtered meta_search_jobs queries.",
 		Annotations: &mcp.ToolAnnotations{Title: "List Meta Careers search filters", ReadOnlyHint: true},
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, _ *metaFiltersInput) (*mcp.CallToolResult, *metaFiltersOutput, error) {
 		filters, err := client.SearchFilters(ctx)
