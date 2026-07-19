@@ -9,6 +9,7 @@ OPENAPI_SPECS := \
 	internal/provider/eightfold/openapi.yaml \
 	internal/provider/google/openapi.yaml \
 	internal/provider/greenhouse/openapi.yaml \
+	internal/provider/himalayas/openapi.yaml \
 	internal/provider/icims/openapi.yaml \
 	internal/provider/job104/openapi.yaml \
 	internal/provider/jobindex/openapi.yaml \
