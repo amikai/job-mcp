@@ -45,6 +45,7 @@ func testRegistry(t *testing.T) *Registry {
 		}},
 		&fakeAdapter{name: "lever", host: "jobs.fake-lever.example", roster: []CompanyInfo{
 			{Slug: "palantir", Name: "Palantir Technologies"},
+			{Slug: "nvidia-jp", Name: "NVIDIA Corp"},
 		}},
 	)
 	require.NoError(t, err)
@@ -53,61 +54,122 @@ func testRegistry(t *testing.T) *Registry {
 
 func TestResolveBySlug(t *testing.T) {
 	r := testRegistry(t)
-	a, slug, err := r.Resolve("nvidia")
+	rs, err := r.Resolve("palantir")
 	require.NoError(t, err)
-	assert.Equal(t, "workday", a.Name())
-	assert.Equal(t, "nvidia", slug)
+	require.Len(t, rs, 1)
+	assert.Equal(t, "lever", rs[0].Adapter.Name())
+	assert.Equal(t, "palantir", rs[0].Slug)
 }
 
 func TestResolveByDisplayName(t *testing.T) {
 	r := testRegistry(t)
 	// Case, punctuation, and spaces must not matter.
-	for _, input := range []string{"NVIDIA Corp", "nvidia corp", "Workday, Inc.", "workday inc"} {
-		_, _, err := r.Resolve(input)
-		assert.NoErrorf(t, err, "Resolve(%q)", input)
+	for _, input := range []string{"Workday, Inc.", "workday inc"} {
+		rs, err := r.Resolve(input)
+		require.NoErrorf(t, err, "Resolve(%q)", input)
+		require.Lenf(t, rs, 1, "Resolve(%q)", input)
+		assert.Equal(t, "workday", rs[0].Slug)
 	}
+}
+
+func TestResolveMultiMatch(t *testing.T) {
+	r := testRegistry(t)
+	// "NVIDIA Corp" is workday's name+slug key and lever's name key; both
+	// entries come back, in adapter registration order.
+	rs, err := r.Resolve("NVIDIA Corp")
+	require.NoError(t, err)
+	require.Len(t, rs, 2)
+	assert.Equal(t, "workday", rs[0].Adapter.Name())
+	assert.Equal(t, "nvidia", rs[0].Slug)
+	assert.Equal(t, "lever", rs[1].Adapter.Name())
+	assert.Equal(t, "nvidia-jp", rs[1].Slug)
+}
+
+func TestResolveSlugKeyStaysSpecific(t *testing.T) {
+	r := testRegistry(t)
+	// A slug hits only its own entry, not the shared name key.
+	for _, input := range []string{"nvidia-jp", "nvidia"} {
+		rs, err := r.Resolve(input)
+		require.NoErrorf(t, err, "Resolve(%q)", input)
+		require.Lenf(t, rs, 1, "Resolve(%q)", input)
+		assert.Equal(t, input, rs[0].Slug)
+	}
+}
+
+func TestResolveSlugUnionsSameKeyNameHits(t *testing.T) {
+	// The common roster shape: the slug and the display name normalize to
+	// the same key. A second roster sharing the display name must still be
+	// merged in, with the slug's own entry leading and not duplicated.
+	r, err := NewRegistry(
+		&fakeAdapter{name: "workday", roster: []CompanyInfo{{Slug: "stripe", Name: "Stripe"}}},
+		&fakeAdapter{name: "lever", roster: []CompanyInfo{{Slug: "stripe-jp", Name: "Stripe"}}},
+	)
+	require.NoError(t, err)
+
+	rs, err := r.Resolve("stripe")
+	require.NoError(t, err)
+	require.Len(t, rs, 2)
+	assert.Equal(t, "stripe", rs[0].Slug, "slug hit leads")
+	assert.Equal(t, "stripe-jp", rs[1].Slug)
+
+	rs, err = r.Resolve("stripe-jp")
+	require.NoError(t, err)
+	require.Len(t, rs, 1)
+	assert.Equal(t, "stripe-jp", rs[0].Slug)
 }
 
 func TestResolveUnknownTeaches(t *testing.T) {
 	r := testRegistry(t)
-	_, _, err := r.Resolve("palantir tech")
+	_, err := r.Resolve("palantir tech")
 	require.ErrorContains(t, err, "palantir", "suggestions should contain the input")
-	assert.ErrorContains(t, err, "3 companies", "error should state supported count")
+	assert.ErrorContains(t, err, "4 companies", "error should state supported count")
 }
 
 func TestResolveEmpty(t *testing.T) {
 	r := testRegistry(t)
-	_, _, err := r.Resolve("  ")
+	_, err := r.Resolve("  ")
 	assert.Error(t, err, "want error for empty company")
 }
 
 func TestNewRegistryRejectsDuplicateSlug(t *testing.T) {
+	// Slugs are the globally unique public address; a collision anywhere is
+	// a curation bug.
 	_, err := NewRegistry(
 		&fakeAdapter{name: "workday", roster: []CompanyInfo{{Slug: "acme", Name: "Acme (Workday)"}}},
 		&fakeAdapter{name: "lever", roster: []CompanyInfo{{Slug: "acme", Name: "Acme (Lever)"}}},
 	)
 	assert.Error(t, err, "want error for duplicate slug across adapters")
+
+	_, err = NewRegistry(
+		&fakeAdapter{name: "workday", roster: []CompanyInfo{
+			{Slug: "acme", Name: "Acme"},
+			{Slug: "Acme", Name: "Acme Holdings"},
+		}},
+	)
+	assert.Error(t, err, "want error for duplicate slug within one adapter")
 }
 
 func TestResolveCareersURL(t *testing.T) {
 	r := testRegistry(t)
-	a, slug, err := r.Resolve("https://jobs.fake-lever.example/somestartup")
+	rs, err := r.Resolve("https://jobs.fake-lever.example/somestartup")
 	require.NoError(t, err)
-	assert.Equal(t, "lever", a.Name())
-	assert.Equal(t, "somestartup", slug)
+	require.Len(t, rs, 1)
+	assert.Equal(t, "lever", rs[0].Adapter.Name())
+	assert.Equal(t, "somestartup", rs[0].Slug)
 }
 
 func TestResolveCareersURLSchemeless(t *testing.T) {
 	r := testRegistry(t)
-	a, slug, err := r.Resolve("jobs.fake-workday.example/acme")
+	rs, err := r.Resolve("jobs.fake-workday.example/acme")
 	require.NoError(t, err)
-	assert.Equal(t, "workday", a.Name())
-	assert.Equal(t, "acme", slug)
+	require.Len(t, rs, 1)
+	assert.Equal(t, "workday", rs[0].Adapter.Name())
+	assert.Equal(t, "acme", rs[0].Slug)
 }
 
 func TestResolveUnrecognizedCareersURLTeaches(t *testing.T) {
 	r := testRegistry(t)
-	_, _, err := r.Resolve("https://careers.example.com/acme")
+	_, err := r.Resolve("https://careers.example.com/acme")
 	require.ErrorContains(t, err, "careers URL", "URL misses should get the URL error, not name suggestions")
 	assert.NotContains(t, err.Error(), "closest matches", "no levenshtein suggestions for URLs")
 }

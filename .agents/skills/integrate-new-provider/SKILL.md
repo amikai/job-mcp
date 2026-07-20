@@ -208,6 +208,8 @@ has a stable, roster-able feed URL and multi-company routing is worth it.
   the same site.
 - Adopting an RSS feed without stable item ids, or with title+link only
   and no plan for detail.
-- Roster slug or display-name collisions across adapters:
-  `ats.NewRegistry` fails at startup by design — check the other
-  `companies.yaml` files before adding entries.
+- Roster slug collisions across adapters: `ats.NewRegistry` fails at
+  startup by design — slugs are globally unique, so check the other
+  `companies.yaml` files before adding entries. Display-name collisions
+  are legal: a shared name resolves to every roster listing it and the
+  company tools merge their results.

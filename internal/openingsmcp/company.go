@@ -2,6 +2,8 @@ package openingsmcp
 
 import (
 	"context"
+	"errors"
+	"fmt"
 
 	"github.com/amikai/openings-mcp/internal/ats"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -77,33 +79,37 @@ type companySearchOutput struct {
 }
 
 func companySearch(ctx context.Context, reg *ats.Registry, in *companySearchInput) (*companySearchOutput, error) {
-	adapter, slug, err := reg.Resolve(in.Company)
+	resolved, err := reg.Resolve(in.Company)
 	if err != nil {
 		return nil, err
 	}
-	res, err := adapter.Search(ctx, slug, ats.SearchParams{
+	params := ats.SearchParams{
 		Query:    in.Query,
 		Location: in.Location,
 		Filters:  in.Filters,
 		Page:     in.Page,
-	})
-	if err != nil {
-		return nil, err
 	}
-	out := &companySearchOutput{
-		Data:       make([]companyJobSummary, 0, len(res.Jobs)),
-		TotalCount: res.TotalCount,
-		Page:       res.Page,
-		TotalPages: res.TotalPages,
-	}
-	for _, j := range res.Jobs {
-		out.Data = append(out.Data, companyJobSummary{
-			JobID:    j.JobID,
-			Title:    j.Title,
-			Location: j.Location,
-			PostedAt: j.PostedAt,
-			URL:      j.URL,
-		})
+	out := &companySearchOutput{Data: []companyJobSummary{}}
+	for _, rc := range resolved {
+		res, err := rc.Adapter.Search(ctx, rc.Slug, params)
+		if err != nil {
+			// Fail the whole request: a skipped source would silently
+			// shrink the merged totals. The slug tells the caller which
+			// source to retry or drop.
+			return nil, fmt.Errorf("company %q: %w", rc.Slug, err)
+		}
+		for _, j := range res.Jobs {
+			out.Data = append(out.Data, companyJobSummary{
+				JobID:    j.JobID,
+				Title:    j.Title,
+				Location: j.Location,
+				PostedAt: j.PostedAt,
+				URL:      j.URL,
+			})
+		}
+		out.TotalCount += res.TotalCount
+		out.Page = res.Page
+		out.TotalPages = max(out.TotalPages, res.TotalPages)
 	}
 	return out, nil
 }
@@ -112,20 +118,35 @@ type companyFiltersInput struct {
 	Company string `json:"company" jsonschema:"Company name or slug, or a recognized public careers-page URL on a supported ATS. Other careers URLs are unsupported; some ATS providers accept URLs only for companies in the curated roster."`
 }
 
+type companyFilterSource struct {
+	Company string              `json:"company" jsonschema:"Company slug owning this filter set. Pass it as search_jobs_by_company's company param to search exactly this source with these filters."`
+	Filters map[string][]string `json:"filters" jsonschema:"Filter dimension to its currently valid values for this source only."`
+}
+
 type companyFiltersOutput struct {
-	Filters map[string][]string `json:"filters" jsonschema:"Filter dimension to its currently valid values. Pass any subset to search_jobs_by_company's filters param."`
+	Filters map[string][]string   `json:"filters,omitempty" jsonschema:"Filter dimension to its currently valid values. Pass any subset to search_jobs_by_company's filters param. Absent when the company matches several sources; see sources."`
+	Sources []companyFilterSource `json:"sources,omitempty" jsonschema:"Present when the company name matches several sources. Filter values are only valid for their own source; search with the section's company slug to apply them."`
 }
 
 func companyFilters(ctx context.Context, reg *ats.Registry, in *companyFiltersInput) (*companyFiltersOutput, error) {
-	adapter, slug, err := reg.Resolve(in.Company)
+	resolved, err := reg.Resolve(in.Company)
 	if err != nil {
 		return nil, err
 	}
-	fs, err := adapter.Filters(ctx, slug)
-	if err != nil {
-		return nil, err
+	sources := make([]companyFilterSource, 0, len(resolved))
+	for _, rc := range resolved {
+		fs, err := rc.Adapter.Filters(ctx, rc.Slug)
+		if err != nil {
+			return nil, fmt.Errorf("company %q: %w", rc.Slug, err)
+		}
+		sources = append(sources, companyFilterSource{Company: rc.Slug, Filters: fs})
 	}
-	return &companyFiltersOutput{Filters: fs}, nil
+	// Single match keeps the historical flat shape; multi-match keeps each
+	// source's values apart, since they are only valid on their own source.
+	if len(sources) == 1 {
+		return &companyFiltersOutput{Filters: sources[0].Filters}, nil
+	}
+	return &companyFiltersOutput{Sources: sources}, nil
 }
 
 type companyDetailInput struct {
@@ -144,23 +165,31 @@ type companyDetailOutput struct {
 }
 
 func companyDetail(ctx context.Context, reg *ats.Registry, in *companyDetailInput) (*companyDetailOutput, error) {
-	adapter, slug, err := reg.Resolve(in.Company)
+	resolved, err := reg.Resolve(in.Company)
 	if err != nil {
 		return nil, err
 	}
-	d, err := adapter.Detail(ctx, slug, in.JobID)
-	if err != nil {
-		return nil, err
+	// The job_id belongs to exactly one source; take the first that has it.
+	// Unlike search, a miss here is an expected probe, not signal — only
+	// all-fail surfaces, with each error naming its slug.
+	var errs []error
+	for _, rc := range resolved {
+		d, err := rc.Adapter.Detail(ctx, rc.Slug, in.JobID)
+		if err != nil {
+			errs = append(errs, fmt.Errorf("company %q: %w", rc.Slug, err))
+			continue
+		}
+		return &companyDetailOutput{
+			JobID:       d.JobID,
+			Title:       d.Title,
+			Company:     d.Company,
+			Location:    d.Location,
+			PostedAt:    d.PostedAt,
+			URL:         d.URL,
+			Description: d.Description,
+		}, nil
 	}
-	return &companyDetailOutput{
-		JobID:       d.JobID,
-		Title:       d.Title,
-		Company:     d.Company,
-		Location:    d.Location,
-		PostedAt:    d.PostedAt,
-		URL:         d.URL,
-		Description: d.Description,
-	}, nil
+	return nil, errors.Join(errs...)
 }
 
 // RegisterCompany registers the unified company-parameterized job tools.
