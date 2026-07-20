@@ -1,0 +1,302 @@
+openapi: 3.1.0
+
+info:
+  title: Realtek Recruitment site API
+  version: "1"
+  description: >
+    Reverse-engineered spec for the JSON endpoints backing Realtek's
+    recruitment site at https://recruit.realtek.com/Job/Search (a Kendo
+    UI grid fed by jQuery AJAX calls). Derived from the page's inline
+    JavaScript and live captures (2026-07-21) stored in testdata/.
+
+    ## Surface notes
+
+    * Every endpoint wraps its payload in `{"Pass": bool, "Data": ...}`.
+      `Pass: false` has not been observed live; the site's own JS treats
+      it as a generic failure.
+
+    * `GET /Job/GetAllJobList` is a dump of open vacancies in one
+      response, no pagination — but it is **capped at 200 rows**, and
+      so is an unfiltered GetFilterList. Verified 2026-07-21: the union
+      of the disjoint `xp=0` and `xp=1` GetFilterList buckets held 254
+      distinct vacancies while the dump returned exactly 200, so 54
+      vacancies were invisible to unfiltered queries. Narrow filtered
+      queries are the only way to see past the cap; this client
+      deliberately mirrors the raw API and does not paper over it.
+      `POST /Job/GetFilterList` is the same list shape with server-side
+      filtering via a form-urlencoded body.
+
+    * GetFilterList semantics (from the site's `startJobSearch()`):
+      `keyword` is a substring match (title/requirement); `job_location`
+      takes the display name from GetAllLocationList (NOT the id);
+      `job_type_id` takes the id from GetAllTypeList; `xp` is the
+      MINIMUM years of experience — `xp=N` returns vacancies with
+      `Exp >= N` (except `xp=0`, which returns only `Exp` 0/-1), and
+      `-1` means no limit. The site's dropdown confirms this: 0 = 無經驗,
+      2 = 兩年以上, 5 = 五年以上, 10 = 十年以上. The site always sends
+      `xp`, defaulting to -1. Omitted or empty fields mean "any".
+
+    * GetFilterList's non-keyword filters are **soft** when `keyword`
+      is set: a row whose title matches the keyword is returned even if
+      it fails `job_location` / `job_type_id` / `xp` (observed live:
+      `keyword=會計` + `job_location=新竹科學園區` still returned Taipei
+      rows; `keyword=verification` + `job_type_id=20` included a type-21
+      row). Callers needing strict filtering must re-filter the response
+      client-side.
+
+    * Detail is keyed by `JobOppId` — the id used in
+      `/Job/JobDetail?jobid=` links — NOT `JobId`. An unknown `JobOppId`
+      is not a 404: it returns HTTP 200 with `Pass: true` and a Data
+      object whose fields are all null. `Data.JobTitle == null` is the
+      not-found signal (the site's JS checks exactly that). In found
+      responses only `JobTitle`, `Degree`, `Exp`, `Location`, and
+      `Requirement` are populated; the remaining fields are null.
+
+    * All ids and numeric-looking values (`Exp`, `JobTypeId`, ...) are
+      JSON strings. `Exp` is years of required experience as a string;
+      `"-1"` and `"0"` both render as "no limit" on the site.
+
+    * Content is zh-TW (with some English job titles) regardless of the
+      `lang` cookie or `?lang=` query param — those only switch the
+      static page chrome.
+
+    * `ModDate` has been null on every observed job summary.
+
+servers:
+  - url: https://recruit.realtek.com
+
+paths:
+  /Job/GetAllJobList:
+    get:
+      operationId: listJobs
+      summary: Dump of open vacancies (no pagination; capped at 200 rows).
+      responses:
+        "200":
+          description: >
+            Open vacancies, capped at 200 rows; vacancies beyond the cap
+            are only reachable through filtered GetFilterList queries.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JobListResponse"
+
+  /Job/GetFilterList:
+    post:
+      operationId: filterJobs
+      summary: Server-side filtered vacancy list.
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                keyword:
+                  type: string
+                  description: >
+                    Substring keyword match against title/requirement.
+                    Omit for any.
+                job_location:
+                  type: string
+                  description: >
+                    Location display name from GetAllLocationList
+                    (JobLocation), not the id. Omit for any.
+                xp:
+                  type: string
+                  description: >
+                    Minimum years of experience: "N" returns Exp >= N
+                    (except "0", which returns only Exp 0/-1); "-1"
+                    means no limit. The site always sends this field.
+                job_type_id:
+                  type: string
+                  description: >
+                    Job category id from GetAllTypeList. Omit for any.
+      responses:
+        "200":
+          description: >
+            Vacancies matching the filters (possibly empty). Title
+            keyword hits bypass the other filters — see the soft-filter
+            note in the top-level description. Unfiltered queries are
+            capped at 200 rows like GetAllJobList.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JobListResponse"
+
+  /Job/GetAllTypeList:
+    get:
+      operationId: listJobTypes
+      summary: Job category list used to populate the job_type_id filter.
+      responses:
+        "200":
+          description: All job categories.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [Pass, Data]
+                properties:
+                  Pass:
+                    type: boolean
+                  Data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/JobType"
+
+  /Job/GetAllLocationList:
+    get:
+      operationId: listJobLocations
+      summary: Location list; GetFilterList takes the display name.
+      responses:
+        "200":
+          description: All job locations.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [Pass, Data]
+                properties:
+                  Pass:
+                    type: boolean
+                  Data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/JobLocation"
+
+  /Job/GetVacancyDetail:
+    get:
+      operationId: getVacancyDetail
+      summary: Vacancy detail by JobOppId (not JobId).
+      parameters:
+        - name: JobOppId
+          in: query
+          required: true
+          schema:
+            type: string
+          description: >
+            The JobOppId from the job list (the id used in
+            /Job/JobDetail?jobid= links).
+      responses:
+        "200":
+          description: >
+            Vacancy detail. Unknown JobOppId still returns 200 with
+            Pass true and an all-null Data object; JobTitle == null is
+            the not-found signal.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [Pass, Data]
+                properties:
+                  Pass:
+                    type: boolean
+                  Data:
+                    $ref: "#/components/schemas/VacancyDetail"
+
+components:
+  schemas:
+    JobListResponse:
+      type: object
+      required: [Pass, Data]
+      properties:
+        Pass:
+          type: boolean
+        Data:
+          type: array
+          items:
+            $ref: "#/components/schemas/JobSummary"
+
+    JobSummary:
+      type: object
+      required:
+        - JobOppId
+        - JobId
+        - JobTypeId
+        - JobLocationId
+        - JobTitle
+        - JobType
+        - Degree
+        - Exp
+        - Location
+      properties:
+        JobOppId:
+          type: string
+          description: Detail/apply id; use for GetVacancyDetail.
+        JobId:
+          type: string
+          description: Internal grid row id; not accepted by detail.
+        JobTypeId:
+          type: string
+        JobLocationId:
+          type: string
+        JobTitle:
+          type: string
+        JobType:
+          type: string
+          description: Category display name (zh-TW).
+        Degree:
+          type: string
+          description: Minimum education, e.g. 大學 / 碩士.
+        Exp:
+          type: string
+          description: >
+            Required years of experience as a string; "-1" and "0" both
+            mean no limit.
+        Location:
+          type: string
+        ModDate:
+          type: ["string", "null"]
+          description: Null in every observed response.
+
+    JobType:
+      type: object
+      required: [JobTypeId, JobType]
+      properties:
+        JobTypeId:
+          type: string
+        JobType:
+          type: string
+
+    JobLocation:
+      type: object
+      required: [JobLocationId, JobLocation]
+      properties:
+        JobLocationId:
+          type: string
+        JobLocation:
+          type: string
+
+    VacancyDetail:
+      type: object
+      description: >
+        Only JobTitle, Degree, Exp, Location, and Requirement are
+        populated on found vacancies; every other field is null. All
+        fields (including JobTitle) are null for an unknown JobOppId.
+      properties:
+        JobTitle:
+          type: ["string", "null"]
+        JobId:
+          type: ["string", "null"]
+        JobType:
+          type: ["string", "null"]
+        JobTypeId:
+          type: ["string", "null"]
+        JobOppId:
+          type: ["string", "null"]
+        CatId:
+          type: ["string", "null"]
+        Category:
+          type: ["string", "null"]
+        DegreeId:
+          type: ["string", "null"]
+        Degree:
+          type: ["string", "null"]
+        Exp:
+          type: ["string", "null"]
+        LocationId:
+          type: ["string", "null"]
+        Location:
+          type: ["string", "null"]
+        Requirement:
+          type: ["string", "null"]
+          description: Full description/requirements text with \r\n newlines.
