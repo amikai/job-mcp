@@ -34,7 +34,7 @@ type Handler interface {
 	ListJobTypes(ctx context.Context) (*ListJobTypesOK, error)
 	// ListJobs implements listJobs operation.
 	//
-	// Full dump of all open vacancies (no pagination).
+	// Dump of open vacancies (no pagination; capped at 200 rows).
 	//
 	// GET /Job/GetAllJobList
 	ListJobs(ctx context.Context) (*JobListResponse, error)

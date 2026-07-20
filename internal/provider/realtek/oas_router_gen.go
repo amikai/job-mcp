@@ -330,7 +330,7 @@ func (s *Server) FindPath(method string, u *url.URL) (r Route, _ bool) {
 						switch method {
 						case "GET":
 							r.name = ListJobsOperation
-							r.summary = "Full dump of all open vacancies (no pagination)."
+							r.summary = "Dump of open vacancies (no pagination; capped at 200 rows)."
 							r.operationID = "listJobs"
 							r.operationGroup = ""
 							r.pathPattern = "/Job/GetAllJobList"

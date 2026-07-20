@@ -569,7 +569,7 @@ func (s *Server) handleListJobTypesRequest(args [0]string, argsEscaped bool, w h
 
 // handleListJobsRequest handles listJobs operation.
 //
-// Full dump of all open vacancies (no pagination).
+// Dump of open vacancies (no pagination; capped at 200 rows).
 //
 // GET /Job/GetAllJobList
 func (s *Server) handleListJobsRequest(args [0]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {
@@ -647,7 +647,7 @@ func (s *Server) handleListJobsRequest(args [0]string, argsEscaped bool, w http.
 		mreq := middleware.Request{
 			Context:          ctx,
 			OperationName:    ListJobsOperation,
-			OperationSummary: "Full dump of all open vacancies (no pagination).",
+			OperationSummary: "Dump of open vacancies (no pagination; capped at 200 rows).",
 			OperationID:      "listJobs",
 			Body:             nil,
 			RawBody:          rawBody,

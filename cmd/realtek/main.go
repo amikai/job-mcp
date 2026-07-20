@@ -35,7 +35,7 @@ func main() {
 		keyword  = searchFS.StringLong("keyword", "", "substring keyword match against title/requirement")
 		location = searchFS.StringLong("location", "", "location display name from the 'locations' subcommand (not the id)")
 		typeID   = searchFS.StringLong("type-id", "", "job category id from the 'types' subcommand")
-		xp       = searchFS.IntLong("xp", -1, "maximum years of experience; -1 means no limit")
+		xp       = searchFS.IntLong("xp", -1, "minimum years of experience (N returns Exp >= N; 0 returns only no-experience jobs); -1 means no limit")
 	)
 	searchCmd := &ff.Command{
 		Name:      "search",
@@ -183,9 +183,10 @@ type searchFlags struct {
 }
 
 // runSearch calls GetFilterList when any filter is set, or the unfiltered
-// GetAllJobList full dump otherwise (GetFilterList's own defaults, keyword
+// GetAllJobList dump otherwise (GetFilterList's own defaults, keyword
 // omitted and xp -1, make it equivalent to the dump, but the dump avoids
-// an unnecessary form-encoded POST).
+// an unnecessary form-encoded POST). Both unfiltered paths are capped at
+// 200 rows by the server; see openapi.yaml.
 func runSearch(ctx context.Context, f searchFlags) error {
 	ctx, cancel := context.WithTimeout(ctx, f.timeout)
 	defer cancel()

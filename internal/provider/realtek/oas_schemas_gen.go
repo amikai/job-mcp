@@ -7,7 +7,8 @@ type FilterJobsReq struct {
 	Keyword OptString `json:"keyword"`
 	// Location display name from GetAllLocationList (JobLocation), not the id. Omit for any.
 	JobLocation OptString `json:"job_location"`
-	// Maximum years of experience; "-1" means no limit. The site always sends this field.
+	// Minimum years of experience: "N" returns Exp >= N (except "0", which returns only Exp 0/-1); "-1"
+	// means no limit. The site always sends this field.
 	Xp OptString `json:"xp"`
 	// Job category id from GetAllTypeList. Omit for any.
 	JobTypeID OptString `json:"job_type_id"`

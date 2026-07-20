@@ -53,7 +53,7 @@ func TestFilterJobs(t *testing.T) {
 	// The keyword matches substrings of title/requirement server-side;
 	// requirement text isn't exposed on this list endpoint, so not every
 	// title visibly contains the keyword, but the result set (43) is
-	// narrower than the full dump (200).
+	// narrower than the capped dump (200).
 	assert.Len(t, res.Data, 43)
 }
 

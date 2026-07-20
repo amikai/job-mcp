@@ -54,7 +54,7 @@ type Invoker interface {
 	ListJobTypes(ctx context.Context) (*ListJobTypesOK, error)
 	// ListJobs invokes listJobs operation.
 	//
-	// Full dump of all open vacancies (no pagination).
+	// Dump of open vacancies (no pagination; capped at 200 rows).
 	//
 	// GET /Job/GetAllJobList
 	ListJobs(ctx context.Context) (*JobListResponse, error)
@@ -442,7 +442,7 @@ func (c *Client) sendListJobTypes(ctx context.Context) (res *ListJobTypesOK, err
 
 // ListJobs invokes listJobs operation.
 //
-// Full dump of all open vacancies (no pagination).
+// Dump of open vacancies (no pagination; capped at 200 rows).
 //
 // GET /Job/GetAllJobList
 func (c *Client) ListJobs(ctx context.Context) (*JobListResponse, error) {
