@@ -1,0 +1,213 @@
+openapi: 3.1.0
+
+info:
+  title: Quanta Computer recruitment site API
+  version: "1"
+  description: >
+    Reverse-engineered spec for the JSON endpoint backing Quanta
+    Computer's recruitment site at
+    https://hr.quantatw.com/QuantaRecruit/Home/Job (an ASP.NET Core page
+    whose inline jQuery fetches the whole board once and searches it
+    client-side). Derived from the page's inline JavaScript and live
+    captures (2026-07-21) stored in testdata/.
+
+    ## Surface notes
+
+    * One anonymous `GET /QuantaRecruit/Home/QueryJob` returns every
+      open vacancy (239 rows at capture time) with description,
+      requirements, and salary inline. No pagination, no cookies, no
+      User-Agent requirement. The query string is a no-op — the action
+      takes no parameters, and keyword/category/limit probes returned
+      byte-identical bodies — so there is no server-side search, no
+      error shape, and no not-found: filtering and detail lookup (by
+      `serial`) happen client-side, exactly as the site's own JS does.
+
+    * The page script reads `data.category` and `data.location` from
+      this response, but the live endpoint has never returned those
+      keys; the filter option lists are server-rendered into the Job
+      page HTML instead. Each row's id/name pairs (`capoid`/`caponm`,
+      `locati`/`locatm`) carry the same mapping, so the dump is
+      self-describing.
+
+    * All values are JSON strings, including ids and flags. Y/N flags:
+      `posint` (also posted on the internal board), `newjob` (recently
+      posted; the site currently renders no badge for it), `iscont`
+      (semantics unobserved — "N" appeared on exactly one row). `cancel`
+      has only ever been "N" and `posext` only "Y": the dump already
+      contains only active, externally posted vacancies.
+
+    * `ordern` is the hot-job flag/ordering: "0" means not hot, any
+      other value marks the row as a 熱門職缺 and sorts the hot list.
+      `capord`/`locord` are display sort orders for the row's category
+      and location.
+
+    * `requnm` (requirements) is the only nullable field — null on two
+      disability-quota (身心障礙專區) rows at capture time. `salary` and
+      `keywrd` can be empty strings; `keywrd` is comma-separated and its
+      values may carry a leading space.
+
+    * `serial` is the unique per-vacancy id (used in the site's share
+      links as `?serial=`); `jobdid` is the human-facing job code (e.g.
+      "J0106"). `descnm`/`requnm` are plain text with CRLF newlines.
+
+    * Content is zh-TW throughout.
+
+servers:
+  - url: https://hr.quantatw.com
+
+paths:
+  /QuantaRecruit/Home/QueryJob:
+    get:
+      operationId: listJobs
+      summary: Full dump of open vacancies (no pagination, no parameters).
+      description: >
+        Returns the whole board in one response. The query string is
+        ignored (byte-identical bodies observed for keyword/category/
+        limit probes), so search, category, location, and detail
+        narrowing all happen client-side.
+      responses:
+        "200":
+          description: OK — returned even for unknown query parameters.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JobList"
+
+components:
+  schemas:
+    JobList:
+      type: object
+      required: [jobResult]
+      properties:
+        jobResult:
+          type: array
+          items:
+            $ref: "#/components/schemas/Job"
+      description: >
+        Response envelope. `jobResult` is the only key the live endpoint
+        returns; the `category`/`location` keys the page script probes
+        for have never been observed.
+
+    Job:
+      type: object
+      required:
+        - jobdid
+        - serial
+        - capoid
+        - caponm
+        - cataid
+        - jobdnm
+        - locati
+        - locatm
+        - posext
+        - posint
+        - cancel
+        - iscont
+        - requnm
+        - descnm
+        - keywrd
+        - ordern
+        - salary
+        - newjob
+        - capord
+        - locord
+      x-ogen-properties:
+        jobdid: {name: JobCode}
+        serial: {name: Serial}
+        capoid: {name: CategoryID}
+        caponm: {name: CategoryName}
+        cataid: {name: CataID}
+        jobdnm: {name: Title}
+        locati: {name: LocationID}
+        locatm: {name: LocationName}
+        posext: {name: PostedExternal}
+        posint: {name: PostedInternal}
+        cancel: {name: Cancelled}
+        iscont: {name: IsCont}
+        requnm: {name: Requirements}
+        descnm: {name: Description}
+        keywrd: {name: Keywords}
+        ordern: {name: HotOrder}
+        salary: {name: Salary}
+        newjob: {name: NewJob}
+        capord: {name: CategoryOrder}
+        locord: {name: LocationOrder}
+      properties:
+        jobdid:
+          type: string
+          description: Human-facing job code, e.g. "J0106".
+        serial:
+          type: string
+          description: >
+            Unique per-vacancy id; the site's share links use it as
+            `?serial=`. Detail lookup means finding this id in the dump.
+        capoid:
+          type: string
+          description: Job category id; paired with `caponm`.
+        caponm:
+          type: string
+          description: Job category display name (e.g. 硬體研發).
+        cataid:
+          type: string
+          description: >
+            Internal category grouping id; distinct from `capoid` and
+            unused by the site's front-end JS.
+        jobdnm:
+          type: string
+          description: Job title.
+        locati:
+          type: string
+          description: Work location id; paired with `locatm`.
+        locatm:
+          type: string
+          description: Work location display name (e.g. 林口研發中心).
+        posext:
+          type: string
+          description: >
+            Posted on the external board, Y/N — only "Y" observed; the
+            dump contains only externally posted vacancies.
+        posint:
+          type: string
+          description: Also posted on the internal board, Y/N.
+        cancel:
+          type: string
+          description: >
+            Cancellation flag, Y/N — only "N" observed; the dump
+            contains only active vacancies.
+        iscont:
+          type: string
+          description: >
+            Y/N flag of unobserved semantics; "N" appeared on exactly
+            one row at capture time.
+        requnm:
+          type: [string, "null"]
+          description: >
+            Qualification requirements, plain text with CRLF newlines.
+            Null (or empty) on a few rows.
+        descnm:
+          type: string
+          description: Job description, plain text with CRLF newlines.
+        keywrd:
+          type: string
+          description: >
+            Comma-separated hashtags; may be empty, and values may carry
+            a leading space.
+        ordern:
+          type: string
+          description: >
+            Hot-job ordering: "0" means not hot; any other value marks
+            the row as 熱門職缺 and sorts the hot list.
+        salary:
+          type: string
+          description: Salary text (e.g. 面議...); may be empty.
+        newjob:
+          type: string
+          description: >
+            Recently-posted flag, Y/N; the site currently renders no
+            badge for it.
+        capord:
+          type: string
+          description: Display sort order of the row's category.
+        locord:
+          type: string
+          description: Display sort order of the row's location.

@@ -18,6 +18,7 @@ OPENAPI_SPECS := \
 	internal/provider/linkedin/openapi.yaml \
 	internal/provider/nvidia/openapi.yaml \
 	internal/provider/oracle/openapi.yaml \
+	internal/provider/quanta/openapi.yaml \
 	internal/provider/realtek/openapi.yaml \
 	internal/provider/recruitee/openapi.yaml \
 	internal/provider/remotefirstjobs/openapi.yaml \
